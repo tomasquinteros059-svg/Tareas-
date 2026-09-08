@@ -1,0 +1,262 @@
+import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
+import { CATALOGO, buscarRubro, cotizar } from '@tareas/domain';
+import { ErrorApi, invalido, sinPermiso } from './lib/errores.js';
+import type { Contexto } from './contexto.js';
+
+const dificultad = z.enum(['BASICA', 'MEDIA', 'ALTA', 'EXPERTA']);
+const urgencia = z.enum(['PROGRAMADA', 'HOY', 'INMEDIATA']);
+const nivel = z.enum(['NUEVO', 'BRONCE', 'PLATA', 'ORO', 'PLATINO']);
+const metodoPago = z.enum(['TARJETA', 'EFECTIVO']);
+
+const cotizacionSchema = z.object({
+  rubroSlug: z.string(),
+  unidades: z.number().positive(),
+  dificultad,
+  urgencia,
+  nivelMinimo: nivel.default('NUEVO'),
+  fueraDeHorario: z.boolean().optional(),
+  distanciaKm: z.number().nonnegative().optional(),
+  materiales: z.number().int().nonnegative().optional(),
+});
+
+const nuevaTareaSchema = cotizacionSchema.extend({
+  titulo: z.string().min(5).max(120),
+  descripcion: z.string().min(10).max(4000),
+  presupuesto: z.number().int().positive(),
+  metodoPago,
+  metodoPagoToken: z.string().optional(),
+  direccionId: z.string().uuid().optional(),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  exigeAntecedentes: z.boolean().optional(),
+  programadaPara: z.coerce.date().optional(),
+  fotos: z.array(z.string().url()).max(8).optional(),
+});
+
+export async function registrarRutas(app: FastifyInstance, ctx: Contexto) {
+  app.get('/salud', async () => ({ ok: true, version: '0.1.0' }));
+
+  // --- Catálogo y cotizador: públicos, para que se pueda ver el precio sin cuenta.
+  app.get('/catalogo', async () => ({
+    rubros: CATALOGO.map((r) => ({
+      slug: r.slug,
+      nombre: r.nombre,
+      familia: r.familia,
+      unidad: r.unidad,
+      minimoPorUnidad: r.minimoPorUnidad,
+      unidadesMinimas: r.unidadesMinimas,
+      requiereLicencia: r.requiereLicencia,
+      requiereAntecedentes: r.requiereAntecedentes,
+    })),
+  }));
+
+  app.get('/catalogo/:slug', async (req) => {
+    const { slug } = req.params as { slug: string };
+    const rubro = buscarRubro(slug);
+    if (!rubro) throw new ErrorApi(404, 'NO_ENCONTRADO', 'Ese rubro no existe');
+    return rubro;
+  });
+
+  app.post('/cotizar', async (req) => {
+    const datos = cotizacionSchema.parse(req.body);
+    return cotizar(datos);
+  });
+
+  // --- Ingreso por teléfono (OTP). Google y LinkedIn cuelgan de /auth/:proveedor.
+  app.post('/auth/telefono/codigo', async (req) => {
+    const { telefono } = z.object({ telefono: z.string().min(8).max(20) }).parse(req.body);
+    return ctx.otp.enviar(telefono);
+  });
+
+  app.post('/auth/telefono/verificar', async (req) => {
+    const cuerpo = z
+      .object({
+        telefono: z.string().min(8).max(20),
+        codigo: z.string().length(6),
+        nombre: z.string().min(2).optional(),
+        apellido: z.string().min(2).optional(),
+      })
+      .parse(req.body);
+
+    const ok = await ctx.otp.verificar(cuerpo.telefono, cuerpo.codigo);
+    if (!ok) throw invalido('CODIGO_INCORRECTO', 'El código no es correcto');
+
+    const usuario = await ctx.prisma.usuario.upsert({
+      where: { telefono: cuerpo.telefono },
+      create: {
+        telefono: cuerpo.telefono,
+        telefonoOk: true,
+        nombre: cuerpo.nombre ?? 'Sin nombre',
+        apellido: cuerpo.apellido ?? '',
+      },
+      update: { telefonoOk: true },
+    });
+    return { token: app.jwt.sign({ sub: usuario.id, roles: usuario.roles }), usuario };
+  });
+
+  app.get('/auth/:proveedor', async (req, reply) => {
+    const { proveedor } = z.object({ proveedor: z.enum(['google', 'linkedin']) }).parse(req.params);
+    const cliente = ctx.oauth[proveedor];
+    if (!cliente) throw invalido('PROVEEDOR_NO_CONFIGURADO', `Falta configurar ${proveedor}`);
+    return reply.redirect(cliente.urlAutorizacion(crypto.randomUUID()));
+  });
+
+  app.get('/auth/:proveedor/callback', async (req) => {
+    const { proveedor } = z.object({ proveedor: z.enum(['google', 'linkedin']) }).parse(req.params);
+    const { code } = z.object({ code: z.string() }).parse(req.query);
+    const cliente = ctx.oauth[proveedor];
+    if (!cliente) throw invalido('PROVEEDOR_NO_CONFIGURADO', `Falta configurar ${proveedor}`);
+
+    const perfil = await cliente.perfilDesdeCodigo(code);
+    const existente = await ctx.prisma.cuentaOAuth.findUnique({
+      where: { proveedor_proveedorId: { proveedor: perfil.proveedor, proveedorId: perfil.proveedorId } },
+      include: { usuario: true },
+    });
+
+    // El teléfono sigue siendo obligatorio: el login social identifica, pero el
+    // contacto real entre dos personas que se van a encontrar es el teléfono.
+    if (!existente) {
+      return {
+        requiereTelefono: true,
+        perfil: { ...perfil, datos: undefined },
+        mensaje: 'Verificá tu teléfono para terminar de crear la cuenta',
+      };
+    }
+    return {
+      token: app.jwt.sign({ sub: existente.usuarioId, roles: existente.usuario.roles }),
+      usuario: existente.usuario,
+    };
+  });
+
+  // --- De acá para abajo hace falta sesión.
+  app.register(async (privadas) => {
+    privadas.addHook('onRequest', async (req) => {
+      await req.jwtVerify();
+    });
+
+    privadas.get('/yo', async (req) => {
+      const usuario = await ctx.prisma.usuario.findUniqueOrThrow({
+        where: { id: req.usuarioId() },
+        include: { perfil: { include: { habilidades: true } } },
+      });
+      return { usuario, identidad: await ctx.identidad.ver(usuario.id) };
+    });
+
+    privadas.post('/identidad', async (req) => {
+      const datos = z
+        .object({
+          tipoDocumento: z.enum(['CEDULA', 'DNI', 'PASAPORTE', 'LICENCIA_CONDUCIR']),
+          numero: z.string().min(5).max(30),
+          paisEmision: z.string().length(2),
+          nombreLegal: z.string().min(4),
+          fechaNacimiento: z.coerce.date(),
+          frenteUrl: z.string().url().optional(),
+          dorsoUrl: z.string().url().optional(),
+          selfieUrl: z.string().url().optional(),
+        })
+        .parse(req.body);
+      await ctx.identidad.registrar(req.usuarioId(), datos);
+      return ctx.identidad.ver(req.usuarioId());
+    });
+
+    privadas.post('/identidad/:usuarioId/resolver', async (req) => {
+      exigirRol(req.roles(), 'SOPORTE');
+      const { usuarioId } = z.object({ usuarioId: z.string().uuid() }).parse(req.params);
+      const { aprobado, motivo } = z
+        .object({ aprobado: z.boolean(), motivo: z.string().optional() })
+        .parse(req.body);
+      await ctx.identidad.resolver(usuarioId, aprobado, req.usuarioId(), motivo);
+      return ctx.identidad.ver(usuarioId);
+    });
+
+    privadas.post('/tareas', async (req, reply) => {
+      const datos = nuevaTareaSchema.parse(req.body);
+      const tarea = await ctx.tareas.publicar(req.usuarioId(), datos);
+      return reply.code(201).send(tarea);
+    });
+
+    privadas.get('/tareas/:folio', async (req) => {
+      const { folio } = z.object({ folio: z.string() }).parse(req.params);
+      return ctx.tareas.porFolio(folio);
+    });
+
+    privadas.get('/feed', async (req) => ({ tareas: await ctx.tareas.feed(req.usuarioId()) }));
+
+    privadas.post('/tareas/:id/aceptar', async (req) => {
+      const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+      return ctx.tareas.aceptar(id, req.usuarioId());
+    });
+
+    privadas.post('/tareas/:id/estado', async (req) => {
+      const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+      const cuerpo = z
+        .object({
+          estado: z.enum([
+            'EN_CAMINO',
+            'EN_PROGRESO',
+            'ENTREGADA',
+            'CONFIRMADA',
+            'CANCELADA',
+            'PUBLICADA',
+            'EN_DISPUTA',
+          ]),
+          codigoInicio: z.string().length(4).optional(),
+          nota: z.string().max(500).optional(),
+        })
+        .parse(req.body);
+      return ctx.tareas.cambiarEstado(id, req.usuarioId(), cuerpo.estado, {
+        codigoInicio: cuerpo.codigoInicio,
+        nota: cuerpo.nota,
+      });
+    });
+
+    privadas.post('/tareas/:id/preguntas', async (req) => {
+      const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+      const { texto } = z.object({ texto: z.string().min(3).max(500) }).parse(req.body);
+      return ctx.tareas.preguntar(id, req.usuarioId(), texto);
+    });
+
+    privadas.post('/tareas/:id/mensajes', async (req) => {
+      const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+      const { texto } = z.object({ texto: z.string().min(1).max(2000) }).parse(req.body);
+      return ctx.tareas.mensajear(id, req.usuarioId(), texto);
+    });
+
+    privadas.post('/tareas/:id/calificar', async (req) => {
+      const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+      const datos = z
+        .object({
+          estrellas: z.number().int().min(1).max(5),
+          comentario: z.string().max(1000).optional(),
+          etiquetas: z.array(z.string().max(30)).max(5).optional(),
+          puntual: z.boolean().optional(),
+        })
+        .parse(req.body);
+      return ctx.calificaciones.calificar(id, req.usuarioId(), datos);
+    });
+
+    privadas.get('/saldo', async (req) => {
+      const usuarioId = req.usuarioId();
+      const [perfil, movimientos] = await Promise.all([
+        ctx.prisma.perfilTrabajador.findUnique({ where: { usuarioId } }),
+        ctx.prisma.movimientoSaldo.findMany({
+          where: { usuarioId },
+          orderBy: { creadoEn: 'desc' },
+          take: 50,
+        }),
+      ]);
+      return {
+        saldo: perfil?.saldo ?? 0,
+        deudaComisiones: perfil && perfil.saldo < 0 ? -perfil.saldo : 0,
+        movimientos,
+      };
+    });
+  });
+}
+
+function exigirRol(roles: string[], rol: string) {
+  if (!roles.includes(rol) && !roles.includes('ADMIN')) {
+    throw sinPermiso(`Esta acción es sólo para ${rol}`);
+  }
+}

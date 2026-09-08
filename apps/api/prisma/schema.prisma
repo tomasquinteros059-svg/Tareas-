@@ -1,0 +1,444 @@
+// Modelo de datos de Tareas.
+// Regla de oro: el dinero se guarda en enteros (centavos) y todo movimiento
+// queda registrado; nada se "recalcula" después a mano.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Rol {
+  CLIENTE
+  TRABAJADOR
+  SOPORTE
+  ADMIN
+}
+
+enum Proveedor {
+  GOOGLE
+  LINKEDIN
+  TELEFONO
+}
+
+enum EstadoVerificacion {
+  PENDIENTE
+  EN_REVISION
+  VERIFICADO
+  RECHAZADO
+}
+
+enum TipoDocumento {
+  CEDULA
+  DNI
+  PASAPORTE
+  LICENCIA_CONDUCIR
+}
+
+enum Nivel {
+  NUEVO
+  BRONCE
+  PLATA
+  ORO
+  PLATINO
+}
+
+enum Dificultad {
+  BASICA
+  MEDIA
+  ALTA
+  EXPERTA
+}
+
+enum Urgencia {
+  PROGRAMADA
+  HOY
+  INMEDIATA
+}
+
+enum MetodoPago {
+  TARJETA
+  EFECTIVO
+}
+
+enum EstadoTarea {
+  BORRADOR
+  PUBLICADA
+  ASIGNADA
+  EN_CAMINO
+  EN_PROGRESO
+  ENTREGADA
+  CONFIRMADA
+  PAGADA
+  CANCELADA
+  EXPIRADA
+  EN_DISPUTA
+}
+
+enum EstadoPago {
+  PENDIENTE
+  RETENIDO
+  CAPTURADO
+  LIQUIDADO
+  REEMBOLSADO
+  FALLIDO
+  EN_MANO
+}
+
+enum TipoMovimiento {
+  ACREDITACION_TRABAJO
+  DEUDA_COMISION_EFECTIVO
+  PAGO_DE_DEUDA
+  RETIRO
+  COMPENSACION_CANCELACION
+  AJUSTE_SOPORTE
+  PROPINA
+}
+
+model Usuario {
+  id             String    @id @default(uuid())
+  nombre         String
+  apellido       String
+  email          String?   @unique
+  telefono       String    @unique
+  telefonoOk     Boolean   @default(false)
+  emailOk        Boolean   @default(false)
+  fotoUrl        String?
+  roles          Rol[]     @default([CLIENTE])
+  suspendido     Boolean   @default(false)
+  motivoSuspension String?
+  creadoEn       DateTime  @default(now())
+  actualizadoEn  DateTime  @updatedAt
+
+  cuentas        CuentaOAuth[]
+  identidad      Identidad?
+  direcciones    Direccion[]
+  perfil         PerfilTrabajador?
+  tareasCreadas  Tarea[]   @relation("TareasDelCliente")
+  tareasTomadas  Tarea[]   @relation("TareasDelTrabajador")
+  preguntas      Pregunta[]
+  mensajes       Mensaje[]
+  califEmitidas  Calificacion[] @relation("CalificacionAutor")
+  califRecibidas Calificacion[] @relation("CalificacionDestinatario")
+  movimientos    MovimientoSaldo[]
+  codigosOtp     CodigoOtp[]
+
+  @@index([telefono])
+}
+
+/// Identidades federadas. LinkedIn no es sólo login: su URL de perfil se muestra
+/// en la ficha del trabajador como respaldo profesional verificable.
+model CuentaOAuth {
+  id           String    @id @default(uuid())
+  usuarioId    String
+  usuario      Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  proveedor    Proveedor
+  proveedorId  String
+  email        String?
+  perfilUrl    String?
+  /// Campos crudos útiles del proveedor (headline, empresa, foto). Nunca tokens.
+  datos        Json?
+  creadoEn     DateTime  @default(now())
+
+  @@unique([proveedor, proveedorId])
+  @@index([usuarioId])
+}
+
+/// Verificación de identidad (carnet/cédula). El número completo se guarda
+/// cifrado con AES-256-GCM; el hash permite detectar duplicados sin descifrar
+/// y sólo los últimos 4 dígitos se muestran en la app.
+model Identidad {
+  id             String             @id @default(uuid())
+  usuarioId      String             @unique
+  usuario        Usuario            @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  tipoDocumento  TipoDocumento
+  paisEmision    String
+  numeroCifrado  String
+  numeroHash     String             @unique
+  ultimos4       String
+  nombreLegal    String
+  fechaNacimiento DateTime
+  frenteUrl      String?
+  dorsoUrl       String?
+  selfieUrl      String?
+  estado         EstadoVerificacion @default(PENDIENTE)
+  motivoRechazo  String?
+  revisadoPor    String?
+  verificadoEn   DateTime?
+  creadoEn       DateTime           @default(now())
+  actualizadoEn  DateTime           @updatedAt
+
+  @@index([estado])
+}
+
+model Direccion {
+  id           String   @id @default(uuid())
+  usuarioId    String
+  usuario      Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  etiqueta     String   @default("Casa")
+  calle        String
+  numero       String?
+  piso         String?
+  ciudad       String
+  provincia    String
+  pais         String
+  codigoPostal String?
+  referencias  String?
+  lat          Float
+  lng          Float
+  principal    Boolean  @default(false)
+  creadoEn     DateTime @default(now())
+
+  tareas       Tarea[]
+
+  @@index([usuarioId])
+}
+
+model PerfilTrabajador {
+  id                     String             @id @default(uuid())
+  usuarioId              String             @unique
+  usuario                Usuario            @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  bio                    String?
+  nivel                  Nivel              @default(NUEVO)
+  /// Calificación bayesiana ya calculada (ver domain/reputacion.ts).
+  calificacion           Float              @default(4.3)
+  sumaEstrellas          Int                @default(0)
+  cantidadCalificaciones Int                @default(0)
+  trabajosCompletados    Int                @default(0)
+  trabajosAceptados      Int                @default(0)
+  trabajosCancelados     Int                @default(0)
+  llegadasPuntuales      Int                @default(0)
+  antecedentes           EstadoVerificacion @default(PENDIENTE)
+  disponible             Boolean            @default(false)
+  aceptaEfectivo         Boolean            @default(true)
+  radioKm                Float              @default(15)
+  lat                    Float?
+  lng                    Float?
+  /// Saldo en centavos: positivo es plata a cobrar, negativo es comisión adeudada.
+  saldo                  Int                @default(0)
+  creadoEn               DateTime           @default(now())
+  actualizadoEn          DateTime           @updatedAt
+
+  habilidades            Habilidad[]
+
+  @@index([nivel])
+  @@index([disponible])
+}
+
+/// Rubro habilitado en el perfil de un trabajador, con su matrícula si el rubro
+/// la exige (abogado, electricista, enfermería...).
+model Habilidad {
+  id              String             @id @default(uuid())
+  perfilId        String
+  perfil          PerfilTrabajador   @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+  rubroSlug       String
+  aniosExperiencia Int               @default(0)
+  licenciaNumero  String?
+  licenciaEstado  EstadoVerificacion @default(PENDIENTE)
+  licenciaVence   DateTime?
+
+  @@unique([perfilId, rubroSlug])
+  @@index([rubroSlug])
+}
+
+/// Una solicitud de trabajo. El folio (TQ-260908-4F7K) es su identidad pública:
+/// reemplaza al hilo de comentarios como forma de referirse a ella.
+model Tarea {
+  folio            String      @unique
+  id               String      @id @default(uuid())
+  autorId          String
+  autor            Usuario     @relation("TareasDelCliente", fields: [autorId], references: [id])
+  trabajadorId     String?
+  trabajador       Usuario?    @relation("TareasDelTrabajador", fields: [trabajadorId], references: [id])
+
+  rubroSlug        String
+  titulo           String
+  descripcion      String
+  fotos            String[]    @default([])
+
+  unidades         Float
+  dificultad       Dificultad
+  urgencia         Urgencia
+  nivelMinimo      Nivel       @default(NUEVO)
+  exigeAntecedentes Boolean    @default(false)
+
+  /// Mínimo que devolvió el cotizador al publicar: queda congelado como prueba.
+  minimoCalculado  Int
+  presupuesto      Int
+  materiales       Int         @default(0)
+  propina          Int         @default(0)
+  metodoPago       MetodoPago
+  moneda           String      @default("USD")
+
+  estado           EstadoTarea @default(BORRADOR)
+  direccionId      String?
+  direccion        Direccion?  @relation(fields: [direccionId], references: [id])
+  lat              Float
+  lng              Float
+
+  /// Código de 4 dígitos que el cliente le dicta al trabajador para arrancar:
+  /// prueba de que llegó al lugar y con la persona correcta.
+  codigoInicio     String?
+
+  programadaPara   DateTime?
+  publicadaEn      DateTime?
+  expiraEn         DateTime?
+  asignadaEn       DateTime?
+  iniciadaEn       DateTime?
+  entregadaEn      DateTime?
+  confirmadaEn     DateTime?
+  cerradaEn        DateTime?
+  creadoEn         DateTime    @default(now())
+  actualizadoEn    DateTime    @updatedAt
+
+  eventos          EventoTarea[]
+  preguntas        Pregunta[]
+  mensajes         Mensaje[]
+  calificaciones   Calificacion[]
+  pago             Pago?
+  movimientos      MovimientoSaldo[]
+
+  @@index([estado, publicadaEn])
+  @@index([rubroSlug, estado])
+  @@index([autorId])
+  @@index([trabajadorId])
+}
+
+/// Bitácora de la tarea. Cada cambio de estado deja rastro: es lo que se mira
+/// en una disputa, y evita el "¿quién dijo qué?" de los comentarios.
+model EventoTarea {
+  id        String      @id @default(uuid())
+  tareaId   String
+  tarea     Tarea       @relation(fields: [tareaId], references: [id], onDelete: Cascade)
+  desde     EstadoTarea?
+  hacia     EstadoTarea
+  actorId   String?
+  actorRol  String
+  nota      String?
+  datos     Json?
+  creadoEn  DateTime    @default(now())
+
+  @@index([tareaId, creadoEn])
+}
+
+/// Preguntas ANTES de asignar. Son 1 a 1 con el cliente y están limitadas por
+/// tarea y por trabajador: sirven para despejar una duda, no para armar un hilo.
+model Pregunta {
+  id          String   @id @default(uuid())
+  tareaId     String
+  tarea       Tarea    @relation(fields: [tareaId], references: [id], onDelete: Cascade)
+  autorId     String
+  autor       Usuario  @relation(fields: [autorId], references: [id], onDelete: Cascade)
+  texto       String
+  respuesta   String?
+  respondidaEn DateTime?
+  /// Si el cliente marca la respuesta como útil, se muestra a todos los demás
+  /// candidatos para que nadie vuelva a preguntar lo mismo.
+  publica     Boolean  @default(false)
+  creadoEn    DateTime @default(now())
+
+  @@index([tareaId])
+}
+
+/// Chat privado, sólo entre el cliente y el trabajador asignado, y sólo
+/// mientras la tarea está viva.
+model Mensaje {
+  id        String   @id @default(uuid())
+  tareaId   String
+  tarea     Tarea    @relation(fields: [tareaId], references: [id], onDelete: Cascade)
+  autorId   String
+  autor     Usuario  @relation(fields: [autorId], references: [id], onDelete: Cascade)
+  texto     String
+  adjuntoUrl String?
+  leidoEn   DateTime?
+  creadoEn  DateTime @default(now())
+
+  @@index([tareaId, creadoEn])
+}
+
+/// Calificación de doble vía: las dos partes se califican y ninguna ve la del
+/// otro hasta que ambas calificaron o pasan 7 días.
+model Calificacion {
+  id            String   @id @default(uuid())
+  tareaId       String
+  tarea         Tarea    @relation(fields: [tareaId], references: [id], onDelete: Cascade)
+  autorId       String
+  autor         Usuario  @relation("CalificacionAutor", fields: [autorId], references: [id])
+  destinatarioId String
+  destinatario  Usuario  @relation("CalificacionDestinatario", fields: [destinatarioId], references: [id])
+  estrellas     Int
+  comentario    String?
+  etiquetas     String[] @default([])
+  puntual       Boolean?
+  visible       Boolean  @default(false)
+  creadoEn      DateTime @default(now())
+
+  @@unique([tareaId, autorId])
+  @@index([destinatarioId])
+}
+
+model Pago {
+  id                String     @id @default(uuid())
+  tareaId           String     @unique
+  tarea             Tarea      @relation(fields: [tareaId], references: [id], onDelete: Cascade)
+  metodo            MetodoPago
+  estado            EstadoPago @default(PENDIENTE)
+  moneda            String     @default("USD")
+
+  montoTarea        Int
+  cargoServicio     Int        @default(0)
+  propina           Int        @default(0)
+  totalCliente      Int        @default(0)
+  comision          Int        @default(0)
+  tasaComision      Float      @default(0)
+  costoProcesamiento Int       @default(0)
+  netoTrabajador    Int        @default(0)
+
+  /// Referencia de la pasarela (payment intent / preferencia).
+  referencia        String?
+  ultimos4Tarjeta   String?
+  marca             String?
+  retenidoEn        DateTime?
+  capturadoEn       DateTime?
+  liquidadoEn       DateTime?
+  creadoEn          DateTime   @default(now())
+  actualizadoEn     DateTime   @updatedAt
+
+  @@index([estado])
+}
+
+/// Libro mayor del trabajador. El saldo del perfil es la suma de estos
+/// movimientos; si divergen, gana el libro.
+model MovimientoSaldo {
+  id                String         @id @default(uuid())
+  usuarioId         String
+  usuario           Usuario        @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  tareaId           String?
+  tarea             Tarea?         @relation(fields: [tareaId], references: [id])
+  tipo              TipoMovimiento
+  monto             Int
+  saldoResultante   Int
+  detalle           String?
+  creadoEn          DateTime       @default(now())
+
+  @@index([usuarioId, creadoEn])
+}
+
+/// Códigos de un solo uso para verificar el teléfono. Se guarda el hash, no el
+/// código.
+model CodigoOtp {
+  id         String   @id @default(uuid())
+  usuarioId  String?
+  usuario    Usuario? @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  telefono   String
+  codigoHash String
+  intentos   Int      @default(0)
+  usado      Boolean  @default(false)
+  expiraEn   DateTime
+  creadoEn   DateTime @default(now())
+
+  @@index([telefono, creadoEn])
+}
