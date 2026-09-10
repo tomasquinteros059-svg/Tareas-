@@ -39,6 +39,7 @@
   --gris-nivel: #78848F;
   --oro: #BC8508;
   --platino: #5B67C0;
+  --linkedin: #0A66C2;
   --sombra: 0 1px 2px rgba(20,24,26,.05), 0 10px 24px -18px rgba(20,24,26,.45);
 }
 
@@ -54,61 +55,35 @@ p { margin: 0; }
 button, input, select, textarea { font: inherit; color: inherit; }
 .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
 
-/* ---------- Armazón ---------- */
-#app {
-  max-width: 460px; margin: 0 auto; min-height: 100%; background: var(--papel);
-  display: flex; flex-direction: column; box-shadow: 0 0 0 1px var(--linea);
-}
+#app { max-width: 460px; margin: 0 auto; min-height: 100%; background: var(--papel); display: flex; flex-direction: column; box-shadow: 0 0 0 1px var(--linea); }
 .franja { height: 4px; display: flex; flex: none; }
 .franja i { display: block; }
-.barra {
-  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
-  border-bottom: 1px solid var(--linea); flex: none; background: var(--hoja);
-  position: sticky; top: 0; z-index: 5;
-}
+
+/* ---------- Barra y navegación ---------- */
+.barra { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--linea); flex: none; background: var(--hoja); position: sticky; top: 0; z-index: 5; }
 .barra .marca { font-family: Chivo, sans-serif; font-weight: 900; font-size: 19px; letter-spacing: -.02em; }
 .barra .sep { flex: 1; }
-.usuario-chip {
-  display: flex; align-items: center; gap: 7px; border: 1px solid var(--linea);
-  background: var(--hoja); border-radius: 999px; padding: 4px 10px 4px 5px; cursor: pointer;
-}
-.avatar {
-  width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; flex: none;
-  font: 700 11px/1 Chivo, sans-serif; color: #fff; background: var(--azul);
-}
-.avatar.tra { background: var(--verde); color: #0C1A08; }
-.avatar.g { width: 40px; height: 40px; font-size: 16px; }
+.usuario-chip { display: flex; align-items: center; gap: 7px; border: 1px solid var(--linea); background: var(--hoja); border-radius: 999px; padding: 4px 10px 4px 5px; cursor: pointer; }
 .usuario-chip small { font-size: 12px; color: var(--tinta-2); }
-.reloj-chip {
-  border: 1px solid var(--ambar); background: var(--ambar-claro); color: var(--ambar-tinta);
-  border-radius: 999px; padding: 4px 9px; font: 500 11px/1.4 "IBM Plex Mono", monospace; cursor: pointer;
-}
+.avatar { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; flex: none; font: 700 11px/1 Chivo, sans-serif; color: #fff; background: var(--azul); }
+.avatar.tra { background: var(--verde); color: #0C1A08; }
+.avatar.g { width: 42px; height: 42px; font-size: 16px; }
+.avatar.xl { width: 64px; height: 64px; font-size: 23px; }
+.reloj-chip { border: 1px solid var(--ambar); background: var(--ambar-claro); color: var(--ambar-tinta); border-radius: 999px; padding: 4px 9px; font: 500 11px/1.4 "IBM Plex Mono", monospace; cursor: pointer; }
 
 main { flex: 1; padding: 16px 14px 24px; display: flex; flex-direction: column; gap: 14px; }
+main.pegado { padding: 0 0 24px; }
 
-nav.pestanas {
-  display: flex; border-top: 1px solid var(--linea); background: var(--hoja); flex: none;
-  position: sticky; bottom: 0; padding-bottom: env(safe-area-inset-bottom);
-}
-nav.pestanas button {
-  flex: 1; border: none; background: none; padding: 9px 4px 11px; cursor: pointer;
-  display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--tenue);
-  font-size: 11px; border-top: 2px solid transparent; margin-top: -1px;
-}
+nav.pestanas { display: flex; border-top: 1px solid var(--linea); background: var(--hoja); flex: none; position: sticky; bottom: 0; padding-bottom: env(safe-area-inset-bottom); z-index: 5; }
+nav.pestanas button { flex: 1; border: none; background: none; padding: 9px 2px 11px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--tenue); font-size: 10.5px; border-top: 2px solid transparent; margin-top: -1px; }
 nav.pestanas button .ic { font-size: 17px; line-height: 1; }
 nav.pestanas button[aria-current="page"] { color: var(--verde-tinta); border-top-color: var(--verde); font-weight: 600; }
-nav.pestanas .globo-n {
-  position: absolute; transform: translate(14px, -4px); background: var(--sello); color: #fff;
-  border-radius: 999px; font-size: 10px; padding: 0 5px; font-weight: 600;
-}
+nav.pestanas .globo-n { position: absolute; transform: translate(13px, -4px); background: var(--sello); color: #fff; border-radius: 999px; font-size: 10px; padding: 0 5px; font-weight: 600; }
 
-/* ---------- Piezas ---------- */
+/* ---------- Piezas generales ---------- */
 .tit { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .tit h2 { font-size: 20px; }
-.rotulo {
-  font-family: "IBM Plex Mono", monospace; font-size: 10.5px; font-weight: 500;
-  letter-spacing: .13em; text-transform: uppercase; color: var(--tenue);
-}
+.rotulo { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; font-weight: 500; letter-spacing: .13em; text-transform: uppercase; color: var(--tenue); }
 .rotulo.verde { color: var(--verde-tinta); } .rotulo.azul { color: var(--azul-tinta); }
 .rotulo.ambar { color: var(--ambar-tinta); } .rotulo.rojo { color: var(--sello); }
 .guia { color: var(--tinta-2); font-size: 13.5px; }
@@ -128,29 +103,26 @@ nav.pestanas .globo-n {
 .fila.fuerte .v { font-weight: 500; font-size: 15px; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 5px; }
-.chip {
-  font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: .05em; text-transform: uppercase;
-  border: 1px solid var(--linea-fuerte); border-radius: 999px; padding: 3px 8px; color: var(--tinta-2);
-}
+.chip { font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: .05em; text-transform: uppercase; border: 1px solid var(--linea-fuerte); border-radius: 999px; padding: 3px 8px; color: var(--tinta-2); background: var(--hoja); }
 .chip.verde { border-color: var(--verde); background: var(--verde-claro); color: var(--verde-tinta); }
 .chip.azul { border-color: #A9C2EC; background: var(--azul-claro); color: var(--azul-tinta); }
 .chip.ambar { border-color: var(--ambar); background: var(--ambar-claro); color: var(--ambar-tinta); }
 .chip.roja { border-color: var(--sello); background: var(--sello-claro); color: var(--sello); }
+.chip.lin { border-color: var(--linkedin); color: var(--linkedin); background: #EAF2FB; }
 .chip.nivel { border-color: currentColor; }
 .n-NUEVO { color: var(--tenue); } .n-BRONCE { color: var(--bronce); } .n-PLATA { color: var(--gris-nivel); }
 .n-ORO { color: var(--oro); } .n-PLATINO { color: var(--platino); }
 
-.btn {
-  width: 100%; padding: 13px 14px; border-radius: 9px; border: 1px solid var(--linea-fuerte);
-  background: var(--hoja); font-family: Chivo, sans-serif; font-weight: 600; font-size: 15px; cursor: pointer;
-}
+.btn { width: 100%; padding: 13px 14px; border-radius: 9px; border: 1px solid var(--linea-fuerte); background: var(--hoja); font-family: Chivo, sans-serif; font-weight: 600; font-size: 15px; cursor: pointer; text-align: center; }
 .btn:active { transform: translateY(1px); }
 .btn.verde { background: var(--verde); border-color: var(--verde); color: #0C1A08; }
 .btn.azul { background: var(--azul); border-color: var(--azul); color: #fff; }
 .btn.roja { border-color: var(--sello); color: var(--sello); background: var(--sello-claro); }
+.btn.oscura { background: var(--tinta); border-color: var(--tinta); color: #fff; }
+.btn.lin { background: var(--linkedin); border-color: var(--linkedin); color: #fff; }
 .btn.chico { padding: 9px 12px; font-size: 13.5px; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
-.btn:focus-visible, .usuario-chip:focus-visible, nav.pestanas button:focus-visible { outline: 2px solid var(--azul); outline-offset: 2px; }
+.btn:focus-visible, .usuario-chip:focus-visible, nav.pestanas button:focus-visible, .seg button:focus-visible { outline: 2px solid var(--azul); outline-offset: 2px; }
 .botonera { display: flex; flex-direction: column; gap: 8px; }
 .botonera.par { flex-direction: row; }
 .botonera.par .btn { flex: 1; }
@@ -158,24 +130,19 @@ nav.pestanas .globo-n {
 .campo { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
 .campo label { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--tenue); }
 .campo .ayuda { font-size: 12px; color: var(--tenue); }
-input, select, textarea {
-  width: 100%; padding: 11px 12px; border-radius: 9px; border: 1px solid var(--linea-fuerte);
-  background: var(--hoja); font-size: 16px;
-}
+input, select, textarea { width: 100%; padding: 11px 12px; border-radius: 9px; border: 1px solid var(--linea-fuerte); background: var(--hoja); font-size: 16px; }
 textarea { min-height: 78px; resize: vertical; font-family: inherit; }
 input[type="range"] { padding: 0; border: none; accent-color: var(--verde); }
+input[type="checkbox"] { width: auto; }
 .dupla { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .error { color: var(--sello); font-size: 13px; margin-top: 6px; }
+.opcion { display: flex; gap: 9px; align-items: flex-start; font-size: 14px; padding: 11px 12px; border: 1px solid var(--linea); border-radius: 10px; margin-bottom: 8px; cursor: pointer; }
+.opcion.elegida { border-color: var(--verde); background: var(--verde-claro); }
+.opcion small { display: block; color: var(--tinta-2); font-size: 12.5px; }
 
 .monto-gigante { font-family: Chivo, sans-serif; font-size: 34px; font-weight: 900; letter-spacing: -.03em; line-height: 1; }
-.folio {
-  font-family: "IBM Plex Mono", monospace; font-size: 11.5px; letter-spacing: .1em; color: var(--sello);
-  border: 1px dashed var(--sello); border-radius: 5px; padding: 3px 7px; display: inline-block;
-}
-.codigo {
-  font-family: "IBM Plex Mono", monospace; font-size: 40px; font-weight: 600; letter-spacing: .2em;
-  text-align: center; padding: 4px 0;
-}
+.folio { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; letter-spacing: .1em; color: var(--sello); border: 1px dashed var(--sello); border-radius: 5px; padding: 3px 7px; display: inline-block; }
+.codigo { font-family: "IBM Plex Mono", monospace; font-size: 40px; font-weight: 500; letter-spacing: .2em; text-align: center; padding: 4px 0; }
 .barra-prog { height: 7px; border-radius: 4px; background: var(--linea); overflow: hidden; }
 .barra-prog i { display: block; height: 100%; background: var(--platino); }
 .reparto { display: flex; height: 24px; border-radius: 5px; overflow: hidden; border: 1px solid var(--linea); }
@@ -187,7 +154,7 @@ input[type="range"] { padding: 0; border: none; accent-color: var(--verde); }
 .globo-msj.mio { margin-left: auto; background: var(--azul); border-color: var(--azul); color: #fff; }
 .globo-msj .quien { font-size: 10.5px; opacity: .75; display: block; }
 .hilo { display: flex; flex-direction: column; gap: 7px; }
-.vacio { text-align: center; color: var(--tenue); font-size: 13.5px; padding: 26px 10px; }
+.vacio { text-align: center; color: var(--tenue); font-size: 13.5px; padding: 26px 14px; }
 .estrellas { display: flex; gap: 4px; }
 .estrellas button { border: none; background: none; font-size: 30px; line-height: 1; color: var(--linea-fuerte); cursor: pointer; padding: 0; }
 .estrellas button.on { color: var(--oro); }
@@ -196,24 +163,67 @@ input[type="range"] { padding: 0; border: none; accent-color: var(--verde); }
 .hito .p { width: 8px; height: 8px; border-radius: 50%; background: var(--verde); margin-top: 5px; flex: none; }
 .hito .c { font-family: "IBM Plex Mono", monospace; color: var(--tenue); font-size: 11.5px; }
 
-#avisos { position: fixed; left: 0; right: 0; bottom: 74px; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; z-index: 40; }
-.aviso {
-  max-width: 400px; margin: 0 12px; background: var(--tinta); color: #F2F5F0; padding: 11px 15px;
-  border-radius: 10px; font-size: 13.5px; box-shadow: 0 10px 30px -12px rgba(0,0,0,.6); animation: entrar .18s ease-out;
-}
+/* ---------- Portada ---------- */
+.portada { display: flex; flex-direction: column; flex: 1; min-height: 100%; }
+.portada-hero { padding: 30px 22px 26px; background: linear-gradient(180deg, #F4FBF1 0%, var(--papel) 100%); }
+.portada-hero h1 { font-size: 42px; font-weight: 900; letter-spacing: -.03em; line-height: .98; }
+.portada-hero .lema { font-family: Chivo, sans-serif; font-size: 19px; font-weight: 700; line-height: 1.25; margin-top: 16px; letter-spacing: -.01em; }
+.portada-hero .lema em { font-style: normal; color: var(--verde-tinta); }
+.portada-hero p.sub { color: var(--tinta-2); margin-top: 10px; font-size: 14.5px; }
+.tres { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 0 22px 6px; }
+.tres > div { border-top: 3px solid var(--verde); padding-top: 8px; }
+.tres > div:nth-child(2) { border-color: var(--azul); }
+.tres > div:nth-child(3) { border-color: var(--ambar); }
+.tres b { font-family: Chivo, sans-serif; font-size: 15px; display: block; }
+.tres small { color: var(--tinta-2); font-size: 12px; line-height: 1.35; display: block; }
+.muestra { margin: 18px 22px 0; border: 1px solid var(--linea); border-radius: 14px; padding: 13px; box-shadow: var(--sombra); }
+.muestra .cab { display: flex; align-items: center; gap: 9px; }
+.muestra .cab b { font-family: Chivo, sans-serif; font-size: 13.5px; }
+.muestra .cab small { display: block; color: var(--tenue); font-size: 11.5px; }
+.muestra h4 { font-size: 15px; margin: 9px 0 4px; }
+.muestra .banda { height: 54px; font-size: 13px; }
+.muestra .pie { display: flex; align-items: baseline; justify-content: space-between; margin-top: 10px; }
+.muestra .pie .n { font-family: Chivo, sans-serif; font-size: 21px; font-weight: 900; letter-spacing: -.02em; }
+.muestra .falso { background: var(--verde); color: #0C1A08; border-radius: 8px; padding: 7px 16px; font: 600 13px/1 Chivo, sans-serif; }
+.portada-acciones { padding: 20px 22px calc(26px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 9px; margin-top: auto; }
+.o-bien { display: flex; align-items: center; gap: 10px; color: var(--tenue); font-size: 12px; margin: 4px 0; }
+.o-bien::before, .o-bien::after { content: ""; height: 1px; background: var(--linea); flex: 1; }
+.legal { font-size: 11.5px; color: var(--tenue); text-align: center; margin-top: 6px; }
+
+/* ---------- Feed ---------- */
+.seg { display: flex; gap: 6px; padding: 10px 14px; overflow-x: auto; background: var(--hoja); border-bottom: 1px solid var(--linea); position: sticky; top: 49px; z-index: 4; }
+.seg button { flex: 0 0 auto; border: 1px solid var(--linea-fuerte); background: var(--hoja); border-radius: 999px; padding: 7px 13px; font-size: 13px; cursor: pointer; color: var(--tinta-2); font-weight: 500; }
+.seg button[aria-pressed="true"] { background: var(--verde); border-color: var(--verde); color: #0C1A08; font-weight: 600; }
+.feed { display: flex; flex-direction: column; }
+.post { border-bottom: 8px solid #EDF0EA; padding: 14px; background: var(--hoja); }
+.post-cab { display: flex; gap: 10px; align-items: center; }
+.post-cab .quien { flex: 1; min-width: 0; }
+.post-cab .quien b { font-size: 14.5px; font-family: Chivo, sans-serif; }
+.post-cab .quien small { display: block; color: var(--tenue); font-size: 12px; }
+.post h3 { font-size: 17px; margin: 11px 0 5px; }
+.post .cuerpo { font-size: 14px; color: var(--tinta-2); }
+.banda { height: 84px; border-radius: 10px; margin: 11px 0; display: flex; align-items: flex-end; padding: 10px 12px; color: #fff; font-family: Chivo, sans-serif; font-weight: 700; font-size: 15px; text-shadow: 0 1px 3px rgba(0,0,0,.35); }
+.post-precio { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 11px 0 4px; }
+.post-precio .n { font-family: Chivo, sans-serif; font-size: 27px; font-weight: 900; letter-spacing: -.03em; }
+.post-precio small { color: var(--tenue); font-size: 12px; }
+.post-pie { display: flex; gap: 8px; margin-top: 11px; }
+.post-pie .btn { flex: 1; }
+.post-pie .icono { flex: 0 0 46px; }
+.bloqueo { background: var(--hoja-2); border: 1px solid var(--linea); border-radius: 10px; padding: 10px 12px; margin-top: 11px; font-size: 13px; }
+.bloqueo b { display: block; font-size: 13.5px; }
+.motivo-cat { display: inline-flex; align-items: center; gap: 5px; }
+
+#avisos { position: fixed; left: 0; right: 0; bottom: 78px; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; z-index: 40; }
+.aviso { max-width: 400px; margin: 0 12px; background: var(--tinta); color: #F2F5F0; padding: 11px 15px; border-radius: 10px; font-size: 13.5px; box-shadow: 0 10px 30px -12px rgba(0,0,0,.6); animation: entrar .18s ease-out; }
 .aviso.mal { background: var(--sello); }
 .aviso.bien { background: var(--verde-tinta); }
 @keyframes entrar { from { opacity: 0; transform: translateY(8px); } }
-
-.hoja-modal { position: fixed; inset: 0; background: rgba(20,24,26,.45); display: flex; align-items: flex-end; justify-content: center; z-index: 50; }
-.hoja-modal > div { background: var(--papel); width: 100%; max-width: 460px; border-radius: 16px 16px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); max-height: 88vh; overflow: auto; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
 </style>
 </head>
 <body>
 <div id="app"></div>
 <div id="avisos"></div>
-
 <script>
 (function () {
 "use strict";
@@ -226,34 +236,39 @@ input[type="range"] { padding: 0; border: none; accent-color: var(--verde); }
    ========================================================================== */
 
 var RUBROS = [
-  { slug: "jardineria", nombre: "Corte de pasto y jardinería", unidad: "HORA", piso: 800, min: 2, com: .15 },
-  { slug: "limpieza", nombre: "Limpieza de hogar", unidad: "HORA", piso: 700, min: 3, com: .15 },
-  { slug: "limpieza-profunda", nombre: "Limpieza profunda", unidad: "HORA", piso: 1000, min: 4, com: .15 },
-  { slug: "muebles", nombre: "Armado de muebles", unidad: "HORA", piso: 900, min: 2, com: .15 },
-  { slug: "pintura", nombre: "Pintura", unidad: "M2", piso: 350, min: 20, com: .15 },
-  { slug: "plomeria", nombre: "Plomería", unidad: "HORA", piso: 1600, min: 1, com: .15, licencia: true },
-  { slug: "electricidad", nombre: "Electricidad", unidad: "HORA", piso: 1800, min: 1, com: .15, licencia: true },
-  { slug: "aire", nombre: "Aire acondicionado", unidad: "HORA", piso: 2000, min: 1, com: .15, licencia: true },
-  { slug: "carpinteria", nombre: "Carpintería", unidad: "HORA", piso: 1400, min: 2, com: .15 },
-  { slug: "albanileria", nombre: "Albañilería", unidad: "DIA", piso: 6000, min: 1, com: .15 },
-  { slug: "mudanza", nombre: "Mudanzas y fletes", unidad: "HORA", piso: 1500, min: 2, com: .15 },
-  { slug: "mensajeria", nombre: "Mensajería y trámites", unidad: "TRABAJO", piso: 600, min: 1, com: .15 },
-  { slug: "mascotas", nombre: "Paseo de mascotas", unidad: "HORA", piso: 700, min: 1, com: .15, antecedentes: true },
-  { slug: "ninos", nombre: "Cuidado de niños", unidad: "HORA", piso: 900, min: 3, com: .15, antecedentes: true },
-  { slug: "adultos", nombre: "Acompañamiento de adultos mayores", unidad: "HORA", piso: 1000, min: 3, com: .15, antecedentes: true },
-  { slug: "mozo", nombre: "Mozo o personal de evento", unidad: "HORA", piso: 800, min: 4, com: .15 },
-  { slug: "cocinero", nombre: "Cocinero a domicilio", unidad: "HORA", piso: 1500, min: 3, com: .15 },
-  { slug: "fotografia", nombre: "Fotografía y video", unidad: "HORA", piso: 2500, min: 2, com: .12 },
-  { slug: "clases", nombre: "Clases particulares", unidad: "HORA", piso: 1200, min: 1, com: .12 },
-  { slug: "soporte", nombre: "Soporte técnico", unidad: "HORA", piso: 1800, min: 1, com: .12 },
-  { slug: "software", nombre: "Desarrollo de software", unidad: "HORA", piso: 3500, min: 2, com: .10 },
-  { slug: "diseno", nombre: "Diseño gráfico", unidad: "TRABAJO", piso: 5000, min: 1, com: .12 },
-  { slug: "contabilidad", nombre: "Contabilidad e impuestos", unidad: "HORA", piso: 3000, min: 1, com: .10, licencia: true },
-  { slug: "abogado-dia", nombre: "Abogado por el día", unidad: "DIA", piso: 25000, min: 1, com: .10, licencia: true },
-  { slug: "abogado-consulta", nombre: "Consulta legal", unidad: "HORA", piso: 5000, min: 1, com: .10, licencia: true },
-  { slug: "traduccion", nombre: "Traducción y redacción", unidad: "TRABAJO", piso: 2500, min: 1, com: .12 },
-  { slug: "enfermeria", nombre: "Enfermería a domicilio", unidad: "HORA", piso: 2200, min: 2, com: .10, licencia: true, antecedentes: true },
-  { slug: "kinesiologia", nombre: "Kinesiología y masajes", unidad: "HORA", piso: 2500, min: 1, com: .15, licencia: true }
+  { slug: "jardineria", nombre: "Corte de pasto y jardinería", unidad: "HORA", piso: 800, min: 2, com: .15 , cat: "UNO" },
+  { slug: "limpieza", nombre: "Limpieza de hogar", unidad: "HORA", piso: 700, min: 3, com: .15 , cat: "UNO" },
+  { slug: "limpieza-profunda", nombre: "Limpieza profunda", unidad: "HORA", piso: 1000, min: 4, com: .15 , cat: "UNO" },
+  { slug: "muebles", nombre: "Armado de muebles", unidad: "HORA", piso: 900, min: 2, com: .15 , cat: "UNO" },
+  { slug: "pintura", nombre: "Pintura", unidad: "M2", piso: 350, min: 20, com: .15 , cat: "VARIOS" },
+  { slug: "plomeria", nombre: "Plomería", unidad: "HORA", piso: 1600, min: 1, com: .15, licencia: true , cat: "VARIOS" },
+  { slug: "electricidad", nombre: "Electricidad", unidad: "HORA", piso: 1800, min: 1, com: .15, licencia: true , cat: "VARIOS" },
+  { slug: "aire", nombre: "Aire acondicionado", unidad: "HORA", piso: 2000, min: 1, com: .15, licencia: true , cat: "VARIOS" },
+  { slug: "carpinteria", nombre: "Carpintería", unidad: "HORA", piso: 1400, min: 2, com: .15 , cat: "VARIOS" },
+  { slug: "albanileria", nombre: "Albañilería", unidad: "DIA", piso: 6000, min: 1, com: .15 , cat: "VARIOS" },
+  { slug: "mudanza", nombre: "Mudanzas y fletes", unidad: "HORA", piso: 1500, min: 2, com: .15 , cat: "VARIOS" },
+  { slug: "mensajeria", nombre: "Mensajería y trámites", unidad: "TRABAJO", piso: 600, min: 1, com: .15 , cat: "UNO" },
+  { slug: "mascotas", nombre: "Paseo de mascotas", unidad: "HORA", piso: 700, min: 1, com: .15, antecedentes: true , cat: "UNO" },
+  { slug: "ninos", nombre: "Cuidado de niños", unidad: "HORA", piso: 900, min: 3, com: .15, antecedentes: true , cat: "UNO" },
+  { slug: "adultos", nombre: "Acompañamiento de adultos mayores", unidad: "HORA", piso: 1000, min: 3, com: .15, antecedentes: true , cat: "UNO" },
+  { slug: "mozo", nombre: "Mozo o personal de evento", unidad: "HORA", piso: 800, min: 4, com: .15 , cat: "UNO" },
+  { slug: "cocinero", nombre: "Cocinero a domicilio", unidad: "HORA", piso: 1500, min: 3, com: .15 , cat: "VARIOS" },
+  { slug: "fotografia", nombre: "Fotografía y video", unidad: "HORA", piso: 2500, min: 2, com: .12 , cat: "VARIOS" },
+  { slug: "clases", nombre: "Clases particulares", unidad: "HORA", piso: 1200, min: 1, com: .12 , cat: "VARIOS" },
+  { slug: "soporte", nombre: "Soporte técnico", unidad: "HORA", piso: 1800, min: 1, com: .12 , cat: "VARIOS" },
+  { slug: "software", nombre: "Desarrollo de software", unidad: "HORA", piso: 3500, min: 2, com: .10 , cat: "ESPECIAL" },
+  { slug: "diseno", nombre: "Diseño gráfico", unidad: "TRABAJO", piso: 5000, min: 1, com: .12 , cat: "ESPECIAL" },
+  { slug: "contabilidad", nombre: "Contabilidad e impuestos", unidad: "HORA", piso: 3000, min: 1, com: .10, licencia: true , cat: "ESPECIAL", titulo: true },
+  { slug: "abogado-dia", nombre: "Abogado por el día", unidad: "DIA", piso: 25000, min: 1, com: .10, licencia: true , cat: "ESPECIAL", titulo: true },
+  { slug: "abogado-consulta", nombre: "Consulta legal", unidad: "HORA", piso: 5000, min: 1, com: .10, licencia: true , cat: "ESPECIAL", titulo: true },
+  { slug: "traduccion", nombre: "Traducción y redacción", unidad: "TRABAJO", piso: 2500, min: 1, com: .12 , cat: "VARIOS" },
+  { slug: "enfermeria", nombre: "Enfermería a domicilio", unidad: "HORA", piso: 2200, min: 2, com: .10, licencia: true, antecedentes: true , cat: "ESPECIAL", titulo: true },
+  { slug: "ingenieria-civil", nombre: "Ingeniería civil · cálculo y planos", unidad: "DIA", piso: 30000, min: 1, com: .10, licencia: true, cat: "ESPECIAL", titulo: true },
+  { slug: "ingenieria-electrica", nombre: "Ingeniería eléctrica · proyecto y certificación", unidad: "HORA", piso: 4000, min: 2, com: .10, licencia: true, cat: "ESPECIAL", titulo: true },
+  { slug: "arquitectura", nombre: "Arquitectura · proyecto y dirección de obra", unidad: "HORA", piso: 3800, min: 2, com: .10, licencia: true, cat: "ESPECIAL", titulo: true },
+  { slug: "topografia", nombre: "Topografía y mensura", unidad: "DIA", piso: 20000, min: 1, com: .10, licencia: true, cat: "ESPECIAL", titulo: true },
+  { slug: "peritaje", nombre: "Peritaje técnico y tasación", unidad: "TRABAJO", piso: 15000, min: 1, com: .10, licencia: true, cat: "ESPECIAL", titulo: true },
+  { slug: "kinesiologia", nombre: "Kinesiología y masajes", unidad: "HORA", piso: 2500, min: 1, com: .15, licencia: true , cat: "ESPECIAL", titulo: true }
 ];
 
 var ZONAS = [
@@ -301,6 +316,14 @@ var ETIQUETA_ESTADO = {
   PUBLICADA: "En el radar", ASIGNADA: "Asignada", EN_CAMINO: "En camino", EN_PROGRESO: "En progreso",
   ENTREGADA: "Entregada", CONFIRMADA: "Confirmada", PAGADA: "Pagada", CANCELADA: "Cancelada"
 };
+
+var CATEGORIAS = [
+  { id: "PARA_VOS", nombre: "Para vos", guia: "Lo que encaja con tu perfil, ordenado por lo que más te conviene." },
+  { id: "UNO", nombre: "Para uno", guia: "Trabajos que resuelve una sola persona, sin equipo ni herramientas especiales." },
+  { id: "VARIOS", nombre: "Varios", guia: "Oficios con herramienta propia: obra, instalaciones, eventos, traslados." },
+  { id: "ESPECIAL", nombre: "Especializados", guia: "Piden carrera universitaria o matrícula: ingeniería, salud, legales, contabilidad." }
+];
+var COLOR_CAT = { UNO: "#4FB03A", VARIOS: "#E08A0C", ESPECIAL: "#5B67C0" };
 
 var rubroPorSlug = {};
 RUBROS.forEach(function (r) { rubroPorSlug[r.slug] = r; });
@@ -434,6 +457,7 @@ function elegibilidad(t, u) {
   if (u.doc.estado !== "VERIFICADO") return no("Verificá tu documento para poder tomar trabajos", "Perfil › documento");
   if (!u.telefonoOk) return no("Verificá tu teléfono");
   if (u.rubros.indexOf(t.rubro) === -1) return no("No tenés " + r.nombre + " en tu perfil", "Agregalo en Perfil");
+  if (r.titulo && !u.formacion) return no("Este trabajo pide carrera universitaria acreditada", "Cargá tu formación en Perfil");
   if (r.licencia && u.licencias.indexOf(t.rubro) === -1) return no(r.nombre + " exige matrícula validada");
   if ((r.antecedentes || t.exigeAntecedentes) && !u.antecedentes) return no("Esta tarea exige antecedentes verificados");
   if (!alcanza(u.nivel, t.nivelMinimo)) return no("Pide nivel " + t.nivelMinimo + " o superior");
@@ -459,7 +483,7 @@ function puedeTransicionar(desde, hacia, rol) {
    sólo que al cerrarla se pierde lo hecho.
    ========================================================================== */
 
-var CLAVE = "tareas.app.v1";
+var CLAVE = "tareas.app.v2";
 var db = null;
 var enMemoria = false;
 
@@ -500,6 +524,8 @@ function statsVacias() { return { completados: 0, aceptados: 0, cancelados: 0, s
 function nuevoUsuario(datos) {
   return {
     id: id("u"), nombre: datos.nombre, telefono: datos.telefono, telefonoOk: true,
+    bio: datos.bio || "", radioKm: datos.radioKm || 20, guardados: [],
+    formacion: datos.formacion || "", linkedin: datos.linkedin || null,
     doc: { numero: datos.docNumero || "", estado: datos.docEstado || "SIN_ENVIAR" },
     zona: datos.zona || "centro",
     esTrabajador: !!datos.esTrabajador, rubros: datos.rubros || [], licencias: datos.licencias || [],
@@ -510,43 +536,76 @@ function nuevoUsuario(datos) {
 }
 
 function semilla() {
-  var base = { usuarios: [], tareas: [], eventos: [], movimientos: [], calificaciones: [], mensajes: [], preguntas: [], sesionId: null, desfase: 0, sello: "" };
-  db = base;
+  db = { usuarios: [], tareas: [], eventos: [], movimientos: [], calificaciones: [], mensajes: [], preguntas: [], sesionId: null, desfase: 0, sello: "" };
 
-  var ana = nuevoUsuario({ nombre: "Ana Rivas", telefono: "+54 9 11 4000-0001", zona: "centro", docNumero: "30111222", docEstado: "VERIFICADO" });
+  var ana = nuevoUsuario({
+    nombre: "Ana Rivas", telefono: "+54 9 11 4000-0001", zona: "centro",
+    docNumero: "30111222", docEstado: "VERIFICADO", bio: "Vivo en un PH con patio grande. Suelo necesitar una mano cada tanto."
+  });
   var beto = nuevoUsuario({
     nombre: "Beto Suárez", telefono: "+54 9 11 4000-0002", zona: "norte", docNumero: "28444555", docEstado: "VERIFICADO",
     esTrabajador: true, rubros: ["jardineria", "limpieza", "muebles"], nivel: "ORO",
+    bio: "Veinte años cortando pasto y armando muebles. Máquina y herramienta propia.",
     stats: { completados: 58, aceptados: 60, cancelados: 2, suma: 285, cantidad: 60, puntuales: 57 }
   });
   var carla = nuevoUsuario({
     nombre: "Carla Núñez", telefono: "+54 9 11 4000-0003", zona: "oeste", docNumero: "31777888", docEstado: "VERIFICADO",
     esTrabajador: true, rubros: ["electricidad", "soporte"], licencias: ["electricidad"], nivel: "PLATA",
+    bio: "Electricista matriculada. Tableros, instalaciones y certificados.",
     stats: { completados: 18, aceptados: 19, cancelados: 1, suma: 85, cantidad: 18, puntuales: 16 }
   });
   var diego = nuevoUsuario({
     nombre: "Diego Ferrer", telefono: "+54 9 11 4000-0004", zona: "sur", docNumero: "35999000", docEstado: "VERIFICADO",
-    esTrabajador: true, rubros: ["mudanza", "jardineria"], nivel: "NUEVO"
+    esTrabajador: true, rubros: ["mudanza", "jardineria"], nivel: "NUEVO",
+    bio: "Arranco ahora. Tengo camioneta y muchas ganas."
   });
-  db.usuarios = [ana, beto, carla, diego];
-  db.sesionId = ana.id;
-  [beto, carla, diego].forEach(function (u) { u.nivel = calcularNivel(u); });
+  // Perfil profesional: entró con LinkedIn, así que la app ya sabe qué estudió.
+  var elena = nuevoUsuario({
+    nombre: "Elena Ortiz", telefono: "+54 9 11 4000-0005", zona: "centro", docNumero: "29333444", docEstado: "VERIFICADO",
+    esTrabajador: true, rubros: ["ingenieria-civil", "arquitectura", "peritaje"],
+    licencias: ["ingenieria-civil", "arquitectura", "peritaje"], nivel: "ORO",
+    formacion: "Ingeniería Civil · Universidad de Buenos Aires",
+    bio: "Cálculo estructural y dirección de obra. Trabajo por jornada o por proyecto.",
+    linkedin: { url: "linkedin.com/in/elena-ortiz", titular: "Ingeniera civil · Estructuras", empresa: "Estudio Ortiz", verificado: true },
+    stats: { completados: 41, aceptados: 42, cancelados: 1, suma: 198, cantidad: 41, puntuales: 40 }
+  });
+  db.usuarios = [ana, beto, carla, diego, elena];
+  [beto, carla, diego, elena].forEach(function (u) { u.nivel = calcularNivel(u); });
 
   crearTarea(ana, {
     rubro: "jardineria", titulo: "Cortar el pasto del fondo",
-    descripcion: "Son unos 80 m². Hay canilla y enchufe. Traer máquina.",
+    descripcion: "Son unos 80 m². Hay canilla y enchufe. Traer máquina; las bolsas las pongo yo.",
     unidades: 3, dificultad: "BASICA", urgencia: "HOY", nivelMinimo: "NUEVO",
     presupuesto: 3000, metodoPago: "TARJETA", zona: "centro"
   }, true);
   crearTarea(ana, {
     rubro: "electricidad", titulo: "Revisar el tablero, salta la térmica",
-    descripcion: "Salta cada vez que enciendo el horno eléctrico. Departamento en un tercer piso.",
+    descripcion: "Salta cada vez que enciendo el horno eléctrico. Departamento en un tercer piso, hay ascensor.",
     unidades: 2, dificultad: "ALTA", urgencia: "HOY", nivelMinimo: "PLATA",
     presupuesto: 9500, metodoPago: "EFECTIVO", zona: "centro"
   }, true);
-  // La de electricidad salió hace un rato: ya está abierta para todos los niveles.
-  db.tareas.forEach(function (t) {
-    if (t.rubro === "electricidad") t.publicadaEn = Date.now() - 20 * 60 * 1000;
+  crearTarea(beto, {
+    rubro: "ingenieria-civil", titulo: "Cálculo estructural para ampliar el primer piso",
+    descripcion: "Quiero levantar una habitación arriba del garaje. Necesito planos firmados y el cálculo de las columnas.",
+    unidades: 1, dificultad: "ALTA", urgencia: "PROGRAMADA", nivelMinimo: "PLATA",
+    presupuesto: 62000, metodoPago: "TARJETA", zona: "norte"
+  }, true);
+  crearTarea(carla, {
+    rubro: "mudanza", titulo: "Mudanza chica de un ambiente",
+    descripcion: "Un monoambiente a diez cuadras. Somos dos para cargar, hace falta el flete y una mano.",
+    unidades: 3, dificultad: "MEDIA", urgencia: "PROGRAMADA", nivelMinimo: "NUEVO",
+    presupuesto: 7000, metodoPago: "EFECTIVO", zona: "oeste"
+  }, true);
+  crearTarea(ana, {
+    rubro: "mascotas", titulo: "Pasear a Rocco tres veces por semana",
+    descripcion: "Labrador de cuatro años, tranquilo pero fuerte. Lunes, miércoles y viernes a la tarde.",
+    unidades: 2, dificultad: "BASICA", urgencia: "PROGRAMADA", nivelMinimo: "BRONCE",
+    presupuesto: 2200, metodoPago: "TARJETA", zona: "centro"
+  }, true);
+
+  // Las que no son de recién: ya se abrieron a todos los niveles.
+  db.tareas.forEach(function (t, i) {
+    if (t.rubro !== "jardineria") t.publicadaEn = Date.now() - (12 + i * 9) * 60 * 1000;
   });
 
   marcar();
@@ -736,11 +795,14 @@ function retirar() {
   aviso("Retiraste " + plata(monto), "bien");
 }
 
+
 /* ==========================================================================
    4. PANTALLAS
+   Antes de entrar: portada, ingresar y crear cuenta.
+   Adentro: feed, publicar, mis tareas, saldo y perfil.
    ========================================================================== */
 
-var vista = { pantalla: "radar", params: {}, borrador: null };
+var vista = { pantalla: "portada", params: {}, borrador: null, cat: "PARA_VOS", estrellas: 0 };
 
 function ir(pantalla, params) {
   vista.pantalla = pantalla;
@@ -768,6 +830,10 @@ function reloj(ms) {
   return String(f.getHours()).padStart(2, "0") + ":" + String(f.getMinutes()).padStart(2, "0");
 }
 function chipNivel(n) { return '<span class="chip nivel n-' + n + '">' + n + "</span>"; }
+function nombreCat(c) {
+  for (var i = 0; i < CATEGORIAS.length; i++) if (CATEGORIAS[i].id === c) return CATEGORIAS[i].nombre;
+  return c;
+}
 
 function aviso(texto, tono) {
   var d = document.createElement("div");
@@ -777,56 +843,231 @@ function aviso(texto, tono) {
   setTimeout(function () { d.remove(); }, 3200);
 }
 
-/* ---------- Radar ---------- */
-function vistaRadar() {
+/* ---------- Portada ---------- */
+function vistaPortada() {
+  return '<div class="portada">' +
+    '<div class="franja"><i style="flex:4; background:var(--azul)"></i><i style="flex:5; background:var(--verde)"></i>' +
+      '<i style="flex:2; background:var(--ambar)"></i><i style="flex:1; background:var(--sello)"></i></div>' +
+    '<div class="portada-hero">' +
+      "<h1>Tareas</h1>" +
+      '<p class="lema">Publicá lo que necesitás y <em>el primero que lo ve, se lo lleva</em>.</p>' +
+      '<p class="sub">De cortar el pasto a un cálculo estructural firmado. Precio cerrado desde el arranque, ' +
+      "gente con documento verificado y el pago resuelto por la app.</p>" +
+    "</div>" +
+    '<div class="tres">' +
+      "<div><b>Para uno</b><small>Una persona, unas horas.</small></div>" +
+      "<div><b>Varios</b><small>Oficios con herramienta.</small></div>" +
+      "<div><b>Especializados</b><small>Carrera y matrícula.</small></div>" +
+    "</div>" +
+    '<div class="muestra">' +
+      '<div class="cab"><span class="avatar">AR</span><span><b>Ana Rivas</b>' +
+      "<small>Centro · hace 3 min · a 1,2 km</small></span></div>" +
+      "<h4>Cortar el pasto del fondo</h4>" +
+      '<div class="banda" style="background:linear-gradient(135deg, #4FB03A 0%, #4FB03ABB 100%)">Corte de pasto y jardinería</div>' +
+      '<div class="chips"><span class="chip">3 horas</span><span class="chip ambar">Hoy</span><span class="chip azul">Tarjeta</span></div>' +
+      '<div class="pie"><span class="n">$30</span><span class="falso">Aceptar</span></div>' +
+    "</div>" +
+    '<p class="legal" style="margin-top:10px">Así se ve el muro: los trabajos de tu zona, uno abajo del otro.</p>' +
+    '<div class="portada-acciones">' +
+      '<button class="btn lin" data-accion="ir" data-pantalla="linkedin">Continuar con LinkedIn</button>' +
+      '<button class="btn" data-accion="google">Continuar con Google</button>' +
+      '<div class="o-bien">o con tu teléfono</div>' +
+      '<button class="btn verde" data-accion="ir" data-pantalla="crear">Crear cuenta</button>' +
+      '<button class="btn" data-accion="ir" data-pantalla="ingresar">Ya tengo cuenta</button>' +
+      '<p class="legal">Al continuar aceptás los términos y la política de privacidad.</p>' +
+    "</div></div>";
+}
+
+/* ---------- Ingresar ---------- */
+function vistaIngresar() {
+  var b = vista.borrador || (vista.borrador = { paso: 1, telefono: "", esperado: "" });
+  var h = '<button class="btn chico" style="width:auto" data-accion="ir" data-pantalla="portada">‹ Volver</button>';
+  h += '<div class="tit"><span class="rotulo azul">Entrar</span><h2>Iniciar sesión</h2></div>';
+
+  if (b.paso === 1) {
+    h += '<div class="tarjeta plana">' +
+      '<div class="campo"><label for="i-tel">Tu teléfono</label>' +
+      '<input id="i-tel" inputmode="tel" placeholder="+54 9 11 5555-5555" value="' + esc(b.telefono) + '"></div>' +
+      '<button class="btn verde" data-accion="ingresar-codigo">Mandarme el código</button></div>';
+    h += '<div class="o-bien">o entrá con</div>';
+    h += '<div class="botonera"><button class="btn lin" data-accion="ir" data-pantalla="linkedin">LinkedIn</button>' +
+      '<button class="btn" data-accion="google">Google</button></div>';
+    h += '<div class="tarjeta plana"><div class="rotulo">Cuentas de ejemplo</div>' +
+      '<p class="guia" style="margin-top:6px">Esta es una demostración: entrá con cualquiera de estas para ver la app desde los dos lados.</p>' +
+      '<div class="botonera" style="margin-top:10px">' +
+      db.usuarios.map(function (x) {
+        return '<button class="btn chico" data-accion="entrar" data-id="' + x.id + '">' +
+          esc(x.nombre) + " · " + (x.esTrabajador ? x.nivel + (x.formacion ? " · profesional" : "") : "clienta") + "</button>";
+      }).join("") + "</div></div>";
+  } else {
+    h += '<div class="tarjeta verde"><p class="guia">Mandamos un código al ' + esc(b.telefono) + ".</p>" +
+      '<p style="margin-top:8px; font-size:13.5px">Como es una demostración, el código es <strong class="mono">' + b.esperado + "</strong></p>" +
+      '<div class="campo" style="margin-top:12px"><label for="i-codigo">Código</label>' +
+      '<input id="i-codigo" inputmode="numeric" maxlength="6" placeholder="6 dígitos"></div>' +
+      '<button class="btn verde" data-accion="ingresar-verificar">Entrar</button></div>';
+  }
+  return h;
+}
+
+/* ---------- Crear cuenta ---------- */
+function vistaCrear() {
+  var b = vista.borrador || (vista.borrador = {
+    paso: 1, nombre: "", telefono: "", zona: "centro", esperado: "", quiere: "AMBOS", formacion: "", linkedin: null
+  });
+  var h = '<button class="btn chico" style="width:auto" data-accion="ir" data-pantalla="portada">‹ Volver</button>';
+  h += '<div class="tit"><span class="rotulo verde">Cuenta nueva</span><h2>Crear cuenta</h2></div>';
+
+  if (b.paso === 1) {
+    if (b.linkedin) {
+      h += '<div class="tarjeta azul"><span class="chip lin">Datos traídos de LinkedIn</span>' +
+        '<p class="guia" style="margin-top:8px">' + esc(b.linkedin.titular) + "</p></div>";
+    }
+    h += '<div class="tarjeta plana">' +
+      '<div class="campo"><label for="c-nombre">Nombre y apellido</label><input id="c-nombre" value="' + esc(b.nombre) + '" placeholder="María López"></div>' +
+      '<div class="campo"><label for="c-tel">Teléfono</label><input id="c-tel" inputmode="tel" value="' + esc(b.telefono) + '" placeholder="+54 9 11 5555-5555">' +
+      '<div class="ayuda">Hace falta sí o sí: dos personas que se van a encontrar necesitan un contacto real.</div></div>' +
+      '<div class="campo"><label for="c-zona">Tu zona</label><select id="c-zona">' +
+      ZONAS.map(function (z) { return '<option value="' + z.id + '"' + (z.id === b.zona ? " selected" : "") + ">" + esc(z.nombre) + "</option>"; }).join("") +
+      "</select></div>" +
+      '<button class="btn verde" data-accion="crear-codigo">Mandarme el código</button></div>';
+  } else if (b.paso === 2) {
+    h += '<div class="tarjeta verde"><p class="guia">Mandamos un código al ' + esc(b.telefono) + ".</p>" +
+      '<p style="margin-top:8px; font-size:13.5px">Como es una demostración, el código es <strong class="mono">' + b.esperado + "</strong></p>" +
+      '<div class="campo" style="margin-top:12px"><label for="c-codigo">Código</label>' +
+      '<input id="c-codigo" inputmode="numeric" maxlength="6" placeholder="6 dígitos"></div>' +
+      '<button class="btn verde" data-accion="crear-verificar">Verificar</button></div>';
+  } else {
+    h += '<p class="guia">¿Para qué vas a usar la app? Se puede cambiar cuando quieras.</p>';
+    [["BUSCO", "Quiero trabajar", "Ver los trabajos publicados y tomarlos."],
+     ["NECESITO", "Necesito ayuda", "Publicar tareas y que alguien las haga."],
+     ["AMBOS", "Las dos cosas", "Publicar cuando lo necesites y trabajar cuando puedas."]].forEach(function (o) {
+      h += '<label class="opcion' + (b.quiere === o[0] ? " elegida" : "") + '">' +
+        '<input type="radio" name="quiere" value="' + o[0] + '"' + (b.quiere === o[0] ? " checked" : "") + ">" +
+        "<span><strong>" + o[1] + "</strong><small>" + o[2] + "</small></span></label>";
+    });
+    if (b.linkedin) {
+      h += '<div class="campo"><label for="c-formacion">Formación (viene de LinkedIn)</label>' +
+        '<input id="c-formacion" value="' + esc(b.formacion) + '"></div>';
+    }
+    h += '<button class="btn verde" data-accion="crear-listo">Crear mi cuenta</button>';
+  }
+  return h;
+}
+
+/* ---------- Consentimiento de LinkedIn ---------- */
+function vistaLinkedin() {
+  var b = vista.borrador || (vista.borrador = {
+    nombre: "Valentina Sosa", titular: "Ingeniera industrial · Gestión de obra",
+    empresa: "Consultora Sosa", formacion: "Ingeniería Industrial · Universidad Nacional"
+  });
+  return '<button class="btn chico" style="width:auto" data-accion="ir" data-pantalla="portada">‹ Volver</button>' +
+    '<div class="tit"><span class="chip lin">LinkedIn</span><h2>Permitir el acceso</h2></div>' +
+    '<p class="guia">Tareas quiere ver tu nombre, tu foto, tu titular y tu formación. No puede publicar nada en tu nombre.</p>' +
+    '<div class="tarjeta azul">' +
+      '<div style="display:flex; gap:12px; align-items:center">' +
+      '<span class="avatar g">' + iniciales(vista.borrador.nombre) + "</span>" +
+      "<div><strong>" + esc(vista.borrador.nombre) + '</strong><div class="guia">' + esc(vista.borrador.titular) + "</div></div></div>" +
+      '<div class="campo" style="margin-top:14px"><label for="l-nombre">Nombre</label><input id="l-nombre" value="' + esc(b.nombre) + '"></div>' +
+      '<div class="campo"><label for="l-titular">Titular</label><input id="l-titular" value="' + esc(b.titular) + '"></div>' +
+      '<div class="campo"><label for="l-formacion">Formación</label><input id="l-formacion" value="' + esc(b.formacion) + '"></div>' +
+      '<p class="guia">En la app de verdad estos datos llegan firmados por LinkedIn. Acá los podés editar porque es una demostración.</p>' +
+    "</div>" +
+    '<button class="btn lin" data-accion="linkedin-aceptar">Permitir y continuar</button>' +
+    '<p class="guia" style="text-align:center">Tu perfil profesional queda visible para quien publica: es lo que respalda a un ingeniero o a un abogado.</p>';
+}
+
+/* ---------- Feed ---------- */
+function puntajeRecomendacion(t, u, e) {
+  var p = 0;
+  if (e.ok) p += 1000;
+  if (u.rubros.indexOf(t.rubro) >= 0) p += 400;
+  if (rubroPorSlug[t.rubro].cat === "ESPECIAL" && u.formacion) p += 120;
+  p += Math.max(0, 200 - e.dist * 8);
+  p += Math.min(150, t.presupuesto / 200);
+  return p;
+}
+
+function vistaFeed() {
   var u = yo();
   var abiertas = db.tareas.filter(function (t) { return t.estado === "PUBLICADA" && t.autorId !== u.id; });
-  var lista = abiertas.map(function (t) { return { t: t, e: elegibilidad(t, u) }; })
-    .sort(function (a, b) {
-      if (a.e.ok !== b.e.ok) return a.e.ok ? -1 : 1;
-      return a.e.dist - b.e.dist;
-    });
+  var cat = vista.cat;
+  var lista = abiertas.map(function (t) { return { t: t, e: elegibilidad(t, u) }; });
 
-  var h = '<div class="tit"><span class="rotulo verde">Radar</span><h2>Trabajos cerca tuyo</h2></div>';
-  h += '<p class="guia">El primero que acepta se lo lleva. Los mejor calificados lo ven antes.</p>';
+  if (cat === "PARA_VOS") {
+    lista.sort(function (a, b) { return puntajeRecomendacion(b.t, u, b.e) - puntajeRecomendacion(a.t, u, a.e); });
+  } else {
+    lista = lista.filter(function (x) { return rubroPorSlug[x.t.rubro].cat === cat; });
+    lista.sort(function (a, b) {
+      if (a.e.ok !== b.e.ok) return a.e.ok ? -1 : 1;
+      return b.t.publicadaEn - a.t.publicadaEn;
+    });
+  }
+
+  var guia = "";
+  for (var i = 0; i < CATEGORIAS.length; i++) if (CATEGORIAS[i].id === cat) guia = CATEGORIAS[i].guia;
+
+  var h = '<div class="seg">' + CATEGORIAS.map(function (c) {
+    return '<button data-accion="cat" data-cat="' + c.id + '" aria-pressed="' + (c.id === cat) + '">' + c.nombre + "</button>";
+  }).join("") + "</div>";
+
+  h += '<div style="padding:12px 14px 4px"><p class="guia">' + guia + "</p></div>";
 
   if (!u.esTrabajador) {
-    h += '<div class="tarjeta ambar"><h3>Todavía no sos trabajador</h3>' +
-      '<p class="guia" style="margin-top:6px">Activá tu perfil para empezar a tomar trabajos. Podés seguir publicando tareas como cliente.</p>' +
-      '<div style="margin-top:12px"><button class="btn verde" data-accion="ir" data-pantalla="perfil">Activar mi perfil de trabajador</button></div></div>';
-  }
-  if (!lista.length) {
-    h += '<div class="vacio">No hay trabajos publicados ahora mismo.<br>Publicá uno desde otra cuenta para verlo acá.</div>';
+    h += '<div style="padding:8px 14px"><div class="tarjeta ambar"><h3>Estás como cliente</h3>' +
+      '<p class="guia" style="margin-top:6px">Podés mirar todo, pero para tomar un trabajo hay que activar el perfil de trabajador.</p>' +
+      '<button class="btn verde" style="margin-top:12px" data-accion="ir" data-pantalla="editar">Activar mi perfil</button></div></div>';
   }
 
-  lista.forEach(function (x) {
-    var t = x.t, e = x.e, r = rubroPorSlug[t.rubro];
-    var l = liquidar(t, u.nivel);
-    h += '<div class="tarjeta ' + (e.ok ? "verde" : "") + '">' +
-      '<div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start">' +
-        '<div><h3 style="font-size:16px">' + esc(t.titulo) + "</h3>" +
-        '<div class="guia">' + esc(r.nombre) + " · " + zonaPorId[t.zona].nombre + " · a " + e.dist + " km</div></div>" +
-        '<div class="monto-gigante" style="font-size:26px">' + plata(t.presupuesto) + "</div>" +
-      "</div>" +
-      '<div class="chips" style="margin-top:10px">' +
-        '<span class="chip">' + t.unidades + " " + unidadTexto(r.unidad, t.unidades) + "</span>" +
-        '<span class="chip">' + t.dificultad + "</span>" +
-        '<span class="chip ambar">' + t.urgencia + "</span>" +
-        '<span class="chip ' + (t.metodoPago === "TARJETA" ? "azul" : "") + '">' + t.metodoPago + "</span>" +
-        (t.nivelMinimo !== "NUEVO" ? '<span class="chip nivel n-' + t.nivelMinimo + '">' + t.nivelMinimo + ' o más</span>' : "") +
-      "</div>";
-    if (e.ok) {
-      h += '<div class="fila" style="margin-top:10px"><span class="k">Te queda después de comisión</span><span class="v">' + plata(l.neto) + "</span></div>" +
-        '<div class="botonera" style="margin-top:12px">' +
-        '<button class="btn verde" data-accion="aceptar" data-id="' + t.id + '">Aceptar</button>' +
-        '<button class="btn chico" data-accion="ir" data-pantalla="tarea" data-id="' + t.id + '">Ver detalle y preguntar</button></div>';
-    } else {
-      h += '<div class="tarjeta plana" style="margin-top:10px; background:var(--hoja-2)"><strong style="font-size:13.5px">' + esc(e.motivo) + "</strong>" +
-        (e.detalle ? '<div class="guia">' + esc(e.detalle) + "</div>" : "") + "</div>";
-    }
-    h += "</div>";
-  });
+  if (!lista.length) {
+    h += '<div class="vacio">No hay trabajos en ' + nombreCat(cat) + " por ahora.<br>Probá otra solapa o publicá uno vos.</div>";
+    return h;
+  }
+
+  h += '<div class="feed">' + lista.map(function (x) { return postDe(x.t, x.e, u); }).join("") + "</div>";
   return h;
+}
+
+function postDe(t, e, u) {
+  var r = rubroPorSlug[t.rubro];
+  var autor = usuario(t.autorId);
+  var l = liquidar(t, u.nivel);
+  var guardado = u.guardados.indexOf(t.id) >= 0;
+
+  var h = '<article class="post">';
+  h += '<div class="post-cab"><span class="avatar">' + iniciales(autor.nombre) + "</span>" +
+    '<span class="quien"><b>' + esc(autor.nombre) + "</b>" +
+    "<small>" + esc(zonaPorId[t.zona].nombre) + " · " + hace(t.publicadaEn) + " · " +
+    (e.dist < 0.5 ? "en tu zona" : "a " + e.dist + " km") + "</small></span>" +
+    '<span class="chip">' + nombreCat(r.cat) + "</span></div>";
+
+  h += "<h3>" + esc(t.titulo) + "</h3>";
+  h += '<p class="cuerpo">' + esc(t.descripcion) + "</p>";
+  h += '<div class="banda" style="background:linear-gradient(135deg, ' + COLOR_CAT[r.cat] + ' 0%, ' + COLOR_CAT[r.cat] + 'BB 100%)">' + esc(r.nombre) + "</div>";
+
+  h += '<div class="chips">' +
+    '<span class="chip">' + t.unidades + " " + unidadTexto(r.unidad, t.unidades) + "</span>" +
+    '<span class="chip">' + t.dificultad + "</span>" +
+    '<span class="chip ambar">' + t.urgencia + "</span>" +
+    '<span class="chip ' + (t.metodoPago === "TARJETA" ? "azul" : "") + '">' + t.metodoPago + "</span>" +
+    (t.nivelMinimo !== "NUEVO" ? '<span class="chip nivel n-' + t.nivelMinimo + '">' + t.nivelMinimo + " o más</span>" : "") +
+    (r.titulo ? '<span class="chip roja">Título</span>' : "") +
+    (r.licencia ? '<span class="chip roja">Matrícula</span>' : "") +
+    "</div>";
+
+  h += '<div class="post-precio"><span class="n">' + plata(t.presupuesto) + "</span>" +
+    "<small>" + (e.ok ? "te quedan " + plata(l.neto) + " limpios" : "mínimo del oficio " + plata(t.minimo)) + "</small></div>";
+
+  if (e.ok) {
+    h += '<div class="post-pie">' +
+      '<button class="btn verde" data-accion="aceptar" data-id="' + t.id + '">Aceptar</button>' +
+      '<button class="btn chico icono" data-accion="guardar" data-id="' + t.id + '" title="Guardar">' + (guardado ? "★" : "☆") + "</button>" +
+      '<button class="btn chico icono" data-accion="ir" data-pantalla="tarea" data-id="' + t.id + '" title="Ver">›</button></div>';
+  } else {
+    h += '<div class="bloqueo"><b>' + esc(e.motivo) + "</b>" + (e.detalle ? '<span class="guia">' + esc(e.detalle) + "</span>" : "") + "</div>" +
+      '<div class="post-pie"><button class="btn chico" data-accion="ir" data-pantalla="tarea" data-id="' + t.id + '">Ver el detalle</button>' +
+      '<button class="btn chico icono" data-accion="guardar" data-id="' + t.id + '">' + (guardado ? "★" : "☆") + "</button></div>";
+  }
+  return h + "</article>";
 }
 
 /* ---------- Publicar ---------- */
@@ -844,26 +1085,30 @@ function vistaPublicar() {
   h += '<p class="guia">El precio se cierra ahora. Nadie va a regatear después.</p>';
   h += '<div class="tarjeta plana">';
   h += '<div class="campo"><label for="f-rubro">Oficio</label><select id="f-rubro">' +
-    RUBROS.map(function (x) { return '<option value="' + x.slug + '"' + (x.slug === b.rubro ? " selected" : "") + ">" + esc(x.nombre) + "</option>"; }).join("") +
-    "</select>" + (r.licencia ? '<div class="ayuda">Sólo lo van a ver trabajadores con matrícula validada.</div>' : "") + "</div>";
+    CATEGORIAS.filter(function (c) { return c.id !== "PARA_VOS"; }).map(function (c) {
+      return '<optgroup label="' + c.nombre + '">' + RUBROS.filter(function (x) { return x.cat === c.id; }).map(function (x) {
+        return '<option value="' + x.slug + '"' + (x.slug === b.rubro ? " selected" : "") + ">" + esc(x.nombre) + "</option>";
+      }).join("") + "</optgroup>";
+    }).join("") + "</select>" +
+    (r.titulo ? '<div class="ayuda">Sólo lo van a ver profesionales con título y matrícula acreditados.</div>'
+      : r.licencia ? '<div class="ayuda">Sólo lo van a ver trabajadores con matrícula validada.</div>' : "") + "</div>";
   h += '<div class="campo"><label for="f-titulo">Título</label><input id="f-titulo" maxlength="80" placeholder="Cortar el pasto del fondo" value="' + esc(b.titulo) + '"></div>';
   h += '<div class="campo"><label for="f-desc">Detalle</label><textarea id="f-desc" maxlength="600" placeholder="Contá lo que haga falta: medidas, pisos, si hay herramientas...">' + esc(b.descripcion) + "</textarea></div>";
-  h += '<div class="campo"><label for="f-unidades">Cuánto · ' + unidadTexto(r.unidad, 2) + '</label>' +
+  h += '<div class="campo"><label for="f-unidades">Cuánto · ' + unidadTexto(r.unidad, 2) + "</label>" +
     '<input type="range" id="f-unidades" min="1" max="' + (r.unidad === "M2" ? 150 : r.unidad === "DIA" ? 5 : 12) + '" step="' + (r.unidad === "M2" ? 5 : 1) + '" value="' + b.unidades + '">' +
     '<div class="fila"><span class="k mono" id="f-unidades-val">' + b.unidades + " " + unidadTexto(r.unidad, b.unidades) + '</span><span class="k mono">mínimo ' + r.min + " " + unidadTexto(r.unidad, r.min) + "</span></div></div>";
   h += '<div class="dupla"><div class="campo"><label for="f-dif">Dificultad</label><select id="f-dif">' +
-    ["BASICA", "MEDIA", "ALTA", "EXPERTA"].map(function (x) { return '<option' + (x === b.dificultad ? " selected" : "") + ">" + x + "</option>"; }).join("") + "</select></div>" +
+    ["BASICA", "MEDIA", "ALTA", "EXPERTA"].map(function (x) { return "<option" + (x === b.dificultad ? " selected" : "") + ">" + x + "</option>"; }).join("") + "</select></div>" +
     '<div class="campo"><label for="f-urg">Cuándo</label><select id="f-urg">' +
-    ["PROGRAMADA", "HOY", "INMEDIATA"].map(function (x) { return '<option' + (x === b.urgencia ? " selected" : "") + ">" + x + "</option>"; }).join("") + "</select></div></div>";
+    ["PROGRAMADA", "HOY", "INMEDIATA"].map(function (x) { return "<option" + (x === b.urgencia ? " selected" : "") + ">" + x + "</option>"; }).join("") + "</select></div></div>";
   h += '<div class="dupla"><div class="campo"><label for="f-niv">Nivel mínimo</label><select id="f-niv">' +
     NIVELES.map(function (x) { return '<option value="' + x + '"' + (x === b.nivelMinimo ? " selected" : "") + ">" + (x === "NUEVO" ? "Cualquiera" : x) + "</option>"; }).join("") + "</select></div>" +
     '<div class="campo"><label for="f-zona">Zona</label><select id="f-zona">' +
     ZONAS.map(function (z) { return '<option value="' + z.id + '"' + (z.id === b.zona ? " selected" : "") + ">" + esc(z.nombre) + "</option>"; }).join("") + "</select></div></div>";
   h += '<div class="campo"><label for="f-pago">Cómo pagás</label><select id="f-pago">' +
-    '<option value="TARJETA"' + (b.metodoPago === "TARJETA" ? " selected" : "") + '>Tarjeta (se retiene ahora, se cobra al confirmar)</option>' +
+    '<option value="TARJETA"' + (b.metodoPago === "TARJETA" ? " selected" : "") + ">Tarjeta (se retiene ahora, se cobra al confirmar)</option>" +
     '<option value="EFECTIVO"' + (b.metodoPago === "EFECTIVO" ? " selected" : "") + ">Efectivo (le pagás en la mano)</option></select></div>";
   h += "</div>";
-
   h += '<div class="tarjeta verde" id="caja-precio">' + cajaPrecio(b) + "</div>";
   h += '<button class="btn azul" data-accion="publicar">Publicar tarea</button>';
   return h;
@@ -881,8 +1126,7 @@ function cajaPrecio(b) {
     h += '<div class="fila"><span class="k">Se retiene de tu tarjeta</span><span class="v">' + plata(b.presupuesto + Math.floor(b.presupuesto * CARGO_SERVICIO)) + "</span></div>";
   }
   h += '<details style="margin-top:10px"><summary class="rotulo">Cómo se arma el mínimo</summary>' +
-    q.lineas.map(function (l) { return '<div class="fila" style="margin-top:6px"><span class="k">' + esc(l[0]) + '</span><span class="v">' + plata(l[1]) + "</span></div>"; }).join("") +
-    "</details>";
+    q.lineas.map(function (l) { return '<div class="fila" style="margin-top:6px"><span class="k">' + esc(l[0]) + '</span><span class="v">' + plata(l[1]) + "</span></div>"; }).join("") + "</details>";
   if (falta) h += '<div class="error">Está por debajo del mínimo del oficio: no se puede publicar así.</div>';
   return h;
 }
@@ -892,6 +1136,7 @@ function vistaTareas() {
   var u = yo();
   var comoCliente = db.tareas.filter(function (t) { return t.autorId === u.id; });
   var comoTrabajador = db.tareas.filter(function (t) { return t.trabajadorId === u.id; });
+  var guardadas = db.tareas.filter(function (t) { return u.guardados.indexOf(t.id) >= 0 && t.estado === "PUBLICADA"; });
 
   function bloque(titulo, lista, rotulo) {
     if (!lista.length) return "";
@@ -900,19 +1145,21 @@ function vistaTareas() {
       var otro = t.trabajadorId ? usuario(t.autorId === u.id ? t.trabajadorId : t.autorId) : null;
       h += '<div class="tarjeta" data-accion="ir" data-pantalla="tarea" data-id="' + t.id + '" style="cursor:pointer">' +
         '<div style="display:flex; justify-content:space-between; gap:10px">' +
-          "<div><h3 style=\"font-size:15.5px\">" + esc(t.titulo) + "</h3>" +
-          '<div class="guia">' + ETIQUETA_ESTADO[t.estado] + (otro ? " · " + esc(otro.nombre) : "") + "</div></div>" +
-          '<div class="mono" style="font-weight:600">' + plata(t.presupuesto) + "</div>" +
-        "</div>" +
+        '<div><h3 style="font-size:15.5px">' + esc(t.titulo) + "</h3>" +
+        '<div class="guia">' + ETIQUETA_ESTADO[t.estado] + (otro ? " · " + esc(otro.nombre) : "") + "</div></div>" +
+        '<div class="mono" style="font-weight:500">' + plata(t.presupuesto) + "</div></div>" +
         '<div style="margin-top:8px"><span class="folio">' + t.folio + "</span></div></div>";
     });
     return h;
   }
 
   var h = '<div class="tit"><span class="rotulo">Mis tareas</span><h2>Todo lo mío</h2></div>';
-  if (!comoCliente.length && !comoTrabajador.length) h += '<div class="vacio">Todavía no publicaste ni tomaste ninguna tarea.</div>';
-  h += bloque("Publiqué", comoCliente, "azul");
+  if (!comoCliente.length && !comoTrabajador.length && !guardadas.length) {
+    h += '<div class="vacio">Todavía no publicaste ni tomaste nada.<br>Mirá el inicio o publicá tu primera tarea.</div>';
+  }
   h += bloque("Estoy trabajando", comoTrabajador, "verde");
+  h += bloque("Publiqué", comoCliente, "azul");
+  h += bloque("Guardadas", guardadas, "ambar");
   return h;
 }
 
@@ -923,11 +1170,12 @@ function vistaTarea() {
   var r = rubroPorSlug[t.rubro];
   var soyCliente = t.autorId === u.id;
   var soyTrabajador = t.trabajadorId === u.id;
-  var otro = t.trabajadorId ? usuario(soyCliente ? t.trabajadorId : t.autorId) : null;
+  var otro = t.trabajadorId ? usuario(soyCliente ? t.trabajadorId : t.autorId) : (soyCliente ? null : usuario(t.autorId));
   var asignada = ["ASIGNADA", "EN_CAMINO", "EN_PROGRESO", "ENTREGADA"].indexOf(t.estado) >= 0;
 
-  var h = '<button class="btn chico" style="width:auto" data-accion="ir" data-pantalla="tareas">‹ Volver</button>';
-  h += '<div class="tit" style="margin-top:4px"><span class="folio">' + t.folio + '</span><span class="chip">' + ETIQUETA_ESTADO[t.estado] + "</span></div>";
+  var h = '<button class="btn chico" style="width:auto" data-accion="atras">‹ Volver</button>';
+  h += '<div class="tit" style="margin-top:4px"><span class="folio">' + t.folio + '</span><span class="chip">' + ETIQUETA_ESTADO[t.estado] + "</span>" +
+    '<span class="chip">' + nombreCat(r.cat) + "</span></div>";
   h += "<h2>" + esc(t.titulo) + "</h2>";
   h += '<p class="guia">' + esc(t.descripcion) + "</p>";
 
@@ -938,18 +1186,10 @@ function vistaTarea() {
     '<div class="fila"><span class="k">Zona</span><span class="v">' + zonaPorId[t.zona].nombre + "</span></div>" +
     '<div class="fila"><span class="k">Dirección exacta</span><span class="v">' + (asignada || t.estado === "PAGADA" ? "Av. Siempre Viva 742" : "se ve al asignarse") + "</span></div>" +
     '<div class="fila fuerte"><span class="k">Presupuesto cerrado</span><span class="v">' + plata(t.presupuesto) + "</span></div>" +
-    '<div class="fila"><span class="k">Mínimo del oficio ese día</span><span class="v">' + plata(t.minimo) + "</span></div>" +
-    "</div>";
+    '<div class="fila"><span class="k">Mínimo del oficio ese día</span><span class="v">' + plata(t.minimo) + "</span></div></div>";
 
-  if (otro) {
-    h += '<div class="tarjeta ' + (soyCliente ? "verde" : "azul") + '">' +
-      '<div style="display:flex; gap:11px; align-items:center">' +
-      '<span class="avatar g ' + (soyCliente ? "tra" : "") + '">' + iniciales(otro.nombre) + "</span>" +
-      "<div><strong>" + esc(otro.nombre) + "</strong>" +
-      '<div class="guia">' + (otro.esTrabajador ? chipNivel(otro.nivel) + " " + estrellasDe(otro) + " ★ · " + otro.stats.completados + " trabajos" : "Cliente") + "</div></div></div></div>";
-  }
+  if (otro) h += fichaPersona(otro, soyCliente);
 
-  /* --- Lo que puede hacer cada uno según el estado --- */
   var acciones = "";
   if (t.estado === "PUBLICADA" && !soyCliente) {
     var e = elegibilidad(t, u);
@@ -985,90 +1225,36 @@ function vistaTarea() {
       '<button class="btn azul" style="margin-top:12px" data-accion="estado" data-id="' + t.id + '" data-hacia="CONFIRMADA">' +
       (t.metodoPago === "TARJETA" ? "Confirmar y pagar" : "Confirmar que ya le pagué") + "</button></div>";
   }
-  if (soyCliente && (t.estado === "PUBLICADA" || t.estado === "ASIGNADA" || t.estado === "EN_CAMINO")) {
+  if (soyCliente && ["PUBLICADA", "ASIGNADA", "EN_CAMINO"].indexOf(t.estado) >= 0) {
     acciones += '<button class="btn roja chico" data-accion="estado" data-id="' + t.id + '" data-hacia="CANCELADA">Cancelar la tarea</button>';
   }
   if (acciones) h += '<div class="botonera">' + acciones + "</div>";
 
-  /* --- Plata, cuando ya se pagó --- */
   if (t.estado === "PAGADA") {
     var p = t.pago;
-    var anchoNeto = p.neto, anchoCom = p.comision, anchoServ = p.servicio;
-    h += '<div class="tarjeta">' +
-      '<div class="rotulo verde">Cómo se repartió</div>' +
+    h += '<div class="tarjeta"><div class="rotulo verde">Cómo se repartió</div>' +
       '<div class="reparto" style="margin-top:8px">' +
-        '<i style="flex:' + anchoNeto + '; background:var(--verde)"></i>' +
-        '<i style="flex:' + anchoCom + '; background:var(--sello)"></i>' +
-        '<i style="flex:' + anchoServ + '; background:var(--ambar)"></i></div>' +
+      '<i style="flex:' + p.neto + '; background:var(--verde)"></i>' +
+      '<i style="flex:' + p.comision + '; background:var(--sello)"></i>' +
+      '<i style="flex:' + p.servicio + '; background:var(--ambar)"></i></div>' +
       '<div class="leyenda"><span><i style="background:var(--verde)"></i>Trabajador</span>' +
-        '<span><i style="background:var(--sello)"></i>Comisión</span>' +
-        '<span><i style="background:var(--ambar)"></i>Servicio</span></div>' +
+      '<span><i style="background:var(--sello)"></i>Comisión</span>' +
+      '<span><i style="background:var(--ambar)"></i>Servicio</span></div>' +
       '<div style="margin-top:10px">' +
       (t.metodoPago === "TARJETA"
         ? '<div class="fila"><span class="k">Pagó el cliente</span><span class="v">' + plata(p.total) + "</span></div>"
         : '<div class="fila"><span class="k">Cobró en la mano</span><span class="v">' + plata(t.presupuesto) + "</span></div>") +
-      '<div class="fila"><span class="k">Comisión (' + Math.round(p.tasa * 100) + "%)</span><span class=\"v\">" + plata(p.comision) + "</span></div>" +
+      '<div class="fila"><span class="k">Comisión (' + Math.round(p.tasa * 100) + '%)</span><span class="v">' + plata(p.comision) + "</span></div>" +
       '<div class="fila"><span class="k">Cargo de servicio</span><span class="v">' + plata(p.servicio) + "</span></div>" +
-      '<div class="fila fuerte"><span class="k">Le quedó al trabajador</span><span class="v">' + plata(p.neto) + "</span></div>" +
-      "</div></div>";
+      '<div class="fila fuerte"><span class="k">Le quedó al trabajador</span><span class="v">' + plata(p.neto) + "</span></div></div></div>";
   }
 
-  /* --- Calificación --- */
-  if ((t.estado === "PAGADA" || t.estado === "ENTREGADA") && otro) {
-    var mia = db.calificaciones.filter(function (c) { return c.tareaId === t.id && c.autorId === u.id; })[0];
-    var suya = db.calificaciones.filter(function (c) { return c.tareaId === t.id && c.autorId === otro.id; })[0];
-    h += '<div class="tarjeta plana">';
-    if (!mia) {
-      h += '<div class="rotulo">¿Cómo estuvo ' + esc(otro.nombre.split(" ")[0]) + "?</div>" +
-        '<div class="estrellas" id="f-estrellas" style="margin:8px 0">' +
-        [1, 2, 3, 4, 5].map(function (n) { return '<button type="button" data-estrella="' + n + '">★</button>'; }).join("") + "</div>" +
-        '<input id="f-comentario" placeholder="Comentario (opcional)">' +
-        (soyCliente ? '<label style="display:flex; gap:8px; align-items:center; margin-top:10px; font-size:13.5px"><input type="checkbox" id="f-puntual" style="width:auto" checked> Llegó a horario</label>' : "") +
-        '<button class="btn verde" style="margin-top:10px" data-accion="calificar" data-id="' + t.id + '">Enviar calificación</button>';
-    } else {
-      h += '<div class="rotulo">Tu calificación</div><div class="estrellas" style="margin-top:6px">' +
-        [1, 2, 3, 4, 5].map(function (n) { return '<span style="color:' + (n <= mia.estrellas ? "var(--oro)" : "var(--linea-fuerte)") + '; font-size:24px">★</span>'; }).join("") + "</div>";
-      h += suya && suya.visible
-        ? '<div style="margin-top:10px"><div class="rotulo">Lo que puso ' + esc(otro.nombre.split(" ")[0]) + "</div>" +
-          '<div class="estrellas" style="margin-top:6px">' + [1, 2, 3, 4, 5].map(function (n) {
-            return '<span style="color:' + (n <= suya.estrellas ? "var(--oro)" : "var(--linea-fuerte)") + '; font-size:24px">★</span>'; }).join("") +
-          "</div>" + (suya.comentario ? '<p class="guia">' + esc(suya.comentario) + "</p>" : "") + "</div>"
-        : '<p class="guia" style="margin-top:8px">La calificación de la otra parte se muestra cuando también califique.</p>';
-    }
-    h += "</div>";
+  if ((t.estado === "PAGADA" || t.estado === "ENTREGADA") && t.trabajadorId && (soyCliente || soyTrabajador)) {
+    h += bloqueCalificacion(t, u, otro, soyCliente);
   }
+  if (t.estado === "PUBLICADA") h += bloquePreguntas(t, u, soyCliente);
+  if (asignada && (soyCliente || soyTrabajador)) h += bloqueChat(t, u, otro);
 
-  /* --- Preguntas antes de asignar --- */
-  if (t.estado === "PUBLICADA") {
-    var preguntas = db.preguntas.filter(function (p) { return p.tareaId === t.id; });
-    h += '<div class="tarjeta plana"><div class="rotulo">Preguntas</div>';
-    if (!preguntas.length) h += '<p class="guia" style="margin-top:6px">Todavía nadie preguntó nada.</p>';
-    preguntas.forEach(function (p) {
-      h += '<div style="margin-top:10px"><strong style="font-size:13.5px">' + esc(usuario(p.autorId).nombre.split(" ")[0]) + ': </strong>' +
-        '<span style="font-size:13.5px">' + esc(p.texto) + "</span>";
-      if (p.respuesta) h += '<div class="guia" style="margin-top:4px">↳ ' + esc(p.respuesta) + "</div>";
-      else if (soyCliente) h += '<div style="display:flex; gap:6px; margin-top:6px"><input data-respuesta-de="' + p.id + '" placeholder="Responder"><button class="btn chico" style="width:auto" data-accion="responder" data-id="' + p.id + '">Enviar</button></div>';
-      h += "</div>";
-    });
-    if (!soyCliente) {
-      h += '<div style="display:flex; gap:6px; margin-top:12px"><input id="f-pregunta" placeholder="Preguntar algo puntual"><button class="btn chico" style="width:auto" data-accion="preguntar" data-id="' + t.id + '">Enviar</button></div>' +
-        '<p class="guia" style="margin-top:6px">Hasta 2 preguntas por tarea: esto no es un hilo de comentarios.</p>';
-    }
-    h += "</div>";
-  }
-
-  /* --- Chat privado, sólo con la tarea en curso --- */
-  if (asignada && (soyCliente || soyTrabajador)) {
-    var msjs = db.mensajes.filter(function (m) { return m.tareaId === t.id; });
-    h += '<div class="tarjeta plana"><div class="rotulo">Chat con ' + esc(otro.nombre.split(" ")[0]) + "</div>";
-    h += '<div class="hilo" style="margin-top:10px">' + (msjs.length ? msjs.map(function (m) {
-      var mio = m.autorId === u.id;
-      return '<div class="globo-msj ' + (mio ? "mio" : "") + '"><span class="quien">' + esc(usuario(m.autorId).nombre.split(" ")[0]) + " · " + reloj(m.cuando) + "</span>" + esc(m.texto) + "</div>";
-    }).join("") : '<p class="guia">Nadie escribió todavía.</p>') + "</div>";
-    h += '<div style="display:flex; gap:6px; margin-top:10px"><input id="f-mensaje" placeholder="Escribir..."><button class="btn chico" style="width:auto" data-accion="mensaje" data-id="' + t.id + '">Enviar</button></div></div>';
-  }
-
-  /* --- Bitácora --- */
   var eventos = db.eventos.filter(function (e2) { return e2.tareaId === t.id; });
   h += '<div class="tarjeta plana"><div class="rotulo">Bitácora</div><div class="linea-tiempo" style="margin-top:10px">' +
     eventos.map(function (e2) {
@@ -1076,6 +1262,74 @@ function vistaTarea() {
         (e2.nota ? " — " + esc(e2.nota) : "") + '<div class="c">' + reloj(e2.cuando) + " · " + hace(e2.cuando) + "</div></div></div>";
     }).join("") + "</div></div>";
   return h;
+}
+
+function fichaPersona(p, esTrabajador) {
+  var h = '<div class="tarjeta ' + (esTrabajador ? "verde" : "azul") + '">' +
+    '<div style="display:flex; gap:11px; align-items:center">' +
+    '<span class="avatar g ' + (p.esTrabajador ? "tra" : "") + '">' + iniciales(p.nombre) + "</span>" +
+    "<div><strong>" + esc(p.nombre) + "</strong>" +
+    '<div class="guia">' + (p.esTrabajador ? estrellasDe(p) + " ★ · " + p.stats.completados + " trabajos" : "Cliente") + "</div></div></div>";
+  if (p.bio) h += '<p class="guia" style="margin-top:10px">' + esc(p.bio) + "</p>";
+  h += '<div class="chips" style="margin-top:10px">' +
+    (p.esTrabajador ? chipNivel(p.nivel) : "") +
+    (p.doc.estado === "VERIFICADO" ? '<span class="chip verde">Documento verificado</span>' : "") +
+    (p.linkedin ? '<span class="chip lin">LinkedIn</span>' : "") +
+    (p.formacion ? '<span class="chip azul">' + esc(p.formacion.split("·")[0].trim()) + "</span>" : "") +
+    "</div></div>";
+  return h;
+}
+
+function bloqueCalificacion(t, u, otro, soyCliente) {
+  var mia = db.calificaciones.filter(function (c) { return c.tareaId === t.id && c.autorId === u.id; })[0];
+  var suya = db.calificaciones.filter(function (c) { return c.tareaId === t.id && c.autorId === otro.id; })[0];
+  var h = '<div class="tarjeta plana">';
+  if (!mia) {
+    h += '<div class="rotulo">¿Cómo estuvo ' + esc(otro.nombre.split(" ")[0]) + "?</div>" +
+      '<div class="estrellas" id="f-estrellas" style="margin:8px 0">' +
+      [1, 2, 3, 4, 5].map(function (n) { return '<button type="button" data-estrella="' + n + '">★</button>'; }).join("") + "</div>" +
+      '<input id="f-comentario" placeholder="Comentario (opcional)">' +
+      (soyCliente ? '<label style="display:flex; gap:8px; align-items:center; margin-top:10px; font-size:13.5px"><input type="checkbox" id="f-puntual" checked> Llegó a horario</label>' : "") +
+      '<button class="btn verde" style="margin-top:10px" data-accion="calificar" data-id="' + t.id + '">Enviar calificación</button>';
+  } else {
+    h += '<div class="rotulo">Tu calificación</div><div class="estrellas" style="margin-top:6px">' +
+      [1, 2, 3, 4, 5].map(function (n) { return '<span style="color:' + (n <= mia.estrellas ? "var(--oro)" : "var(--linea-fuerte)") + '; font-size:24px">★</span>'; }).join("") + "</div>";
+    h += suya && suya.visible
+      ? '<div style="margin-top:10px"><div class="rotulo">Lo que puso ' + esc(otro.nombre.split(" ")[0]) + "</div>" +
+        '<div class="estrellas" style="margin-top:6px">' + [1, 2, 3, 4, 5].map(function (n) {
+          return '<span style="color:' + (n <= suya.estrellas ? "var(--oro)" : "var(--linea-fuerte)") + '; font-size:24px">★</span>'; }).join("") + "</div>" +
+        (suya.comentario ? '<p class="guia">' + esc(suya.comentario) + "</p>" : "") + "</div>"
+      : '<p class="guia" style="margin-top:8px">La calificación de la otra parte se muestra cuando también califique.</p>';
+  }
+  return h + "</div>";
+}
+
+function bloquePreguntas(t, u, soyCliente) {
+  var preguntas = db.preguntas.filter(function (p) { return p.tareaId === t.id; });
+  var h = '<div class="tarjeta plana"><div class="rotulo">Preguntas</div>';
+  if (!preguntas.length) h += '<p class="guia" style="margin-top:6px">Todavía nadie preguntó nada.</p>';
+  preguntas.forEach(function (p) {
+    h += '<div style="margin-top:10px"><strong style="font-size:13.5px">' + esc(usuario(p.autorId).nombre.split(" ")[0]) + ': </strong>' +
+      '<span style="font-size:13.5px">' + esc(p.texto) + "</span>";
+    if (p.respuesta) h += '<div class="guia" style="margin-top:4px">↳ ' + esc(p.respuesta) + "</div>";
+    else if (soyCliente) h += '<div style="display:flex; gap:6px; margin-top:6px"><input data-respuesta-de="' + p.id + '" placeholder="Responder"><button class="btn chico" style="width:auto" data-accion="responder" data-id="' + p.id + '">Enviar</button></div>';
+    h += "</div>";
+  });
+  if (!soyCliente) {
+    h += '<div style="display:flex; gap:6px; margin-top:12px"><input id="f-pregunta" placeholder="Preguntar algo puntual"><button class="btn chico" style="width:auto" data-accion="preguntar" data-id="' + t.id + '">Enviar</button></div>' +
+      '<p class="guia" style="margin-top:6px">Hasta 2 preguntas por tarea: esto no es un hilo de comentarios.</p>';
+  }
+  return h + "</div>";
+}
+
+function bloqueChat(t, u, otro) {
+  var msjs = db.mensajes.filter(function (m) { return m.tareaId === t.id; });
+  var h = '<div class="tarjeta plana"><div class="rotulo">Chat con ' + esc(otro.nombre.split(" ")[0]) + "</div>";
+  h += '<div class="hilo" style="margin-top:10px">' + (msjs.length ? msjs.map(function (m) {
+    var mio = m.autorId === u.id;
+    return '<div class="globo-msj ' + (mio ? "mio" : "") + '"><span class="quien">' + esc(usuario(m.autorId).nombre.split(" ")[0]) + " · " + reloj(m.cuando) + "</span>" + esc(m.texto) + "</div>";
+  }).join("") : '<p class="guia">Nadie escribió todavía.</p>') + "</div>";
+  return h + '<div style="display:flex; gap:6px; margin-top:10px"><input id="f-mensaje" placeholder="Escribir..."><button class="btn chico" style="width:auto" data-accion="mensaje" data-id="' + t.id + '">Enviar</button></div></div>';
 }
 
 /* ---------- Saldo ---------- */
@@ -1096,12 +1350,13 @@ function vistaSaldo() {
     h += '<p class="guia" style="margin-top:8px">Todavía no tenés movimientos.</p>';
   }
   h += "</div>";
-
   if (movs.length) {
     h += '<div class="tarjeta plana"><div class="rotulo">Movimientos</div>';
     movs.forEach(function (m) {
-      h += '<div class="fila" style="margin-top:10px"><span class="k">' + esc(m.detalle) + '<br><span class="c mono" style="font-size:11px">' + hace(m.cuando) + '</span></span>' +
-        '<span class="v" style="color:' + (m.monto >= 0 ? "var(--verde-tinta)" : "var(--sello)") + '">' + (m.monto >= 0 ? "+" : "−") + plata(Math.abs(m.monto)) + "</span></div>";
+      h += '<div class="fila" style="margin-top:10px"><span class="k">' + esc(m.detalle) +
+        '<br><span class="mono" style="font-size:11px">' + hace(m.cuando) + "</span></span>" +
+        '<span class="v" style="color:' + (m.monto >= 0 ? "var(--verde-tinta)" : "var(--sello)") + '">' +
+        (m.monto >= 0 ? "+" : "−") + plata(Math.abs(m.monto)) + "</span></div>";
     });
     h += "</div>";
   }
@@ -1112,31 +1367,73 @@ function vistaSaldo() {
 function vistaPerfil() {
   var u = yo();
   var sube = u.esTrabajador ? faltaParaSubir(u) : null;
-  var h = '<div class="tit"><span class="rotulo">Perfil</span><h2>' + esc(u.nombre) + "</h2></div>";
-  h += '<div class="tarjeta">' +
-    '<div style="display:flex; gap:12px; align-items:center">' +
-    '<span class="avatar g ' + (u.esTrabajador ? "tra" : "") + '">' + iniciales(u.nombre) + "</span>" +
-    "<div><strong>" + esc(u.nombre) + '</strong><div class="guia mono">' + esc(u.telefono) + "</div></div></div>" +
+  var h = '<div class="tarjeta">' +
+    '<div style="display:flex; gap:14px; align-items:center">' +
+    '<span class="avatar xl ' + (u.esTrabajador ? "tra" : "") + '">' + iniciales(u.nombre) + "</span>" +
+    "<div><h2 style=\"font-size:19px\">" + esc(u.nombre) + "</h2>" +
+    '<div class="guia mono">' + esc(u.telefono) + "</div>" +
+    (u.formacion ? '<div class="guia">' + esc(u.formacion) + "</div>" : "") + "</div></div>" +
+    (u.bio ? '<p class="guia" style="margin-top:12px">' + esc(u.bio) + "</p>" : "") +
     '<div class="chips" style="margin-top:12px">' +
-      (u.esTrabajador ? chipNivel(u.nivel) : '<span class="chip azul">Cliente</span>') +
-      '<span class="chip ' + (u.doc.estado === "VERIFICADO" ? "verde" : "roja") + '">Documento ' + (u.doc.estado === "VERIFICADO" ? "verificado" : u.doc.estado === "EN_REVISION" ? "en revisión" : "sin enviar") + "</span>" +
-      '<span class="chip verde">Teléfono verificado</span>' +
-      (u.antecedentes ? '<span class="chip verde">Antecedentes OK</span>' : "") +
-    "</div>";
+    (u.esTrabajador ? chipNivel(u.nivel) : '<span class="chip azul">Cliente</span>') +
+    '<span class="chip ' + (u.doc.estado === "VERIFICADO" ? "verde" : "roja") + '">Documento ' +
+    (u.doc.estado === "VERIFICADO" ? "verificado" : u.doc.estado === "EN_REVISION" ? "en revisión" : "sin enviar") + "</span>" +
+    '<span class="chip verde">Teléfono verificado</span>' +
+    (u.linkedin ? '<span class="chip lin">LinkedIn verificado</span>' : "") +
+    (u.antecedentes ? '<span class="chip verde">Antecedentes OK</span>' : "") +
+    "</div>" +
+    '<button class="btn chico" style="margin-top:14px" data-accion="ir" data-pantalla="editar">Administrar mi perfil</button></div>';
+
   if (u.esTrabajador) {
-    h += '<div class="fila" style="margin-top:12px"><span class="k">Calificación</span><span class="v">' + estrellasDe(u) + " ★ (" + u.stats.cantidad + ")</span></div>" +
+    h += '<div class="tarjeta plana"><div class="rotulo verde">Cómo venís</div>' +
+      '<div class="fila" style="margin-top:8px"><span class="k">Calificación</span><span class="v">' + estrellasDe(u) + " ★ (" + u.stats.cantidad + ")</span></div>" +
       '<div class="fila"><span class="k">Trabajos completados</span><span class="v">' + u.stats.completados + "</span></div>" +
-      '<div class="fila"><span class="k">Cancelaciones</span><span class="v">' + u.stats.cancelados + "</span></div>";
+      '<div class="fila"><span class="k">Cancelaciones</span><span class="v">' + u.stats.cancelados + "</span></div>" +
+      '<div class="fila"><span class="k">Oficios habilitados</span><span class="v">' + u.rubros.length + "</span></div>";
     if (sube) {
-      h += '<div style="margin-top:12px"><div class="fila"><span class="k">Camino a ' + sube.nivel + '</span><span class="v">' + Math.round(sube.progreso * 100) + "%</span></div>" +
+      h += '<div style="margin-top:14px"><div class="fila"><span class="k">Camino a ' + sube.nivel + "</span><span class=\"v\">" + Math.round(sube.progreso * 100) + "%</span></div>" +
         '<div class="barra-prog" style="margin-top:6px"><i style="width:' + Math.round(sube.progreso * 100) + '%"></i></div>' +
         (sube.faltan.length ? '<div class="guia" style="margin-top:6px">Te falta: ' + esc(sube.faltan.join(" y ")) + "</div>" : "") + "</div>";
     }
+    h += "</div>";
   }
-  h += "</div>";
+
+  if (u.linkedin) {
+    h += '<div class="tarjeta azul"><span class="chip lin">LinkedIn</span>' +
+      '<div style="margin-top:10px"><strong>' + esc(u.linkedin.titular) + "</strong>" +
+      '<div class="guia">' + esc(u.linkedin.empresa || "") + "</div>" +
+      '<div class="guia mono" style="font-size:12px">' + esc(u.linkedin.url || "") + "</div></div>" +
+      '<p class="guia" style="margin-top:10px">Esto es lo que ve quien publica un trabajo especializado. Es el respaldo de tu formación.</p></div>';
+  } else {
+    h += '<div class="tarjeta plana"><h3 style="font-size:15px">Conectá LinkedIn</h3>' +
+      '<p class="guia" style="margin-top:6px">Sirve para acreditar tu formación y poder tomar trabajos especializados.</p>' +
+      '<button class="btn lin chico" style="margin-top:10px" data-accion="ir" data-pantalla="linkedin">Conectar LinkedIn</button></div>';
+  }
+
+  h += '<div class="tarjeta plana"><div class="rotulo">Cuenta</div><div class="botonera" style="margin-top:10px">' +
+    '<button class="btn chico" data-accion="ir" data-pantalla="saldo">Ver mi saldo</button>' +
+    '<button class="btn chico" data-accion="cerrar-sesion">Cerrar sesión</button>' +
+    '<button class="btn roja chico" data-accion="reiniciar">Borrar todo y empezar de nuevo</button></div></div>';
+  return h;
+}
+
+/* ---------- Administrar perfil ---------- */
+function vistaEditar() {
+  var u = yo();
+  var h = '<button class="btn chico" style="width:auto" data-accion="ir" data-pantalla="perfil">‹ Volver</button>';
+  h += '<div class="tit"><span class="rotulo verde">Perfil</span><h2>Administrar mi perfil</h2></div>';
+
+  h += '<div class="tarjeta plana"><div class="rotulo">Tus datos</div>' +
+    '<div class="campo" style="margin-top:10px"><label for="p-nombre">Nombre</label><input id="p-nombre" value="' + esc(u.nombre) + '"></div>' +
+    '<div class="campo"><label for="p-bio">Cómo te presentás</label><textarea id="p-bio" maxlength="240" placeholder="Contá qué hacés y con qué herramientas">' + esc(u.bio) + "</textarea></div>" +
+    '<div class="campo"><label for="p-formacion">Formación</label><input id="p-formacion" value="' + esc(u.formacion) + '" placeholder="Ingeniería Civil · Universidad...">' +
+    '<div class="ayuda">Hace falta para los trabajos especializados.</div></div>' +
+    '<div class="campo"><label for="p-zona">Zona</label><select id="p-zona">' +
+    ZONAS.map(function (z) { return '<option value="' + z.id + '"' + (z.id === u.zona ? " selected" : "") + ">" + esc(z.nombre) + "</option>"; }).join("") + "</select></div>" +
+    '<button class="btn verde chico" data-accion="guardar-datos">Guardar cambios</button></div>';
 
   if (u.doc.estado !== "VERIFICADO") {
-    h += '<div class="tarjeta ambar"><h3>Verificá tu documento</h3>' +
+    h += '<div class="tarjeta ambar"><h3 style="font-size:15px">Verificá tu documento</h3>' +
       '<p class="guia" style="margin-top:6px">Sin documento aprobado no podés tomar trabajos. Se guarda enmascarado: la app sólo muestra los últimos cuatro números.</p>' +
       '<div class="campo" style="margin-top:10px"><label for="f-doc">Número de documento</label><input id="f-doc" inputmode="numeric" placeholder="12345678" value="' + esc(u.doc.numero) + '"></div>' +
       (u.doc.estado === "EN_REVISION"
@@ -1144,86 +1441,86 @@ function vistaPerfil() {
         : '<button class="btn azul" data-accion="enviar-doc">Enviar a verificar</button>') + "</div>";
   }
 
-  h += '<div class="tarjeta plana"><div class="rotulo verde">Trabajo</div>';
-  h += '<label style="display:flex; gap:9px; align-items:center; margin:10px 0; font-size:14px"><input type="checkbox" id="f-trabajador" style="width:auto"' + (u.esTrabajador ? " checked" : "") + "> Quiero recibir trabajos</label>";
+  h += '<div class="tarjeta plana"><div class="rotulo verde">Trabajo</div>' +
+    '<label style="display:flex; gap:9px; align-items:center; margin:10px 0; font-size:14px"><input type="checkbox" id="f-trabajador"' + (u.esTrabajador ? " checked" : "") + "> Quiero recibir trabajos</label>";
   if (u.esTrabajador) {
-    h += '<label style="display:flex; gap:9px; align-items:center; margin-bottom:10px; font-size:14px"><input type="checkbox" id="f-efectivo" style="width:auto"' + (u.aceptaEfectivo ? " checked" : "") + "> Acepto pagos en efectivo</label>";
-    h += '<label style="display:flex; gap:9px; align-items:center; margin-bottom:12px; font-size:14px"><input type="checkbox" id="f-antecedentes" style="width:auto"' + (u.antecedentes ? " checked" : "") + "> Tengo antecedentes verificados</label>";
-    h += '<div class="campo"><label for="f-zona-perfil">Mi zona</label><select id="f-zona-perfil">' +
-      ZONAS.map(function (z) { return '<option value="' + z.id + '"' + (z.id === u.zona ? " selected" : "") + ">" + esc(z.nombre) + "</option>"; }).join("") + "</select></div>";
-    h += '<div class="rotulo">Oficios que hacés</div><div class="chips" style="margin-top:8px">' +
-      RUBROS.map(function (r) {
-        var tiene = u.rubros.indexOf(r.slug) >= 0;
-        var conLic = u.licencias.indexOf(r.slug) >= 0;
-        return '<button class="chip ' + (tiene ? (r.licencia && !conLic ? "roja" : "verde") : "") + '" data-accion="rubro" data-slug="' + r.slug + '" style="cursor:pointer">' +
-          esc(r.nombre) + (r.licencia ? (conLic ? " ✓" : " ⚠") : "") + "</button>";
-      }).join("") + "</div>" +
-      '<p class="guia" style="margin-top:8px">Los oficios con ⚠ necesitan matrícula. Tocá el oficio ya agregado para validarla.</p>';
+    h += '<label style="display:flex; gap:9px; align-items:center; margin-bottom:10px; font-size:14px"><input type="checkbox" id="f-efectivo"' + (u.aceptaEfectivo ? " checked" : "") + "> Acepto pagos en efectivo</label>" +
+      '<label style="display:flex; gap:9px; align-items:center; margin-bottom:12px; font-size:14px"><input type="checkbox" id="f-antecedentes"' + (u.antecedentes ? " checked" : "") + "> Tengo antecedentes verificados</label>" +
+      '<div class="rotulo">Oficios que hacés</div>' +
+      '<p class="guia" style="margin:6px 0 8px">Tocá para agregar. En los que piden matrícula, tocá de nuevo para validarla.</p>' +
+      CATEGORIAS.filter(function (c) { return c.id !== "PARA_VOS"; }).map(function (c) {
+        return '<div style="margin-bottom:12px"><div class="rotulo ' + (c.id === "ESPECIAL" ? "azul" : c.id === "VARIOS" ? "ambar" : "verde") + '">' + c.nombre + "</div>" +
+          '<div class="chips" style="margin-top:6px">' + RUBROS.filter(function (r) { return r.cat === c.id; }).map(function (r) {
+            var tiene = u.rubros.indexOf(r.slug) >= 0;
+            var conLic = u.licencias.indexOf(r.slug) >= 0;
+            return '<button class="chip ' + (tiene ? (r.licencia && !conLic ? "roja" : "verde") : "") + '" data-accion="rubro" data-slug="' + r.slug + '" style="cursor:pointer">' +
+              esc(r.nombre) + (r.licencia ? (conLic ? " ✓" : " ⚠") : "") + "</button>";
+          }).join("") + "</div></div>";
+      }).join("");
   }
   h += "</div>";
 
-  h += '<div class="tarjeta plana"><div class="rotulo">Cuentas de prueba</div>' +
-    '<p class="guia" style="margin-top:6px">Cambiá de cuenta para ver los dos lados. Abriendo esta misma app en dos ventanas podés probar de verdad quién toma la tarea primero.</p>' +
+  h += '<div class="tarjeta plana"><div class="rotulo">Cambiar de cuenta</div>' +
+    '<p class="guia" style="margin-top:6px">Esta es una demostración: podés entrar como cualquiera para ver la app desde el otro lado.</p>' +
     '<div class="botonera" style="margin-top:10px">' +
     db.usuarios.map(function (x) {
       return '<button class="btn chico" data-accion="entrar" data-id="' + x.id + '"' + (x.id === u.id ? " disabled" : "") + ">" +
-        esc(x.nombre) + (x.esTrabajador ? " · " + x.nivel : " · cliente") + (x.id === u.id ? " (sos vos)" : "") + "</button>";
-    }).join("") +
-    '<button class="btn chico" data-accion="nueva-cuenta">Crear otra cuenta</button>' +
-    '<button class="btn roja chico" data-accion="reiniciar">Borrar todo y empezar de nuevo</button></div></div>';
+        esc(x.nombre) + " · " + (x.esTrabajador ? x.nivel : "clienta") + (x.id === u.id ? " (sos vos)" : "") + "</button>";
+    }).join("") + "</div></div>";
   return h;
 }
 
-/* ---------- Alta de cuenta ---------- */
-function vistaAlta() {
-  var b = vista.borrador || (vista.borrador = { paso: 1, nombre: "", telefono: "", codigo: "", esperado: "", zona: "centro" });
-  var h = '<div class="tit"><span class="rotulo azul">Cuenta nueva</span><h2>Crear cuenta</h2></div>';
-  if (b.paso === 1) {
-    h += '<div class="tarjeta plana">' +
-      '<div class="campo"><label for="a-nombre">Nombre y apellido</label><input id="a-nombre" value="' + esc(b.nombre) + '" placeholder="María López"></div>' +
-      '<div class="campo"><label for="a-tel">Teléfono</label><input id="a-tel" inputmode="tel" value="' + esc(b.telefono) + '" placeholder="+54 9 11 5555-5555"></div>' +
-      '<div class="campo"><label for="a-zona">Zona</label><select id="a-zona">' +
-      ZONAS.map(function (z) { return '<option value="' + z.id + '"' + (z.id === b.zona ? " selected" : "") + ">" + esc(z.nombre) + "</option>"; }).join("") + "</select></div>" +
-      '<button class="btn azul" data-accion="pedir-codigo">Enviarme el código</button></div>';
-  } else {
-    h += '<div class="tarjeta verde"><p class="guia">Te mandamos un código al ' + esc(b.telefono) + ".</p>" +
-      '<p style="margin-top:8px; font-size:13.5px">Como esto es una demostración, el código es: <strong class="mono">' + b.esperado + "</strong></p>" +
-      '<div class="campo" style="margin-top:12px"><label for="a-codigo">Código</label><input id="a-codigo" inputmode="numeric" maxlength="6" placeholder="6 dígitos"></div>' +
-      '<button class="btn verde" data-accion="verificar-codigo">Verificar y entrar</button></div>';
-  }
-  h += '<button class="btn chico" data-accion="ir" data-pantalla="perfil">Volver</button>';
-  return h;
-}
 
 /* ==========================================================================
    5. ARMADO DE LA PANTALLA
    ========================================================================== */
 
 var PESTANAS = [
-  { id: "radar", ic: "◎", txt: "Radar" },
+  { id: "inicio", ic: "⌂", txt: "Inicio" },
   { id: "publicar", ic: "＋", txt: "Publicar" },
   { id: "tareas", ic: "▤", txt: "Mis tareas" },
-  { id: "saldo", ic: "◈", txt: "Saldo" }
+  { id: "saldo", ic: "◈", txt: "Saldo" },
+  { id: "perfil", ic: "◍", txt: "Perfil" }
 ];
+var PUBLICAS = ["portada", "ingresar", "crear", "linkedin"];
 
 function render() {
+  var app = document.getElementById("app");
+
+  // Con la sesión abierta no tiene sentido volver a la portada: se entra derecho.
+  // (linkedin queda afuera: desde adentro sirve para conectar la cuenta.)
+  if (db.sesionId && ["portada", "ingresar", "crear"].indexOf(vista.pantalla) >= 0) vista.pantalla = "inicio";
+
+  // Sin sesión no hay app: primero la portada.
+  if (!db.sesionId || PUBLICAS.indexOf(vista.pantalla) >= 0) {
+    if (!db.sesionId && PUBLICAS.indexOf(vista.pantalla) === -1) vista.pantalla = "portada";
+    if (vista.pantalla === "portada") { app.innerHTML = vistaPortada(); return; }
+    var cuerpoPublico = vista.pantalla === "ingresar" ? vistaIngresar()
+      : vista.pantalla === "crear" ? vistaCrear() : vistaLinkedin();
+    app.innerHTML =
+      '<div class="franja"><i style="flex:4; background:var(--azul)"></i><i style="flex:5; background:var(--verde)"></i>' +
+      '<i style="flex:2; background:var(--ambar)"></i><i style="flex:1; background:var(--sello)"></i></div>' +
+      "<main>" + cuerpoPublico + "</main>";
+    return;
+  }
+
   var u = yo();
-  var cuerpo = "";
-  if (vista.pantalla === "radar") cuerpo = vistaRadar();
+  var cuerpo = "", pegado = false;
+  if (vista.pantalla === "inicio") { cuerpo = vistaFeed(); pegado = true; }
   else if (vista.pantalla === "publicar") cuerpo = vistaPublicar();
   else if (vista.pantalla === "tareas") cuerpo = vistaTareas();
   else if (vista.pantalla === "tarea") cuerpo = vistaTarea();
   else if (vista.pantalla === "saldo") cuerpo = vistaSaldo();
   else if (vista.pantalla === "perfil") cuerpo = vistaPerfil();
-  else if (vista.pantalla === "alta") cuerpo = vistaAlta();
+  else if (vista.pantalla === "editar") cuerpo = vistaEditar();
 
   var pendientes = db.tareas.filter(function (t) {
-    return (t.autorId === u.id && ["ENTREGADA"].indexOf(t.estado) >= 0) ||
+    return (t.autorId === u.id && t.estado === "ENTREGADA") ||
       (t.trabajadorId === u.id && ["ASIGNADA", "EN_CAMINO", "EN_PROGRESO"].indexOf(t.estado) >= 0);
   }).length;
 
   var desfaseMin = Math.round(db.desfase / 60000);
-  var html =
+  app.innerHTML =
     '<div class="franja"><i style="flex:4; background:var(--azul)"></i><i style="flex:5; background:var(--verde)"></i>' +
     '<i style="flex:2; background:var(--ambar)"></i><i style="flex:1; background:var(--sello)"></i></div>' +
     '<div class="barra">' +
@@ -1235,19 +1532,20 @@ function render() {
         '<span class="avatar ' + (u.esTrabajador ? "tra" : "") + '">' + iniciales(u.nombre) + "</span>" +
         "<small>" + esc(u.nombre.split(" ")[0]) + "</small></button>" +
     "</div>" +
-    "<main>" + cuerpo + "</main>" +
+    '<main class="' + (pegado ? "pegado" : "") + '">' + cuerpo + "</main>" +
     '<nav class="pestanas">' + PESTANAS.map(function (p) {
-      return '<button data-accion="ir" data-pantalla="' + p.id + '"' +
-        (vista.pantalla === p.id || (p.id === "tareas" && vista.pantalla === "tarea") ? ' aria-current="page"' : "") + ">" +
+      var activa = vista.pantalla === p.id ||
+        (p.id === "tareas" && vista.pantalla === "tarea") ||
+        (p.id === "perfil" && vista.pantalla === "editar");
+      return '<button data-accion="ir" data-pantalla="' + p.id + '"' + (activa ? ' aria-current="page"' : "") + ">" +
         '<span class="ic">' + p.ic + "</span>" + p.txt +
         (p.id === "tareas" && pendientes ? '<span class="globo-n">' + pendientes + "</span>" : "") + "</button>";
     }).join("") + "</nav>";
 
-  document.getElementById("app").innerHTML = html;
   enganchar();
 }
 
-/** Listeners de los campos que actualizan el precio sin re-dibujar todo. */
+/** Campos que actualizan el precio sin volver a dibujar toda la pantalla. */
 function enganchar() {
   var b = vista.borrador;
   if (vista.pantalla === "publicar" && b) {
@@ -1265,7 +1563,7 @@ function enganchar() {
       if (!el) return;
       el.addEventListener("input", function () {
         b[campo] = numero ? Number(el.value) : el.value;
-        if (campo === "rubro") { vista.borrador.unidades = rubroPorSlug[b.rubro].min; vista.borrador.presupuesto = null; render(); return; }
+        if (campo === "rubro") { b.unidades = rubroPorSlug[b.rubro].min; b.presupuesto = null; render(); return; }
         if (campo === "titulo" || campo === "descripcion") return;
         refrescar();
       });
@@ -1282,9 +1580,7 @@ function enganchar() {
         var bo = ev.target.closest("button[data-estrella]");
         if (!bo) return;
         vista.estrellas = Number(bo.dataset.estrella);
-        Array.prototype.forEach.call(estrellas.children, function (x, i) {
-          x.classList.toggle("on", i < vista.estrellas);
-        });
+        Array.prototype.forEach.call(estrellas.children, function (x, i) { x.classList.toggle("on", i < vista.estrellas); });
       });
     }
   }
@@ -1304,22 +1600,143 @@ function engancharPrecio() {
    6. ACCIONES
    ========================================================================== */
 
+function entrarComo(uid, saludo) {
+  db.sesionId = uid;
+  marcar(); guardar();
+  vista.borrador = null;
+  vista.cat = "PARA_VOS";
+  ir("inicio");
+  if (saludo !== false) aviso("Entraste como " + yo().nombre, "bien");
+}
+
 document.addEventListener("click", function (ev) {
   var el = ev.target.closest("[data-accion]");
   if (!el) return;
   var a = el.dataset.accion;
 
-  if (a === "ir") { ir(el.dataset.pantalla, { id: el.dataset.id }); return; }
+  /* --- navegación --- */
+  if (a === "ir") {
+    if (["ingresar", "crear", "linkedin"].indexOf(el.dataset.pantalla) >= 0) vista.borrador = null;
+    ir(el.dataset.pantalla, { id: el.dataset.id });
+    return;
+  }
+  if (a === "atras") { ir(db.tareas.some(function (t) { return t.id === vista.params.id && (t.autorId === db.sesionId || t.trabajadorId === db.sesionId); }) ? "tareas" : "inicio"); return; }
+  if (a === "cat") { vista.cat = el.dataset.cat; render(); return; }
+
+  /* --- entrar y salir --- */
+  if (a === "entrar") { entrarComo(el.dataset.id); return; }
+  if (a === "cerrar-sesion") {
+    db.sesionId = null;
+    marcar(); guardar();
+    vista.borrador = null;
+    ir("portada");
+    return;
+  }
+  if (a === "google") {
+    aviso("Google todavía no está conectado en esta demostración: entrá con LinkedIn o con tu teléfono.");
+    return;
+  }
+  if (a === "ingresar-codigo") {
+    var b1 = vista.borrador;
+    b1.telefono = document.getElementById("i-tel").value.trim();
+    var existe = db.usuarios.filter(function (x) { return x.telefono === b1.telefono; })[0];
+    if (!existe) return aviso("No hay ninguna cuenta con ese teléfono", "mal");
+    b1.esperado = String(Math.floor(100000 + Math.random() * 900000));
+    b1.paso = 2;
+    render();
+    return;
+  }
+  if (a === "ingresar-verificar") {
+    var b2 = vista.borrador;
+    if (document.getElementById("i-codigo").value.trim() !== b2.esperado) return aviso("El código no es correcto", "mal");
+    var quien = db.usuarios.filter(function (x) { return x.telefono === b2.telefono; })[0];
+    entrarComo(quien.id);
+    return;
+  }
+
+  /* --- crear cuenta --- */
+  if (a === "crear-codigo") {
+    var b3 = vista.borrador;
+    b3.nombre = document.getElementById("c-nombre").value.trim();
+    b3.telefono = document.getElementById("c-tel").value.trim();
+    b3.zona = document.getElementById("c-zona").value;
+    if (b3.nombre.length < 3) return aviso("Escribí tu nombre y apellido", "mal");
+    if (b3.telefono.replace(/\D/g, "").length < 8) return aviso("Ese teléfono no parece válido", "mal");
+    if (db.usuarios.some(function (x) { return x.telefono === b3.telefono; })) return aviso("Ya hay una cuenta con ese teléfono", "mal");
+    b3.esperado = String(Math.floor(100000 + Math.random() * 900000));
+    b3.paso = 2;
+    render();
+    return;
+  }
+  if (a === "crear-verificar") {
+    var b4 = vista.borrador;
+    if (document.getElementById("c-codigo").value.trim() !== b4.esperado) return aviso("El código no es correcto", "mal");
+    b4.paso = 3;
+    render();
+    return;
+  }
+  if (a === "crear-listo") {
+    var b5 = vista.borrador;
+    var campoFormacion = document.getElementById("c-formacion");
+    if (campoFormacion) b5.formacion = campoFormacion.value.trim();
+    var nuevo = nuevoUsuario({
+      nombre: b5.nombre, telefono: b5.telefono, zona: b5.zona,
+      esTrabajador: b5.quiere !== "NECESITO",
+      formacion: b5.formacion, linkedin: b5.linkedin,
+      rubros: b5.quiere === "NECESITO" ? [] : []
+    });
+    db.usuarios.push(nuevo);
+    entrarComo(nuevo.id, false);
+    aviso("Cuenta creada. Verificá tu documento para poder trabajar.", "bien");
+    ir("editar");
+    return;
+  }
+
+  /* --- LinkedIn --- */
+  if (a === "linkedin-aceptar") {
+    var bl = vista.borrador;
+    bl.nombre = document.getElementById("l-nombre").value.trim();
+    bl.titular = document.getElementById("l-titular").value.trim();
+    bl.formacion = document.getElementById("l-formacion").value.trim();
+    if (bl.nombre.length < 3) return aviso("Falta el nombre", "mal");
+
+    var perfilLin = { url: "linkedin.com/in/" + bl.nombre.toLowerCase().replace(/\s+/g, "-"), titular: bl.titular, empresa: bl.empresa || "", verificado: true };
+    if (db.sesionId) {
+      // Ya estaba adentro: sólo conecta la cuenta.
+      var yoMismo = yo();
+      yoMismo.linkedin = perfilLin;
+      if (!yoMismo.formacion) yoMismo.formacion = bl.formacion;
+      marcar(); guardar();
+      ir("perfil");
+      aviso("LinkedIn conectado: ya podés tomar trabajos especializados", "bien");
+      return;
+    }
+    vista.borrador = {
+      paso: 1, nombre: bl.nombre, telefono: "", zona: "centro", esperado: "",
+      quiere: "BUSCO", formacion: bl.formacion, linkedin: perfilLin
+    };
+    ir("crear");
+    aviso("Traído de LinkedIn. Falta verificar tu teléfono.", "bien");
+    return;
+  }
+
+  /* --- trabajo --- */
   if (a === "aceptar") { aceptarTarea(el.dataset.id); return; }
   if (a === "estado") { cambiarEstado(el.dataset.id, el.dataset.hacia); return; }
-
   if (a === "empezar") {
     var c = document.getElementById("f-codigo");
     cambiarEstado(el.dataset.id, "EN_PROGRESO", { codigo: c ? c.value : "" });
     return;
   }
   if (a === "publicar") { publicarDesdeFormulario(); return; }
-
+  if (a === "guardar") {
+    var uu = yo(), tid = el.dataset.id;
+    var i = uu.guardados.indexOf(tid);
+    if (i >= 0) uu.guardados.splice(i, 1); else uu.guardados.push(tid);
+    marcar(); guardar(); render();
+    aviso(i >= 0 ? "Sacada de guardados" : "Guardada para después", "bien");
+    return;
+  }
   if (a === "calificar") {
     if (!vista.estrellas) return aviso("Elegí cuántas estrellas", "mal");
     var com = document.getElementById("f-comentario");
@@ -1349,33 +1766,26 @@ document.addEventListener("click", function (ev) {
   if (a === "pagar-deuda") { pagarDeuda(); return; }
   if (a === "retirar") { retirar(); return; }
 
-  if (a === "adelantar") {
-    db.desfase += 2 * 60 * 1000;
+  /* --- perfil --- */
+  if (a === "guardar-datos") {
+    var up = yo();
+    var nom = document.getElementById("p-nombre").value.trim();
+    if (nom.length < 3) return aviso("El nombre es muy corto", "mal");
+    up.nombre = nom;
+    up.bio = document.getElementById("p-bio").value.trim();
+    up.formacion = document.getElementById("p-formacion").value.trim();
+    up.zona = document.getElementById("p-zona").value;
     marcar(); guardar(); render();
-    aviso("Reloj adelantado 2 minutos: mirá cómo se abren las olas", "bien");
-    return;
-  }
-  if (a === "entrar") {
-    db.sesionId = el.dataset.id;
-    marcar(); guardar();
-    vista.borrador = null;
-    ir("radar");
-    aviso("Entraste como " + yo().nombre, "bien");
-    return;
-  }
-  if (a === "nueva-cuenta") { vista.borrador = null; ir("alta"); return; }
-  if (a === "reiniciar") {
-    if (!confirm("Se borra todo lo que hiciste y vuelven los datos de ejemplo. ¿Seguimos?")) return;
-    semilla(); vista.borrador = null; ir("radar");
-    aviso("Listo, datos de ejemplo otra vez", "bien");
+    aviso("Perfil actualizado", "bien");
     return;
   }
   if (a === "enviar-doc") {
     var d = document.getElementById("f-doc");
     var num = (d.value || "").replace(/\D/g, "");
     if (num.length < 6) return aviso("Ese número es muy corto", "mal");
-    var repetido = db.usuarios.some(function (x) { return x.id !== db.sesionId && x.doc.numero === num; });
-    if (repetido) return aviso("Ese documento ya está usado en otra cuenta", "mal");
+    if (db.usuarios.some(function (x) { return x.id !== db.sesionId && x.doc.numero === num; })) {
+      return aviso("Ese documento ya está usado en otra cuenta", "mal");
+    }
     yo().doc = { numero: num, estado: "EN_REVISION" };
     marcar(); guardar(); render();
     aviso("Documento enviado a verificar", "bien");
@@ -1391,56 +1801,46 @@ document.addEventListener("click", function (ev) {
   }
   if (a === "rubro") {
     var u3 = yo(), slug = el.dataset.slug, r2 = rubroPorSlug[slug];
-    var i = u3.rubros.indexOf(slug);
-    if (i === -1) u3.rubros.push(slug);
+    var i2 = u3.rubros.indexOf(slug);
+    if (i2 === -1) u3.rubros.push(slug);
     else if (r2.licencia && u3.licencias.indexOf(slug) === -1) u3.licencias.push(slug);
     else {
-      u3.rubros.splice(i, 1);
+      u3.rubros.splice(i2, 1);
       var j = u3.licencias.indexOf(slug);
       if (j >= 0) u3.licencias.splice(j, 1);
     }
     marcar(); guardar(); render();
     return;
   }
-  if (a === "pedir-codigo") {
-    var bo = vista.borrador;
-    bo.nombre = document.getElementById("a-nombre").value.trim();
-    bo.telefono = document.getElementById("a-tel").value.trim();
-    bo.zona = document.getElementById("a-zona").value;
-    if (bo.nombre.length < 3) return aviso("Escribí tu nombre y apellido", "mal");
-    if (bo.telefono.replace(/\D/g, "").length < 8) return aviso("Ese teléfono no parece válido", "mal");
-    if (db.usuarios.some(function (x) { return x.telefono === bo.telefono; })) return aviso("Ya hay una cuenta con ese teléfono", "mal");
-    bo.esperado = String(Math.floor(100000 + Math.random() * 900000));
-    bo.paso = 2;
-    render();
+
+  /* --- demostración --- */
+  if (a === "adelantar") {
+    db.desfase += 2 * 60 * 1000;
+    marcar(); guardar(); render();
+    aviso("Reloj adelantado 2 minutos: mirá cómo se abren las olas", "bien");
     return;
   }
-  if (a === "verificar-codigo") {
-    var bo2 = vista.borrador;
-    var val = document.getElementById("a-codigo").value.trim();
-    if (val !== bo2.esperado) return aviso("El código no es correcto", "mal");
-    var nuevo = nuevoUsuario({ nombre: bo2.nombre, telefono: bo2.telefono, zona: bo2.zona });
-    db.usuarios.push(nuevo);
-    db.sesionId = nuevo.id;
-    marcar(); guardar();
+  if (a === "reiniciar") {
+    if (!confirm("Se borra todo lo que hiciste y vuelven los datos de ejemplo. ¿Seguimos?")) return;
+    semilla();
     vista.borrador = null;
-    ir("perfil");
-    aviso("Cuenta creada. Verificá tu documento para poder trabajar.", "bien");
+    ir("portada");
+    aviso("Listo, datos de ejemplo otra vez", "bien");
     return;
   }
 });
 
 document.addEventListener("change", function (ev) {
   var el = ev.target;
+  if (el.name === "quiere") { vista.borrador.quiere = el.value; render(); return; }
   if (el.id === "f-trabajador") {
     var u = yo();
     u.esTrabajador = el.checked;
-    if (u.esTrabajador && !u.rubros.length) u.rubros = ["jardineria"];
     marcar(); guardar(); render();
+    return;
   }
   if (el.id === "f-efectivo") { yo().aceptaEfectivo = el.checked; marcar(); guardar(); }
   if (el.id === "f-antecedentes") { yo().antecedentes = el.checked; marcar(); guardar(); }
-  if (el.id === "f-zona-perfil") { yo().zona = el.value; marcar(); guardar(); render(); }
 });
 
 function publicarDesdeFormulario() {
@@ -1467,10 +1867,9 @@ window.addEventListener("storage", function (e) {
   if (disco) { db = disco; render(); }
 });
 
-/* El radar depende del tiempo: refrescamos mientras se mira. */
+/* El feed depende del tiempo: se refresca solo mientras se mira. */
 setInterval(function () {
-  if (vista.pantalla !== "radar" && vista.pantalla !== "tarea") return;
-  // Si estás escribiendo algo, no redibujamos: se perdería lo tipeado.
+  if (vista.pantalla !== "inicio" && vista.pantalla !== "tarea") return;
   var foco = document.activeElement;
   if (foco && ["INPUT", "TEXTAREA", "SELECT"].indexOf(foco.tagName) >= 0) return;
   render();
@@ -1479,9 +1878,7 @@ setInterval(function () {
 arrancar();
 render();
 if (enMemoria) {
-  setTimeout(function () {
-    aviso("Este navegador no deja guardar datos: al cerrar se pierde lo que hagas.");
-  }, 800);
+  setTimeout(function () { aviso("Este navegador no deja guardar datos: al cerrar se pierde lo que hagas."); }, 800);
 }
 })();
 </script>

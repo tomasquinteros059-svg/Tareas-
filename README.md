@@ -46,9 +46,17 @@ haciendo doble clic, sin instalar nada y sin conexión. Corre las mismas reglas 
 servidor —cotizador, olas del radar, comisiones, niveles y máquina de estados— y guarda
 los datos en el propio dispositivo.
 
-Trae cuatro cuentas de ejemplo (una clienta y tres trabajadores de distinto nivel) y se
-puede cambiar de una a otra para ver los dos lados. Abriéndola en dos ventanas a la vez
-se comprueba lo que importa: la tarea se la lleva el primero que la acepta.
+Arranca en la portada: se entra con LinkedIn —que acredita la formación y habilita los
+trabajos especializados— o con el teléfono y un código. Adentro, los trabajos se ven como
+un muro, uno abajo del otro, con cuatro solapas: **Para vos** (recomendados según el
+perfil), **Para uno**, **Varios** y **Especializados** (los que piden carrera
+universitaria o matrícula). El perfil se administra desde la app: datos, formación, zona,
+oficios y matrículas.
+
+Trae cinco cuentas de ejemplo —una clienta, tres trabajadores de distinto nivel y una
+ingeniera con LinkedIn conectado— y se puede cambiar de una a otra para ver los dos lados.
+Abriéndola en dos ventanas a la vez se comprueba lo que importa: la tarea se la lleva el
+primero que la acepta.
 
 ## Probarlo
 
