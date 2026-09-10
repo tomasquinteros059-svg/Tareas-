@@ -39,6 +39,17 @@ curl -X POST localhost:3000/cotizar -H 'content-type: application/json' \
   -d '{"rubroSlug":"abogado-dia","unidades":1,"dificultad":"ALTA","urgencia":"HOY","nivelMinimo":"ORO"}'
 ```
 
+## La app en un solo archivo
+
+`apps/demo-app.html` es la aplicación completa funcionando en un archivo suelto: se abre
+haciendo doble clic, sin instalar nada y sin conexión. Corre las mismas reglas que el
+servidor —cotizador, olas del radar, comisiones, niveles y máquina de estados— y guarda
+los datos en el propio dispositivo.
+
+Trae cuatro cuentas de ejemplo (una clienta y tres trabajadores de distinto nivel) y se
+puede cambiar de una a otra para ver los dos lados. Abriéndola en dos ventanas a la vez
+se comprueba lo que importa: la tarea se la lleva el primero que la acepta.
+
 ## Probarlo
 
 ```bash
