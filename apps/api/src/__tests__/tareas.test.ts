@@ -192,6 +192,42 @@ describe('ciclo completo con tarjeta', () => {
     expect(pago.estado).toBe('REEMBOLSADO');
   });
 
+  it('cancelar cuando el trabajador ya salió tiene cargo y lo compensa', async () => {
+    const cliente = await crearCliente();
+    const trabajador = await crearTrabajador();
+    const tarea = await ctx.tareas.publicar(cliente.id, TAREA_BASE);
+    await ctx.tareas.aceptar(tarea.id, trabajador.id);
+    await ctx.tareas.cambiarEstado(tarea.id, trabajador.id, 'EN_CAMINO');
+
+    await ctx.tareas.cambiarEstado(tarea.id, cliente.id, 'CANCELADA', { nota: 'Me surgió algo' });
+
+    // 20% de los 3000 de la tarea, y el 80% de eso es del trabajador.
+    const pago = await prisma.pago.findUniqueOrThrow({ where: { tareaId: tarea.id } });
+    expect(pago.estado).toBe('CAPTURADO');
+    expect(pago.totalCliente).toBe(600);
+
+    const perfil = await prisma.perfilTrabajador.findUniqueOrThrow({ where: { usuarioId: trabajador.id } });
+    expect(perfil.saldo).toBe(480);
+
+    const movimiento = await prisma.movimientoSaldo.findFirstOrThrow({ where: { tareaId: tarea.id } });
+    expect(movimiento.tipo).toBe('COMPENSACION_CANCELACION');
+  });
+
+  it('cancelar antes de que el trabajador salga no cuesta nada', async () => {
+    const cliente = await crearCliente();
+    const trabajador = await crearTrabajador();
+    const tarea = await ctx.tareas.publicar(cliente.id, TAREA_BASE);
+    await ctx.tareas.aceptar(tarea.id, trabajador.id);
+
+    await ctx.tareas.cambiarEstado(tarea.id, cliente.id, 'CANCELADA');
+
+    const pago = await prisma.pago.findUniqueOrThrow({ where: { tareaId: tarea.id } });
+    expect(pago.estado).toBe('REEMBOLSADO');
+    const perfil = await prisma.perfilTrabajador.findUniqueOrThrow({ where: { usuarioId: trabajador.id } });
+    expect(perfil.saldo).toBe(0);
+    expect(await prisma.movimientoSaldo.count({ where: { tareaId: tarea.id } })).toBe(0);
+  });
+
   it('si el trabajador se baja, la tarea vuelve a la fila y le queda la cancelación', async () => {
     const cliente = await crearCliente();
     const trabajador = await crearTrabajador();

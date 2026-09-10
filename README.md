@@ -53,6 +53,11 @@ perfil), **Para uno**, **Varios** y **Especializados** (los que piden carrera
 universitaria o matrícula). El perfil se administra desde la app: datos, formación, zona,
 oficios y matrículas.
 
+Además tiene avisos con campanita, buscador y filtros por distancia y monto, fotos en
+las publicaciones (comprimidas en el navegador), día y franja horaria, propina al
+confirmar, cargo por cancelación tardía, reclamos con resolución de soporte y el perfil
+público de cada trabajador con sus reseñas.
+
 Trae cinco cuentas de ejemplo —una clienta, tres trabajadores de distinto nivel y una
 ingeniera con LinkedIn conectado— y se puede cambiar de una a otra para ver los dos lados.
 Abriéndola en dos ventanas a la vez se comprueba lo que importa: la tarea se la lleva el

@@ -1,6 +1,7 @@
 import { randomInt } from 'node:crypto';
 import type { PrismaClient, Tarea } from '@prisma/client';
 import {
+  cargoPorCancelacion,
   cotizar,
   esFolioValido,
   evaluarElegibilidad,
@@ -285,6 +286,9 @@ export class ServicioTareas {
     ]);
 
     if (hacia === 'CONFIRMADA') return this.liquidarTarea(tareaId);
+    if (hacia === 'CANCELADA') {
+      await this.cobrarCancelacion(tarea, actor);
+    }
     if ((hacia === 'CANCELADA' || hacia === 'EXPIRADA') && tarea.metodoPago === 'TARJETA') {
       await this.liberarRetencion(tareaId);
     }
@@ -422,8 +426,72 @@ export class ServicioTareas {
     throw sinPermiso('No participás de esta tarea');
   }
 
+  /**
+   * Cancelar sale gratis mientras el trabajador no salió de su casa. Una vez en
+   * camino perdió el viaje y el horario, así que el cliente paga una retención y
+   * la mayor parte va para él.
+   */
+  private async cobrarCancelacion(tarea: Tarea, actor: Actor) {
+    if (actor !== 'CLIENTE') return;
+    if (tarea.estado !== 'ASIGNADA' && tarea.estado !== 'EN_CAMINO') return;
+    if (!tarea.trabajadorId) return;
+
+    const { cargoAlCliente, compensacionTrabajador } = cargoPorCancelacion(
+      {
+        rubroSlug: tarea.rubroSlug,
+        presupuesto: tarea.presupuesto,
+        materiales: tarea.materiales,
+        metodoPago: tarea.metodoPago,
+        nivelTrabajador: 'NUEVO',
+      },
+      tarea.estado,
+    );
+    if (cargoAlCliente <= 0) return;
+
+    const perfil = await this.prisma.perfilTrabajador.findUnique({
+      where: { usuarioId: tarea.trabajadorId },
+    });
+    if (!perfil) return;
+
+    const pago = await this.prisma.pago.findUnique({ where: { tareaId: tarea.id } });
+    if (tarea.metodoPago === 'TARJETA' && pago?.referencia) {
+      await this.pasarela.capturar(pago.referencia, cargoAlCliente);
+    }
+
+    const saldoResultante = perfil.saldo + compensacionTrabajador;
+    await this.prisma.$transaction([
+      this.prisma.movimientoSaldo.create({
+        data: {
+          usuarioId: tarea.trabajadorId,
+          tareaId: tarea.id,
+          tipo: 'COMPENSACION_CANCELACION',
+          monto: compensacionTrabajador,
+          saldoResultante,
+          detalle: `Cancelación tardía de la tarea ${tarea.folio}`,
+        },
+      }),
+      this.prisma.perfilTrabajador.update({
+        where: { usuarioId: tarea.trabajadorId },
+        data: { saldo: saldoResultante },
+      }),
+      this.prisma.pago.update({
+        where: { tareaId: tarea.id },
+        data: { estado: 'CAPTURADO', totalCliente: cargoAlCliente, netoTrabajador: compensacionTrabajador },
+      }),
+      this.prisma.eventoTarea.create({
+        data: {
+          tareaId: tarea.id,
+          hacia: 'CANCELADA',
+          actorRol: 'SISTEMA',
+          nota: `Cargo por cancelación tardía: ${cargoAlCliente}`,
+        },
+      }),
+    ]);
+  }
+
   private async liberarRetencion(tareaId: string) {
     const pago = await this.prisma.pago.findUnique({ where: { tareaId } });
+    // Si ya se capturó el cargo por cancelación tardía, no hay nada que liberar.
     if (pago?.referencia && pago.estado === 'RETENIDO') {
       await this.pasarela.liberar(pago.referencia);
       await this.prisma.pago.update({ where: { tareaId }, data: { estado: 'REEMBOLSADO' } });
