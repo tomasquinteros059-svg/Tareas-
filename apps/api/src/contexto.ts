@@ -6,10 +6,13 @@ import { ServicioIdentidad } from './modulos/identidad/servicio.js';
 import { EnviadorConsola, ServicioOtp, type Enviador } from './modulos/auth/otp.js';
 import { ProveedorGoogle, ProveedorLinkedin, type ProveedorOauth } from './modulos/auth/oauth.js';
 import { PasarelaSandbox, type Pasarela } from './modulos/pagos/pasarela.js';
+import { PasarelaStripe } from './modulos/pagos/stripe.js';
+import { PasarelaMercadoPago } from './modulos/pagos/mercadopago.js';
 
 /** Todo lo que las rutas necesitan, armado en un solo lugar y fácil de sustituir en tests. */
 export interface Contexto {
   prisma: PrismaClient;
+  env: Env;
   tareas: ServicioTareas;
   calificaciones: ServicioCalificaciones;
   identidad: ServicioIdentidad;
@@ -18,12 +21,30 @@ export interface Contexto {
   oauth: { google?: ProveedorOauth; linkedin?: ProveedorOauth };
 }
 
+/**
+ * El proveedor se elige por configuración. Si falta la clave, el arranque falla
+ * acá y no cuando alguien intenta publicar una tarea con dinero de verdad.
+ */
+function elegirPasarela(env: Env): Pasarela {
+  if (env.PAYMENTS_PROVIDER === 'stripe') {
+    if (!env.STRIPE_SECRET_KEY) throw new Error('PAYMENTS_PROVIDER=stripe pero falta STRIPE_SECRET_KEY');
+    return new PasarelaStripe({ claveSecreta: env.STRIPE_SECRET_KEY });
+  }
+  if (env.PAYMENTS_PROVIDER === 'mercadopago') {
+    if (!env.MERCADOPAGO_ACCESS_TOKEN) {
+      throw new Error('PAYMENTS_PROVIDER=mercadopago pero falta MERCADOPAGO_ACCESS_TOKEN');
+    }
+    return new PasarelaMercadoPago({ accessToken: env.MERCADOPAGO_ACCESS_TOKEN });
+  }
+  return new PasarelaSandbox();
+}
+
 export function crearContexto(
   prisma: PrismaClient,
   env: Env,
   overrides: { pasarela?: Pasarela; enviador?: Enviador } = {},
 ): Contexto {
-  const pasarela = overrides.pasarela ?? new PasarelaSandbox();
+  const pasarela = overrides.pasarela ?? elegirPasarela(env);
   const enviador = overrides.enviador ?? new EnviadorConsola();
 
   const oauth: Contexto['oauth'] = {};
@@ -44,6 +65,7 @@ export function crearContexto(
 
   return {
     prisma,
+    env,
     pasarela,
     tareas: new ServicioTareas(prisma, pasarela),
     calificaciones: new ServicioCalificaciones(prisma),

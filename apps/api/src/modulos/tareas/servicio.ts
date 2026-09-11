@@ -325,7 +325,31 @@ export class ServicioTareas {
       await this.pasarela.capturar(tarea.pago.referencia, cuenta.cobroAlCliente);
     }
 
-    const saldoResultante = perfil.saldo + cuenta.movimientoSaldo;
+    /*
+     * Si el proveedor sabe girarle plata al trabajador y el trabajador ya
+     * conectó su cuenta, el neto sale ahora mismo. Si no, queda en su saldo
+     * dentro de la app y lo retira cuando quiere. El libro mayor registra el
+     * mismo movimiento en los dos casos: lo que cambia es dónde está la plata.
+     */
+    let transferencia: string | null = null;
+    if (
+      tarea.metodoPago === 'TARJETA' &&
+      cuenta.movimientoSaldo > 0 &&
+      this.pasarela.capacidades.transferencias &&
+      perfil.cuentaCobro
+    ) {
+      const giro = await this.pasarela.transferir({
+        usuarioId: tarea.trabajadorId,
+        cuentaDestino: perfil.cuentaCobro,
+        monto: cuenta.movimientoSaldo,
+        moneda: tarea.moneda,
+        concepto: `Tarea ${tarea.folio}`,
+        idempotencia: `payout:${tarea.id}`,
+      });
+      transferencia = giro.referencia;
+    }
+
+    const saldoResultante = perfil.saldo + (transferencia ? 0 : cuenta.movimientoSaldo);
     const ahora = new Date();
 
     const [actualizada] = await this.prisma.$transaction([
@@ -336,7 +360,7 @@ export class ServicioTareas {
       this.prisma.pago.update({
         where: { tareaId },
         data: {
-          estado: tarea.metodoPago === 'TARJETA' ? 'CAPTURADO' : 'EN_MANO',
+          estado: tarea.metodoPago !== 'TARJETA' ? 'EN_MANO' : transferencia ? 'LIQUIDADO' : 'CAPTURADO',
           comision: cuenta.comision,
           tasaComision: cuenta.tasaComision,
           cargoServicio: cuenta.cargoServicio,
@@ -345,6 +369,7 @@ export class ServicioTareas {
           costoProcesamiento: cuenta.costoProcesamiento,
           netoTrabajador: cuenta.netoTrabajador,
           capturadoEn: ahora,
+          liquidadoEn: transferencia ? ahora : null,
         },
       }),
       this.prisma.movimientoSaldo.create({
@@ -355,9 +380,11 @@ export class ServicioTareas {
           monto: cuenta.movimientoSaldo,
           saldoResultante,
           detalle:
-            tarea.metodoPago === 'TARJETA'
-              ? `Tarea ${tarea.folio} acreditada`
-              : `Comisión de la tarea ${tarea.folio} cobrada en efectivo`,
+            tarea.metodoPago !== 'TARJETA'
+              ? `Comisión de la tarea ${tarea.folio} cobrada en efectivo`
+              : transferencia
+                ? `Tarea ${tarea.folio} transferida a tu cuenta`
+                : `Tarea ${tarea.folio} acreditada en tu saldo`,
         },
       }),
       this.prisma.perfilTrabajador.update({

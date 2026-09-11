@@ -7,13 +7,22 @@ import { randomUUID } from 'node:crypto';
  * tarea, y para poder testear todo el ciclo sin red.
  */
 export interface Pasarela {
+  readonly nombre: string;
+  /**
+   * Qué sabe hacer este proveedor. No todos pagan a terceros por API: cuando
+   * `transferencias` es falso, el neto queda en el saldo del trabajador y el
+   * retiro se resuelve por fuera (split en el cobro o transferencia bancaria).
+   */
+  readonly capacidades: { transferencias: boolean };
   /** Retiene los fondos al publicar la tarea (nadie cobra todavía). */
   retener(entrada: RetencionEntrada): Promise<Retencion>;
   /** Captura la retención cuando el trabajo se confirma. */
   capturar(referencia: string, monto: number): Promise<Captura>;
   /** Libera la retención si la tarea se cancela o expira. */
   liberar(referencia: string): Promise<void>;
-  /** Envía el neto al trabajador. */
+  /** Devuelve plata ya capturada (disputas, resoluciones de soporte). */
+  reembolsar(referencia: string, monto?: number): Promise<{ referencia: string; monto: number }>;
+  /** Envía el neto al trabajador, si el proveedor lo permite. */
   transferir(entrada: TransferenciaEntrada): Promise<{ referencia: string }>;
 }
 
@@ -38,9 +47,12 @@ export interface Captura {
 
 export interface TransferenciaEntrada {
   usuarioId: string;
+  /** Cuenta del trabajador en el proveedor (Stripe Connect, CBU, CVU...). */
+  cuentaDestino?: string | null;
   monto: number;
   moneda: string;
   concepto: string;
+  idempotencia?: string;
 }
 
 export class ErrorPasarela extends Error {
@@ -58,6 +70,8 @@ export class ErrorPasarela extends Error {
  * `tok_ok_1234` y rechaza `tok_rechazada` para poder probar el camino triste.
  */
 export class PasarelaSandbox implements Pasarela {
+  readonly nombre = 'sandbox';
+  readonly capacidades = { transferencias: true };
   readonly retenciones = new Map<string, { monto: number; estado: 'RETENIDO' | 'CAPTURADO' | 'LIBERADO' }>();
 
   async retener(entrada: RetencionEntrada): Promise<Retencion> {
@@ -86,6 +100,15 @@ export class PasarelaSandbox implements Pasarela {
   async liberar(referencia: string): Promise<void> {
     const hold = this.retenciones.get(referencia);
     if (hold && hold.estado === 'RETENIDO') hold.estado = 'LIBERADO';
+  }
+
+  async reembolsar(referencia: string, monto?: number): Promise<{ referencia: string; monto: number }> {
+    const hold = this.retenciones.get(referencia);
+    if (!hold) throw new ErrorPasarela('PAGO_INEXISTENTE', 'No existe el pago');
+    if (hold.estado !== 'CAPTURADO') {
+      throw new ErrorPasarela('PAGO_NO_REEMBOLSABLE', `El pago está ${hold.estado}`);
+    }
+    return { referencia: `re_${randomUUID()}`, monto: monto ?? hold.monto };
   }
 
   async transferir(entrada: TransferenciaEntrada): Promise<{ referencia: string }> {

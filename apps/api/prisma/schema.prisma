@@ -219,6 +219,9 @@ model PerfilTrabajador {
   lng                    Float?
   /// Saldo en centavos: positivo es plata a cobrar, negativo es comisión adeudada.
   saldo                  Int                @default(0)
+  /// Cuenta del trabajador en la pasarela (Stripe Connect, CVU, CBU...).
+  /// Mientras esté vacía, el neto se acumula en el saldo y se retira a mano.
+  cuentaCobro            String?
   creadoEn               DateTime           @default(now())
   actualizadoEn          DateTime           @updatedAt
 

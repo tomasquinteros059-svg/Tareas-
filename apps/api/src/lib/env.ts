@@ -9,7 +9,11 @@ const esquema = z.object({
     .string()
     .regex(/^[0-9a-f]{64}$/i, 'KYC_ENCRYPTION_KEY debe ser 32 bytes en hexadecimal'),
   PAYMENTS_PROVIDER: z.enum(['sandbox', 'stripe', 'mercadopago']).default('sandbox'),
-  PAYMENTS_API_KEY: z.string().optional(),
+  PAYMENTS_CURRENCY: z.string().default('USD'),
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  MERCADOPAGO_ACCESS_TOKEN: z.string().optional(),
+  MERCADOPAGO_WEBHOOK_SECRET: z.string().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   LINKEDIN_CLIENT_ID: z.string().optional(),

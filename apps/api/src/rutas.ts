@@ -2,6 +2,13 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { CATALOGO, buscarRubro, cotizar } from '@tareas/domain';
 import { ErrorApi, invalido, sinPermiso } from './lib/errores.js';
+import {
+  aplicarEvento,
+  eventoDeMercadoPago,
+  eventoDeStripe,
+  verificarFirmaMercadoPago,
+  verificarFirmaStripe,
+} from './modulos/pagos/webhooks.js';
 import type { Contexto } from './contexto.js';
 
 const dificultad = z.enum(['BASICA', 'MEDIA', 'ALTA', 'EXPERTA']);
@@ -61,6 +68,37 @@ export async function registrarRutas(app: FastifyInstance, ctx: Contexto) {
   app.post('/cotizar', async (req) => {
     const datos = cotizacionSchema.parse(req.body);
     return cotizar(datos);
+  });
+
+  /*
+   * Avisos del proveedor de pagos. Van sin sesión —los manda el proveedor, no
+   * un usuario— así que la única defensa es la firma. Siempre respondemos 200
+   * salvo firma inválida: si devolvemos error por un evento que no nos
+   * interesa, el proveedor lo reintenta durante días.
+   */
+  app.post('/webhooks/pagos/stripe', async (req, reply) => {
+    const secreto = ctx.env.STRIPE_WEBHOOK_SECRET;
+    if (!secreto) throw invalido('WEBHOOK_NO_CONFIGURADO', 'Falta STRIPE_WEBHOOK_SECRET');
+    const firma = req.headers['stripe-signature'];
+    if (typeof firma !== 'string' || !verificarFirmaStripe(req.cuerpoCrudo ?? '', firma, secreto)) {
+      return reply.code(400).send({ error: { codigo: 'FIRMA_INVALIDA', mensaje: 'Firma inválida' } });
+    }
+    const resultado = await aplicarEvento(ctx.prisma, 'stripe', eventoDeStripe(req.body as Record<string, unknown>));
+    return reply.send({ recibido: true, ...resultado });
+  });
+
+  app.post('/webhooks/pagos/mercadopago', async (req, reply) => {
+    const secreto = ctx.env.MERCADOPAGO_WEBHOOK_SECRET;
+    if (!secreto) throw invalido('WEBHOOK_NO_CONFIGURADO', 'Falta MERCADOPAGO_WEBHOOK_SECRET');
+    const firma = req.headers['x-signature'];
+    const requestId = String(req.headers['x-request-id'] ?? '');
+    const cuerpo = req.body as { data?: { id?: string } };
+    const datosId = String(cuerpo?.data?.id ?? '');
+    if (typeof firma !== 'string' || !verificarFirmaMercadoPago(datosId, requestId, firma, secreto)) {
+      return reply.code(400).send({ error: { codigo: 'FIRMA_INVALIDA', mensaje: 'Firma inválida' } });
+    }
+    const resultado = await aplicarEvento(ctx.prisma, 'mercadopago', eventoDeMercadoPago(cuerpo as Record<string, unknown>));
+    return reply.send({ recibido: true, ...resultado });
   });
 
   // --- Ingreso por teléfono (OTP). Google y LinkedIn cuelgan de /auth/:proveedor.

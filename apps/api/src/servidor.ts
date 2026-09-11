@@ -14,6 +14,7 @@ declare module 'fastify' {
   interface FastifyRequest {
     usuarioId(): string;
     roles(): string[];
+    cuerpoCrudo?: string;
   }
 }
 
@@ -28,6 +29,17 @@ export async function crearServidor(ctx: Contexto, env: Env): Promise<FastifyIns
   const app = Fastify({
     logger: env.NODE_ENV === 'test' ? false : { level: 'info' },
     trustProxy: true,
+  });
+
+  // La firma del webhook se calcula sobre el cuerpo exacto que llegó: si lo
+  // parseamos y lo volvemos a serializar, la firma deja de coincidir.
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (req, cuerpo, listo) => {
+    (req as unknown as { cuerpoCrudo?: string }).cuerpoCrudo = cuerpo as string;
+    try {
+      listo(null, cuerpo ? JSON.parse(cuerpo as string) : {});
+    } catch {
+      listo(new ErrorApi(400, 'JSON_INVALIDO', 'El cuerpo no es JSON válido'), undefined);
+    }
   });
 
   await app.register(cors, { origin: true });

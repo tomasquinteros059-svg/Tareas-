@@ -180,6 +180,34 @@ describe('ciclo completo con tarjeta', () => {
     expect(movimiento.saldoResultante).toBe(2610);
   });
 
+  it('si el trabajador conectó su cuenta, el neto se le transfiere en vez de quedar en el saldo', async () => {
+    const cliente = await crearCliente();
+    const trabajador = await crearTrabajador();
+    await prisma.perfilTrabajador.update({
+      where: { usuarioId: trabajador.id },
+      data: { cuentaCobro: 'acct_prueba_123' },
+    });
+
+    const tarea = await ctx.tareas.publicar(cliente.id, TAREA_BASE);
+    await ctx.tareas.aceptar(tarea.id, trabajador.id);
+    await ctx.tareas.cambiarEstado(tarea.id, trabajador.id, 'EN_CAMINO');
+    const t = await prisma.tarea.findUniqueOrThrow({ where: { id: tarea.id } });
+    await ctx.tareas.cambiarEstado(tarea.id, trabajador.id, 'EN_PROGRESO', { codigoInicio: t.codigoInicio! });
+    await ctx.tareas.cambiarEstado(tarea.id, trabajador.id, 'ENTREGADA');
+    await ctx.tareas.cambiarEstado(tarea.id, cliente.id, 'CONFIRMADA');
+
+    const pago = await prisma.pago.findUniqueOrThrow({ where: { tareaId: tarea.id } });
+    expect(pago.estado).toBe('LIQUIDADO');
+    expect(pago.liquidadoEn).not.toBeNull();
+
+    // La plata salió: no se acumula en el saldo de la app.
+    const perfil = await prisma.perfilTrabajador.findUniqueOrThrow({ where: { usuarioId: trabajador.id } });
+    expect(perfil.saldo).toBe(0);
+
+    const movimiento = await prisma.movimientoSaldo.findFirstOrThrow({ where: { tareaId: tarea.id } });
+    expect(movimiento.detalle).toMatch(/transferida a tu cuenta/);
+  });
+
   it('libera la retención si el cliente cancela antes de que salga el trabajador', async () => {
     const cliente = await crearCliente();
     const tarea = await ctx.tareas.publicar(cliente.id, TAREA_BASE);

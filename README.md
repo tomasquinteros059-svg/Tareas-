@@ -97,4 +97,5 @@ probar de verdad contra Postgres.
 ## Lo que hay que leer antes de tocar el código
 
 - [`docs/DECISIONES.md`](docs/DECISIONES.md) — por qué las cosas son así.
+- [`docs/PAGOS.md`](docs/PAGOS.md) — cómo se mueve el dinero y cómo encender la pasarela.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — qué falta para salir a la calle.
