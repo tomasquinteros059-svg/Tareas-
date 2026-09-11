@@ -1,3 +1,4 @@
+import { aMinimas, aUnidades } from '@tareas/domain';
 import { llamar } from './http.js';
 import { ErrorPasarela, type Captura, type Pasarela, type Retencion, type RetencionEntrada, type TransferenciaEntrada } from './pasarela.js';
 
@@ -15,6 +16,8 @@ import { ErrorPasarela, type Captura, type Pasarela, type Retencion, type Retenc
  */
 export interface ConfigMercadoPago {
   accessToken: string;
+  /** Moneda de la cuenta: define si los montos llevan centavos o no. */
+  moneda: string;
   /** Comisión de la plataforma, si se cobra en nombre del trabajador. */
   comision?: number;
 }
@@ -53,13 +56,15 @@ export class PasarelaMercadoPago implements Pasarela {
       url: `${BASE}/v1/payments`,
       cabeceras: this.cabeceras(`retener:${entrada.idempotencia}`),
       cuerpo: JSON.stringify({
-        // Mercado Pago trabaja en unidades, no en centavos.
-        transaction_amount: entrada.monto / 100,
+        // Mercado Pago trabaja en unidades. En pesos chilenos no hay centavos,
+        // así que la conversión depende de la moneda: dividir siempre por 100
+        // cobraría cien veces menos en Chile.
+        transaction_amount: aUnidades(entrada.monto, entrada.moneda),
         token: entrada.metodoPagoToken,
         description: entrada.descripcion,
         installments: 1,
         capture: false,
-        application_fee: this.config.comision ? this.config.comision / 100 : undefined,
+        application_fee: this.config.comision ? aUnidades(this.config.comision, entrada.moneda) : undefined,
         external_reference: entrada.idempotencia,
       }),
     });
@@ -82,9 +87,9 @@ export class PasarelaMercadoPago implements Pasarela {
       metodo: 'PUT',
       url: `${BASE}/v1/payments/${referencia}`,
       cabeceras: this.cabeceras(`capturar:${referencia}:${monto}`),
-      cuerpo: JSON.stringify({ capture: true, transaction_amount: monto / 100 }),
+      cuerpo: JSON.stringify({ capture: true, transaction_amount: aUnidades(monto, this.config.moneda) }),
     });
-    return { referencia: String(pago.id), capturado: Math.round(pago.transaction_amount * 100) };
+    return { referencia: String(pago.id), capturado: aMinimas(pago.transaction_amount, this.config.moneda) };
   }
 
   async liberar(referencia: string): Promise<void> {
@@ -101,9 +106,9 @@ export class PasarelaMercadoPago implements Pasarela {
       metodo: 'POST',
       url: `${BASE}/v1/payments/${referencia}/refunds`,
       cabeceras: this.cabeceras(`reembolsar:${referencia}:${monto ?? 'total'}`),
-      cuerpo: JSON.stringify(monto ? { amount: monto / 100 } : {}),
+      cuerpo: JSON.stringify(monto ? { amount: aUnidades(monto, this.config.moneda) } : {}),
     });
-    return { referencia: String(r.id), monto: Math.round((r.amount ?? 0) * 100) };
+    return { referencia: String(r.id), monto: aMinimas(r.amount ?? 0, this.config.moneda) };
   }
 
   async transferir(_entrada: TransferenciaEntrada): Promise<{ referencia: string }> {

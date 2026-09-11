@@ -41,6 +41,19 @@ export const PRECIOS_POR_DEFECTO: ConfiguracionPrecios = {
   margenSugeridoAlto: 1.5,
 };
 
+/**
+ * Chile. El peso no tiene centavos, así que la unidad mínima es el peso entero:
+ * un piso de 800 (US$8) pasa a 8.000 pesos con factorPais 10, y el redondeo
+ * salta de a $500 porque nadie cotiza un trabajo en $8.437.
+ */
+export const PRECIOS_CHILE: ConfiguracionPrecios = {
+  ...PRECIOS_POR_DEFECTO,
+  moneda: 'CLP',
+  factorPais: 10,
+  costoPorKmExtra: 600,
+  paso: 500,
+};
+
 export interface SolicitudCotizacion {
   rubroSlug: string;
   unidades: number;

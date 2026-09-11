@@ -56,7 +56,7 @@ export class ServicioTareas {
    * los fondos: sin plata retenida no se publica, así ningún trabajador sale a
    * trabajar contra un presupuesto que no existe.
    */
-  async publicar(autorId: string, datos: DatosNuevaTarea): Promise<Tarea> {
+  async publicar(autorId: string, datos: DatosNuevaTarea): Promise<Tarea & { urlRedireccion?: string }> {
     const rubro = rubroObligatorio(datos.rubroSlug);
     const solicitud = {
       rubroSlug: datos.rubroSlug,
@@ -88,6 +88,14 @@ export class ServicioTareas {
     let referenciaPago: string | undefined;
     let marca: string | undefined;
     let ultimos4: string | undefined;
+    let urlRedireccion: string | undefined;
+    /*
+     * Con Webpay el cliente tiene que ir al sitio del banco: la tarea queda en
+     * borrador y sólo sale al radar cuando vuelve y el pago se confirma. Sin
+     * esto, un trabajador podría salir para una casa con una reserva que nunca
+     * se completó.
+     */
+    let esperandoBanco = false;
     const liquidacion = liquidar({
       rubroSlug: datos.rubroSlug,
       presupuesto: datos.presupuesto,
@@ -111,6 +119,8 @@ export class ServicioTareas {
       referenciaPago = hold.referencia;
       marca = hold.marca;
       ultimos4 = hold.ultimos4;
+      urlRedireccion = hold.urlRedireccion;
+      esperandoBanco = !!hold.requiereConfirmacion;
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -131,14 +141,14 @@ export class ServicioTareas {
           presupuesto: datos.presupuesto,
           materiales: datos.materiales ?? 0,
           metodoPago: datos.metodoPago,
-          estado: 'PUBLICADA',
+          estado: esperandoBanco ? 'BORRADOR' : 'PUBLICADA',
           direccionId: datos.direccionId ?? null,
           lat: datos.lat,
           lng: datos.lng,
           codigoInicio: String(randomInt(1000, 10000)),
           programadaPara: datos.programadaPara ?? null,
-          publicadaEn: ahora,
-          expiraEn: new Date(ahora.getTime() + VENTANA_PUBLICACION_MS),
+          publicadaEn: esperandoBanco ? null : ahora,
+          expiraEn: esperandoBanco ? null : new Date(ahora.getTime() + VENTANA_PUBLICACION_MS),
         },
       });
 
@@ -146,23 +156,71 @@ export class ServicioTareas {
         data: {
           tareaId: tarea.id,
           metodo: datos.metodoPago,
-          estado: datos.metodoPago === 'TARJETA' ? 'RETENIDO' : 'PENDIENTE',
+          estado: datos.metodoPago === 'TARJETA' && !esperandoBanco ? 'RETENIDO' : 'PENDIENTE',
           montoTarea: datos.presupuesto,
           cargoServicio: liquidacion.cargoServicio,
           totalCliente: liquidacion.cobroAlCliente,
           referencia: referenciaPago ?? null,
           marca: marca ?? null,
           ultimos4Tarjeta: ultimos4 ?? null,
-          retenidoEn: referenciaPago ? ahora : null,
+          retenidoEn: referenciaPago && !esperandoBanco ? ahora : null,
         },
       });
 
       await tx.eventoTarea.create({
-        data: { tareaId: tarea.id, hacia: 'PUBLICADA', actorId: autorId, actorRol: 'CLIENTE' },
+        data: {
+          tareaId: tarea.id,
+          hacia: esperandoBanco ? 'BORRADOR' : 'PUBLICADA',
+          actorId: autorId,
+          actorRol: 'CLIENTE',
+          nota: esperandoBanco ? 'Esperando que el cliente complete el pago en el banco' : null,
+        },
       });
 
-      return tarea;
+      return { ...tarea, urlRedireccion };
     });
+  }
+
+  /**
+   * Vuelta del sitio del banco: se confirma con la pasarela y recién ahí la
+   * tarea sale al radar. Si el banco rechazó, la tarea se queda en borrador.
+   */
+  async confirmarPago(tareaId: string, autorId: string) {
+    const tarea = await this.prisma.tarea.findUnique({ where: { id: tareaId }, include: { pago: true } });
+    if (!tarea) throw noEncontrado('La tarea');
+    if (tarea.autorId !== autorId) throw sinPermiso('No es tu tarea');
+    if (tarea.estado !== 'BORRADOR') throw conflicto('TAREA_YA_PUBLICADA', 'Esta tarea ya está publicada');
+    if (!tarea.pago?.referencia) throw conflicto('SIN_PAGO', 'Esta tarea no tiene un pago para confirmar');
+    if (!this.pasarela.confirmar) {
+      throw conflicto('CONFIRMACION_NO_APLICA', 'Este medio de pago no necesita confirmación');
+    }
+
+    const confirmado = await this.pasarela.confirmar(tarea.pago.referencia);
+    const ahora = new Date();
+
+    const [actualizada] = await this.prisma.$transaction([
+      this.prisma.tarea.update({
+        where: { id: tareaId },
+        data: {
+          estado: 'PUBLICADA',
+          publicadaEn: ahora,
+          expiraEn: new Date(ahora.getTime() + VENTANA_PUBLICACION_MS),
+        },
+      }),
+      this.prisma.pago.update({
+        where: { tareaId },
+        data: {
+          estado: 'RETENIDO',
+          retenidoEn: ahora,
+          marca: confirmado.marca ?? null,
+          ultimos4Tarjeta: confirmado.ultimos4 ?? null,
+        },
+      }),
+      this.prisma.eventoTarea.create({
+        data: { tareaId, desde: 'BORRADOR', hacia: 'PUBLICADA', actorId: autorId, actorRol: 'CLIENTE' },
+      }),
+    ]);
+    return actualizada;
   }
 
   /** Lo que ve un trabajador en su radar, ya filtrado y ordenado. */

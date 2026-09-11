@@ -8,6 +8,7 @@ import { ProveedorGoogle, ProveedorLinkedin, type ProveedorOauth } from './modul
 import { PasarelaSandbox, type Pasarela } from './modulos/pagos/pasarela.js';
 import { PasarelaStripe } from './modulos/pagos/stripe.js';
 import { PasarelaMercadoPago } from './modulos/pagos/mercadopago.js';
+import { PasarelaTransbank } from './modulos/pagos/transbank.js';
 
 /** Todo lo que las rutas necesitan, armado en un solo lugar y fácil de sustituir en tests. */
 export interface Contexto {
@@ -34,7 +35,23 @@ function elegirPasarela(env: Env): Pasarela {
     if (!env.MERCADOPAGO_ACCESS_TOKEN) {
       throw new Error('PAYMENTS_PROVIDER=mercadopago pero falta MERCADOPAGO_ACCESS_TOKEN');
     }
-    return new PasarelaMercadoPago({ accessToken: env.MERCADOPAGO_ACCESS_TOKEN });
+    return new PasarelaMercadoPago({
+      accessToken: env.MERCADOPAGO_ACCESS_TOKEN,
+      moneda: env.PAYMENTS_CURRENCY,
+    });
+  }
+  if (env.PAYMENTS_PROVIDER === 'transbank') {
+    if (!env.TRANSBANK_COMMERCE_CODE || !env.TRANSBANK_API_KEY || !env.TRANSBANK_RETURN_URL) {
+      throw new Error(
+        'PAYMENTS_PROVIDER=transbank pero faltan TRANSBANK_COMMERCE_CODE, TRANSBANK_API_KEY o TRANSBANK_RETURN_URL',
+      );
+    }
+    return new PasarelaTransbank({
+      codigoComercio: env.TRANSBANK_COMMERCE_CODE,
+      claveApi: env.TRANSBANK_API_KEY,
+      produccion: env.TRANSBANK_PRODUCTION,
+      urlRetorno: env.TRANSBANK_RETURN_URL,
+    });
   }
   return new PasarelaSandbox();
 }

@@ -45,6 +45,7 @@ toca. Hay tres implementaciones:
 - **`PasarelaStripe`** — PaymentIntents con `capture_method: manual` y pagos al
   trabajador por Stripe Connect.
 - **`PasarelaMercadoPago`** — pagos con `capture: false` y captura posterior.
+- **`PasarelaTransbank`** — Webpay Plus en modalidad diferida, para Chile.
 
 Se elige con `PAYMENTS_PROVIDER`. Si falta la clave, el servidor **no arranca**:
 es preferible fallar al inicio que descubrirlo con un cliente esperando.
@@ -84,6 +85,45 @@ Dos cuidados que ya están resueltos en el código:
 Siempre se responde 200, salvo firma inválida: si devolvemos error por un evento
 que no nos interesa, el proveedor lo reintenta durante días.
 
+## Chile: dos cosas que cambian
+
+### El peso no tiene centavos
+
+Todos los montos del sistema son **enteros en unidades mínimas**. En dólares la
+unidad mínima es el centavo; en pesos chilenos es el peso. Por eso la conversión
+hacia el proveedor no puede ser siempre "dividir por cien": `aUnidades()` y
+`decimalesDe()` (en `packages/domain/src/dinero.ts`) resuelven eso por moneda.
+Equivocarse acá no es un detalle de formato: se cobra cien veces de más o cien
+veces de menos.
+
+Para operar en Chile va `PAYMENTS_CURRENCY=CLP` y el catálogo usa
+`PRECIOS_CHILE`: mismo piso relativo que en dólares, ajustado con `factorPais`,
+y redondeo de a $500 porque nadie cotiza un trabajo en $8.437. Cortar el pasto
+tres horas queda en $28.000, que es un número que un chileno reconoce.
+
+### Webpay funciona distinto
+
+Transbank es el medio con el que se paga casi todo en Chile, porque incluye
+**Redcompra** (débito) y no sólo crédito. A cambio no recibe un token de
+tarjeta: **manda al cliente al sitio del banco**. Entonces el flujo tiene un
+paso más:
+
+```
+POST /tareas          →  crea la tarea en BORRADOR y devuelve urlRedireccion
+                         (el cliente va al banco y paga)
+POST /tareas/:id/confirmar-pago
+                      →  se confirma con Transbank y recién ahí sale al radar
+```
+
+La tarea **no se publica** hasta que el pago está confirmado. Sin eso, un
+trabajador podría salir para una casa con una reserva que nunca se completó.
+
+Dos límites de Webpay que conviene tener presentes: el **diferido** (autorizar
+ahora y capturar después) hay que pedirlo en el contrato, y la autorización
+**caduca a los 7 días**. Y Webpay no le paga a terceros: todo llega a la cuenta
+del comercio y a cada trabajador se le transfiere por fuera, así que el neto
+queda en su saldo dentro de la app.
+
 ## Cómo encenderlo
 
 ### Con Stripe
@@ -107,9 +147,40 @@ que no nos interesa, el proveedor lo reintenta durante días.
    copiar la clave secreta a `MERCADOPAGO_WEBHOOK_SECRET`.
 4. `PAYMENTS_PROVIDER=mercadopago`.
 
-En los dos casos conviene empezar con las credenciales de prueba, correr el ciclo
-completo (publicar, tomar, confirmar, cancelar tarde, reembolsar) y recién
+### Con Transbank (Chile)
+
+1. Firmar el contrato de Webpay Plus **con la sociedad**, no a título personal:
+   Transbank pide el RUT de la empresa y la cuenta corriente a su nombre, que es
+   donde deposita. La cuenta se carga en el portal de Transbank; en el código no
+   va nunca.
+2. Pedir expresamente la modalidad **diferida**. Sin eso sólo se puede cobrar de
+   una, y se pierde la reserva en dos tiempos que es la base de cómo funciona
+   la app.
+3. Probar primero contra integración: `TRANSBANK_PRODUCTION=false` con el código
+   de comercio y la clave que Transbank publica para pruebas.
+4. Cargar el código de comercio y la clave reales en `TRANSBANK_COMMERCE_CODE` y
+   `TRANSBANK_API_KEY`, poner `TRANSBANK_PRODUCTION=true` y
+   `TRANSBANK_RETURN_URL` apuntando a la pantalla de vuelta.
+5. `PAYMENTS_PROVIDER=transbank` y `PAYMENTS_CURRENCY=CLP`.
+
+En todos los casos conviene empezar con las credenciales de prueba, correr el
+ciclo completo (publicar, tomar, confirmar, cancelar tarde, reembolsar) y recién
 después poner las de producción.
+
+## Dónde van los datos de la empresa
+
+En el **portal del proveedor**, no en el código ni en el repositorio:
+
+| Dato | Dónde va |
+| --- | --- |
+| Razón social y RUT | alta de la cuenta en Transbank / Mercado Pago / Stripe |
+| Cuenta corriente del banco | portal del proveedor, para las liquidaciones |
+| Correo de contacto | portal del proveedor y avisos de contracargos |
+| Claves de API | variables de entorno del servidor, nunca versionadas |
+
+Un número de cuenta en el historial de git no se borra: queda en cada copia del
+repositorio para siempre. Lo único que el código necesita son las claves, y esas
+viven en el entorno.
 
 ## Lo que no se resuelve con código
 

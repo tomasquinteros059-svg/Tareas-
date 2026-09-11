@@ -214,6 +214,11 @@ export async function registrarRutas(app: FastifyInstance, ctx: Contexto) {
       return reply.code(201).send(tarea);
     });
 
+    privadas.post('/tareas/:id/confirmar-pago', async (req) => {
+      const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+      return ctx.tareas.confirmarPago(id, req.usuarioId());
+    });
+
     privadas.get('/tareas/:folio', async (req) => {
       const { folio } = z.object({ folio: z.string() }).parse(req.params);
       return ctx.tareas.porFolio(folio);

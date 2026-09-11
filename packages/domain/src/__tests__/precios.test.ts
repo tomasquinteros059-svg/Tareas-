@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { cotizar, validarPresupuesto, PRECIOS_POR_DEFECTO } from '../precios.js';
+import { cotizar, validarPresupuesto, PRECIOS_POR_DEFECTO, PRECIOS_CHILE } from '../precios.js';
+import { aMinimas, aUnidades, decimalesDe, formatear } from '../dinero.js';
 
 describe('cotizar', () => {
   it('respeta las unidades mínimas facturables del rubro', () => {
@@ -147,5 +148,47 @@ describe('validarPresupuesto', () => {
   it('rechaza montos no enteros o negativos', () => {
     expect(validarPresupuesto(1500.5, solicitud).valido).toBe(false);
     expect(validarPresupuesto(-100, solicitud).valido).toBe(false);
+  });
+});
+
+describe('monedas sin centavos', () => {
+  it('el peso chileno no se parte: la unidad mínima es el peso entero', () => {
+    expect(decimalesDe('CLP')).toBe(0);
+    expect(decimalesDe('USD')).toBe(2);
+    // 8000 unidades mínimas: en dólares son 80, en pesos chilenos son 8000.
+    expect(aUnidades(8000, 'USD')).toBe(80);
+    expect(aUnidades(8000, 'CLP')).toBe(8000);
+    expect(aMinimas(31.5, 'USD')).toBe(3150);
+    expect(aMinimas(8000, 'CLP')).toBe(8000);
+  });
+
+  it('cotiza en pesos chilenos con montos que un chileno reconoce', () => {
+    const q = cotizar(
+      {
+        rubroSlug: 'jardineria-corte-pasto',
+        unidades: 3,
+        dificultad: 'BASICA',
+        urgencia: 'HOY',
+        nivelMinimo: 'NUEVO',
+      },
+      PRECIOS_CHILE,
+    );
+    // 8.000/hora x 3 x 1,15 de urgencia = 27.600 → redondeado a $500
+    expect(q.minimo).toBe(28000);
+    expect(q.moneda).toBe('CLP');
+    expect(formatear(q.minimo, 'CLP')).not.toMatch(/,\d\d/);
+  });
+
+  it('el mismo trabajo en dólares y en pesos guarda la proporción', () => {
+    const solicitud = {
+      rubroSlug: 'plomeria',
+      unidades: 2,
+      dificultad: 'ALTA',
+      urgencia: 'PROGRAMADA',
+      nivelMinimo: 'NUEVO',
+    } as const;
+    const usd = cotizar(solicitud).minimo;
+    const clp = cotizar(solicitud, PRECIOS_CHILE).minimo;
+    expect(clp / usd).toBeCloseTo(10, 0);
   });
 });

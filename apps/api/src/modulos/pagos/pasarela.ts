@@ -24,6 +24,8 @@ export interface Pasarela {
   reembolsar(referencia: string, monto?: number): Promise<{ referencia: string; monto: number }>;
   /** Envía el neto al trabajador, si el proveedor lo permite. */
   transferir(entrada: TransferenciaEntrada): Promise<{ referencia: string }>;
+  /** Cierra una retención que necesitó que el cliente fuera al sitio del banco. */
+  confirmar?(referencia: string): Promise<Retencion>;
 }
 
 export interface RetencionEntrada {
@@ -38,6 +40,13 @@ export interface Retencion {
   referencia: string;
   marca?: string;
   ultimos4?: string;
+  /**
+   * Algunos medios (Webpay en Chile) no aceptan un token de tarjeta: mandan al
+   * cliente al sitio del banco. En ese caso la tarea queda en borrador hasta
+   * que vuelve y se confirma el pago.
+   */
+  urlRedireccion?: string;
+  requiereConfirmacion?: boolean;
 }
 
 export interface Captura {

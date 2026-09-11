@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PasarelaStripe } from '../modulos/pagos/stripe.js';
 import { PasarelaMercadoPago } from '../modulos/pagos/mercadopago.js';
+import { PasarelaTransbank } from '../modulos/pagos/transbank.js';
 import { ErrorPasarela } from '../modulos/pagos/pasarela.js';
 import {
   eventoDeMercadoPago,
@@ -81,7 +82,7 @@ describe('Stripe', () => {
 });
 
 describe('Mercado Pago', () => {
-  const mp = new PasarelaMercadoPago({ accessToken: 'APP_USR-123' });
+  const mp = new PasarelaMercadoPago({ accessToken: 'APP_USR-123', moneda: 'USD' });
 
   it('manda el monto en unidades, no en centavos', async () => {
     const fetchFalso = vi.fn().mockResolvedValue(
@@ -95,6 +96,19 @@ describe('Mercado Pago', () => {
 
     expect(r.referencia).toBe('987');
     expect(JSON.parse(fetchFalso.mock.calls[0][1].body)).toMatchObject({ transaction_amount: 31.5, capture: false });
+  });
+
+  it('en pesos chilenos manda el monto entero, sin dividir por cien', async () => {
+    const chile = new PasarelaMercadoPago({ accessToken: 'APP_USR-123', moneda: 'CLP' });
+    const fetchFalso = vi.fn().mockResolvedValue(
+      responder({ id: 5, status: 'authorized', transaction_amount: 28000 }),
+    );
+    vi.stubGlobal('fetch', fetchFalso);
+
+    await chile.retener({ monto: 28000, moneda: 'CLP', metodoPagoToken: 'tok', descripcion: 'x', idempotencia: 'y' });
+
+    // 28.000 pesos son 28.000, no 280: el peso no tiene centavos.
+    expect(JSON.parse(fetchFalso.mock.calls[0][1].body).transaction_amount).toBe(28000);
   });
 
   it('avisa que no puede girarle plata al trabajador por API', async () => {
@@ -133,5 +147,69 @@ describe('firmas de los avisos', () => {
       .toEqual({ id: 'evt_1', tipo: 'charge.refunded', referencia: 'pi_9' });
     expect(eventoDeMercadoPago({ id: 12, action: 'payment.updated', data: { id: '987' } }))
       .toEqual({ id: '12', tipo: 'payment.updated', referencia: '987' });
+  });
+});
+
+describe('Transbank Webpay', () => {
+  const webpay = new PasarelaTransbank({
+    codigoComercio: '597055555532',
+    claveApi: 'clave_de_integracion',
+    produccion: false,
+    urlRetorno: 'https://tareas.cl/pagos/volver',
+  });
+
+  it('no cobra: devuelve a dónde mandar al cliente', async () => {
+    const fetchFalso = vi.fn().mockResolvedValue(responder({ token: 'tok_webpay_1', url: 'https://webpay3gint.transbank.cl/webpayserver/initTransaction' }));
+    vi.stubGlobal('fetch', fetchFalso);
+
+    const r = await webpay.retener({
+      monto: 28000, moneda: 'CLP', metodoPagoToken: '', descripcion: 'Tarea', idempotencia: 'TQ-260911-AB12',
+    });
+
+    expect(r.requiereConfirmacion).toBe(true);
+    expect(r.urlRedireccion).toContain('token_ws=tok_webpay_1');
+    const cuerpo = JSON.parse(fetchFalso.mock.calls[0][1].body);
+    // Pesos enteros, y el folio de la tarea como orden de compra.
+    expect(cuerpo.amount).toBe(28000);
+    expect(cuerpo.buy_order).toBe('TQ-260911-AB12');
+    expect(fetchFalso.mock.calls[0][1].headers['Tbk-Api-Key-Id']).toBe('597055555532');
+  });
+
+  it('usa el ambiente de integración mientras no esté en producción', async () => {
+    const fetchFalso = vi.fn().mockResolvedValue(responder({ token: 't', url: 'u' }));
+    vi.stubGlobal('fetch', fetchFalso);
+    await webpay.retener({ monto: 1000, moneda: 'CLP', metodoPagoToken: '', descripcion: 'x', idempotencia: 'y' });
+    expect(fetchFalso.mock.calls[0][0]).toContain('webpay3gint.transbank.cl');
+  });
+
+  it('sólo da por buena la vuelta del banco si autorizó', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      responder({ status: 'AUTHORIZED', response_code: 0, amount: 28000, buy_order: 'TQ-1', authorization_code: '1213', payment_type_code: 'VD', card_detail: { card_number: '6623' } }),
+    ));
+    const r = await webpay.confirmar('tok_webpay_1');
+    expect(r.marca).toBe('redcompra');
+    expect(r.ultimos4).toBe('6623');
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(responder({ status: 'FAILED', response_code: -1, amount: 0, buy_order: 'TQ-1' })));
+    await expect(webpay.confirmar('tok_webpay_1')).rejects.toThrow(/rechazó el pago/);
+  });
+
+  it('para capturar relee la orden y el código de autorización', async () => {
+    const fetchFalso = vi
+      .fn()
+      .mockResolvedValueOnce(responder({ status: 'AUTHORIZED', response_code: 0, amount: 28000, buy_order: 'TQ-1', authorization_code: '1213' }))
+      .mockResolvedValueOnce(responder({ authorization_code: '1213', captured_amount: 28000 }));
+    vi.stubGlobal('fetch', fetchFalso);
+
+    const r = await webpay.capturar('tok_webpay_1', 28000);
+
+    expect(r.capturado).toBe(28000);
+    expect(fetchFalso.mock.calls[0][1].metodo ?? fetchFalso.mock.calls[0][1].method).toBe('GET');
+    expect(JSON.parse(fetchFalso.mock.calls[1][1].body)).toMatchObject({ buy_order: 'TQ-1', authorization_code: '1213', capture_amount: 28000 });
+  });
+
+  it('no promete transferencias que Webpay no hace', async () => {
+    expect(webpay.capacidades.transferencias).toBe(false);
+    await expect(webpay.transferir({ usuarioId: 'u', monto: 1, moneda: 'CLP', concepto: 'x' })).rejects.toThrow(/por fuera/);
   });
 });
