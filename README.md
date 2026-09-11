@@ -58,6 +58,9 @@ las publicaciones (comprimidas en el navegador), día y franja horaria, propina 
 confirmar, cargo por cancelación tardía, reclamos con resolución de soporte y el perfil
 público de cada trabajador con sus reseñas.
 
+Está en pesos chilenos y con comunas de Santiago, con los pisos del catálogo
+ajustados: cortar el pasto tres horas arranca en $28.000.
+
 Trae cinco cuentas de ejemplo —una clienta, tres trabajadores de distinto nivel y una
 ingeniera con LinkedIn conectado— y se puede cambiar de una a otra para ver los dos lados.
 Abriéndola en dos ventanas a la vez se comprueba lo que importa: la tarea se la lleva el
