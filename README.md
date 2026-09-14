@@ -115,8 +115,20 @@ probar de verdad contra Postgres.
 | `POST` | `/soporte/disputas/:id/resolver` | Resuelve un reclamo (completo, parcial o a favor del cliente) |
 | `GET` | `/soporte/retiros` | Cola de transferencias pendientes |
 
+## Ponerlo en internet
+
+```bash
+cp .env.servidor.example .env     # completar dominio, claves y credenciales
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Cuatro contenedores: Postgres, la API, el reloj y Caddy, que saca el certificado
+HTTPS solo y lo renueva solo. El paso a paso —incluida la copia de seguridad,
+que no es opcional— está en [`docs/DESPLIEGUE.md`](docs/DESPLIEGUE.md).
+
 ## Lo que hay que leer antes de tocar el código
 
 - [`docs/DECISIONES.md`](docs/DECISIONES.md) — por qué las cosas son así.
 - [`docs/PAGOS.md`](docs/PAGOS.md) — cómo se mueve el dinero y cómo encender la pasarela.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — qué falta para salir a la calle.
+- [`docs/DESPLIEGUE.md`](docs/DESPLIEGUE.md) — cómo se pone en un servidor.

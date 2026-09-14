@@ -11,6 +11,8 @@ import {
 } from './modulos/pagos/webhooks.js';
 import type { Contexto } from './contexto.js';
 
+const VERSION = '0.1.0';
+
 const dificultad = z.enum(['BASICA', 'MEDIA', 'ALTA', 'EXPERTA']);
 const urgencia = z.enum(['PROGRAMADA', 'HOY', 'INMEDIATA']);
 const nivel = z.enum(['NUEVO', 'BRONCE', 'PLATA', 'ORO', 'PLATINO']);
@@ -42,7 +44,19 @@ const nuevaTareaSchema = cotizacionSchema.extend({
 });
 
 export async function registrarRutas(app: FastifyInstance, ctx: Contexto) {
-  app.get('/salud', async () => ({ ok: true, version: '0.1.0' }));
+  /**
+   * Latido para el balanceador y para Docker. Toca la base a propósito: un
+   * proceso vivo que no puede leer nada no está sano, y si respondiera que sí,
+   * el balanceador le seguiría mandando gente a una pantalla rota.
+   */
+  app.get('/salud', async (_req, reply) => {
+    try {
+      await ctx.prisma.$queryRaw`SELECT 1`;
+      return { ok: true, version: VERSION, base: 'ok' };
+    } catch {
+      return reply.code(503).send({ ok: false, version: VERSION, base: 'sin conexión' });
+    }
+  });
 
   // --- Catálogo y cotizador: públicos, para que se pueda ver el precio sin cuenta.
   app.get('/catalogo', async () => ({

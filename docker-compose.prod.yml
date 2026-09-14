@@ -1,0 +1,73 @@
+# Cómo se levanta Tareas en un servidor. Paso a paso en docs/DESPLIEGUE.md.
+#
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Cuatro piezas: la base, la API, el reloj y el portero que pone el HTTPS.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tareas}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?hay que definir POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-tareas}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Sin `ports`: la base no se asoma a internet. Sólo la ven los contenedores
+    # de esta red, que es la única forma de que nadie la encuentre sola.
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-tareas}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Corre las migraciones y se va. La API espera a que termine bien: si el
+  # esquema no está al día, es preferible no arrancar que arrancar roto.
+  migraciones:
+    build: .
+    working_dir: /app/apps/api
+    command: ['./node_modules/.bin/prisma', 'migrate', 'deploy']
+    env_file: [.env]
+    depends_on:
+      db: { condition: service_healthy }
+    restart: 'no'
+
+  api:
+    build: .
+    restart: unless-stopped
+    env_file: [.env]
+    depends_on:
+      db: { condition: service_healthy }
+      migraciones: { condition: service_completed_successfully }
+    expose: ['3000']
+
+  # El reloj: una pasada cada minuto. Cada trabajo es idempotente, así que si
+  # una pasada se superpone con la anterior no duplica nada.
+  reloj:
+    build: .
+    restart: unless-stopped
+    command: ['sh', '-c', 'while true; do node apps/api/dist/reloj.js || true; sleep 60; done']
+    env_file: [.env]
+    depends_on:
+      db: { condition: service_healthy }
+      migraciones: { condition: service_completed_successfully }
+
+  # Caddy saca el certificado de Let's Encrypt solo y lo renueva solo. Es lo
+  # que evita tener que acordarse de renovar un certificado cada tres meses.
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ['80:80', '443:443']
+    environment:
+      DOMINIO: ${DOMINIO:?hay que definir DOMINIO}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [api]
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

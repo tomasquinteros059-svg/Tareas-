@@ -42,7 +42,14 @@ export async function crearServidor(ctx: Contexto, env: Env): Promise<FastifyIns
     }
   });
 
-  await app.register(cors, { origin: true });
+  // En producción sólo se deja entrar a los dominios declarados: si cualquiera
+  // puede llamar a la API desde su propia página, la sesión de un usuario sirve
+  // desde cualquier lado.
+  const origenes = env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean);
+  if (env.NODE_ENV === 'production' && origenes.length === 0) {
+    throw new Error('En producción hay que declarar CORS_ORIGINS con los dominios de la app');
+  }
+  await app.register(cors, { origin: origenes.length ? origenes : true, credentials: true });
   await app.register(jwt, { secret: env.JWT_SECRET, sign: { expiresIn: '30d' } });
   await app.register(rateLimit, { max: 120, timeWindow: '1 minute' });
 

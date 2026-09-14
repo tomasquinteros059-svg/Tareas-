@@ -40,6 +40,8 @@ abajo se puede hacer con la app ya en la calle.
 - **Envío real de SMS** (Twilio) y teléfonos normalizados a formato
   internacional, que es lo que hace que el número sea de verdad una llave única
   de la cuenta.
+- **Todo listo para un servidor**: imagen de Docker, base, API, reloj y un
+  proxy que saca el certificado HTTPS solo. Ver [`DESPLIEGUE.md`](DESPLIEGUE.md).
 - 218 pruebas automáticas.
 
 ## Bloquea el lanzamiento

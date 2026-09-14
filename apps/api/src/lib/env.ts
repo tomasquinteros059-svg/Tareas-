@@ -30,6 +30,9 @@ const esquema = z.object({
   LINKEDIN_CLIENT_ID: z.string().optional(),
   LINKEDIN_CLIENT_SECRET: z.string().optional(),
   OAUTH_REDIRECT_BASE: z.string().default('http://localhost:3000/auth'),
+  // Dominios que pueden llamar a la API desde un navegador, separados por coma.
+  // Vacío deja pasar a cualquiera: sirve en desarrollo, no en producción.
+  CORS_ORIGINS: z.string().default(''),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 });
 

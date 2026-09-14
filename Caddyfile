@@ -1,0 +1,18 @@
+# Portero de entrada. Caddy pide el certificado a Let's Encrypt la primera vez
+# que alguien entra por HTTPS y lo renueva solo: no hay nada que recordar.
+#
+# El dominio viene de la variable DOMINIO del archivo .env.prod.
+{$DOMINIO} {
+	encode gzip
+
+	# Todo lo que llega va a la API. Caddy le pasa la IP real de quien llamó,
+	# que es de lo que depende el límite de pedidos por minuto.
+	reverse_proxy api:3000 {
+		header_up X-Real-IP {remote_host}
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}
