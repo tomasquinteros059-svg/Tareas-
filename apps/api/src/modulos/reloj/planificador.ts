@@ -3,6 +3,7 @@ import { exigirTransicion } from '@tareas/domain';
 import type { ServicioTareas } from '../tareas/servicio.js';
 import type { ServicioCalificaciones } from '../calificaciones/servicio.js';
 import type { Pasarela } from '../pagos/pasarela.js';
+import type { ServicioDeudas } from '../deudas/servicio.js';
 
 /**
  * El reloj del sistema.
@@ -16,7 +17,9 @@ import type { Pasarela } from '../pagos/pasarela.js';
  *  - las calificaciones a ciegas nunca se publican si una de las partes no
  *    califica;
  *  - con Webpay, la reserva caduca a los 7 días y nadie la libera: el cliente
- *    ve plata bloqueada en su tarjeta sin explicación.
+ *    ve plata bloqueada en su tarjeta sin explicación;
+ *  - el que trabaja siempre en efectivo acumula comisión adeudada hasta que el
+ *    límite le cierra la puerta, sin que nadie se la haya cobrado nunca.
  *
  * Cada trabajo es idempotente y usa condiciones en el UPDATE, así que si el
  * reloj corre en dos servidores a la vez ninguna tarea se procesa dos veces.
@@ -31,6 +34,8 @@ export interface ResumenReloj {
   confirmadas: number;
   calificacionesLiberadas: number;
   reservasLiberadas: number;
+  deudasCobradas: number;
+  deudasCobradasMonto: number;
   errores: string[];
 }
 
@@ -40,6 +45,7 @@ export class Planificador {
     private readonly tareas: ServicioTareas,
     private readonly calificaciones: ServicioCalificaciones,
     private readonly pasarela: Pasarela,
+    private readonly deudas: ServicioDeudas,
   ) {}
 
   /** Una pasada completa. Devuelve qué hizo, para poder registrarlo. */
@@ -49,6 +55,8 @@ export class Planificador {
       confirmadas: 0,
       calificacionesLiberadas: 0,
       reservasLiberadas: 0,
+      deudasCobradas: 0,
+      deudasCobradasMonto: 0,
       errores: [],
     };
 
@@ -59,6 +67,11 @@ export class Planificador {
       resumen,
     );
     resumen.reservasLiberadas = await this.protegido(() => this.liberarReservasViejas(ahora), resumen);
+    resumen.deudasCobradas = await this.protegido(async () => {
+      const cobros = await this.deudas.cobrarPendientes(ahora);
+      resumen.deudasCobradasMonto = cobros.monto;
+      return cobros.cobrados;
+    }, resumen);
     return resumen;
   }
 

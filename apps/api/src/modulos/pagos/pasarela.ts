@@ -12,8 +12,13 @@ export interface Pasarela {
    * Qué sabe hacer este proveedor. No todos pagan a terceros por API: cuando
    * `transferencias` es falso, el neto queda en el saldo del trabajador y el
    * retiro se resuelve por fuera (split en el cobro o transferencia bancaria).
+   *
+   * `cobroDirecto` es poder cobrarle a una tarjeta guardada sin que la persona
+   * esté delante. Webpay no lo hace —manda siempre al sitio del banco—, y de eso
+   * depende que la deuda de comisiones se pueda cobrar sola o haya que pedirle
+   * al trabajador que la pague.
    */
-  readonly capacidades: { transferencias: boolean };
+  readonly capacidades: { transferencias: boolean; cobroDirecto: boolean };
   /** Retiene los fondos al publicar la tarea (nadie cobra todavía). */
   retener(entrada: RetencionEntrada): Promise<Retencion>;
   /** Captura la retención cuando el trabajo se confirma. */
@@ -80,7 +85,7 @@ export class ErrorPasarela extends Error {
  */
 export class PasarelaSandbox implements Pasarela {
   readonly nombre = 'sandbox';
-  readonly capacidades = { transferencias: true };
+  readonly capacidades = { transferencias: true, cobroDirecto: true };
   readonly retenciones = new Map<string, { monto: number; estado: 'RETENIDO' | 'CAPTURADO' | 'LIBERADO' }>();
 
   async retener(entrada: RetencionEntrada): Promise<Retencion> {

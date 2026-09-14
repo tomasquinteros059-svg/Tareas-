@@ -140,3 +140,22 @@ describe('calificaciones a ciegas', () => {
     expect(actualizada.visible).toBe(true);
   });
 });
+
+describe('deuda de comisiones en efectivo', () => {
+  it('el reloj le cobra al que trabajó en efectivo y dejó tarjeta', async () => {
+    const trabajador = await crearTrabajador('Deudor', { saldo: -4_000 });
+    await prisma.perfilTrabajador.update({
+      where: { usuarioId: trabajador.id },
+      data: { medioPagoToken: 'tok_ok_4242' },
+    });
+
+    const resumen = await ctx.reloj.correr();
+
+    expect(resumen.deudasCobradas).toBe(1);
+    expect(resumen.deudasCobradasMonto).toBe(4_000);
+    const perfil = await prisma.perfilTrabajador.findUniqueOrThrow({
+      where: { usuarioId: trabajador.id },
+    });
+    expect(perfil.saldo).toBe(0);
+  });
+});

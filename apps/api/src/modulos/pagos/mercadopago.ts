@@ -35,7 +35,7 @@ interface PagoMp {
 
 export class PasarelaMercadoPago implements Pasarela {
   readonly nombre = 'mercadopago';
-  readonly capacidades = { transferencias: false };
+  readonly capacidades = { transferencias: false, cobroDirecto: true };
 
   constructor(private readonly config: ConfigMercadoPago) {
     if (!config.accessToken) throw new Error('Falta MERCADOPAGO_ACCESS_TOKEN');

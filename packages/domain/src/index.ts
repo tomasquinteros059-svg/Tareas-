@@ -9,3 +9,4 @@ export * from './estados.js';
 export * from './comisiones.js';
 export * from './folio.js';
 export * from './rut.js';
+export * from './deudas.js';

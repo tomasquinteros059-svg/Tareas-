@@ -69,8 +69,8 @@ primero que la acepta.
 ## El reloj
 
 Lo que pasa solo —tareas que nadie tomó, confirmaciones automáticas a las 24 h,
-calificaciones a ciegas que se publican, reservas de tarjeta que van a caducar—
-lo hace el planificador:
+calificaciones a ciegas que se publican, reservas de tarjeta que van a caducar,
+comisiones de trabajos en efectivo que hay que cobrar— lo hace el planificador:
 
 ```bash
 pnpm --filter @tareas/api reloj      # una pasada; pensado para un cron
@@ -109,6 +109,11 @@ probar de verdad contra Postgres.
 | `POST` | `/tareas/:id/calificar` | Calificación de doble vía |
 | `GET` | `/tareas/:folio` | La tarea completa con su bitácora |
 | `GET` | `/saldo` | Saldo y movimientos del trabajador |
+| `PUT` | `/retiros/banco` · `POST /retiros` | Cuenta bancaria y pedido de retiro |
+| `GET` | `/deudas` · `POST /deudas/pagar` | Comisión adeudada por trabajos en efectivo |
+| `GET` | `/soporte/bandeja` | Disputas, documentos y matrículas esperando decisión |
+| `POST` | `/soporte/disputas/:id/resolver` | Resuelve un reclamo (completo, parcial o a favor del cliente) |
+| `GET` | `/soporte/retiros` | Cola de transferencias pendientes |
 
 ## Lo que hay que leer antes de tocar el código
 

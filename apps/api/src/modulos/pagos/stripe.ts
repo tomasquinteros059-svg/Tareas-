@@ -32,7 +32,7 @@ interface IntentoStripe {
 
 export class PasarelaStripe implements Pasarela {
   readonly nombre = 'stripe';
-  readonly capacidades = { transferencias: true };
+  readonly capacidades = { transferencias: true, cobroDirecto: true };
 
   constructor(private readonly config: ConfigStripe) {
     if (!config.claveSecreta) throw new Error('Falta STRIPE_SECRET_KEY');

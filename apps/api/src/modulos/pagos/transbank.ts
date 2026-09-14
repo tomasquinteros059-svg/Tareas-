@@ -54,7 +54,7 @@ interface EstadoWebpay {
 
 export class PasarelaTransbank implements Pasarela {
   readonly nombre = 'transbank';
-  readonly capacidades = { transferencias: false };
+  readonly capacidades = { transferencias: false, cobroDirecto: false };
 
   constructor(private readonly config: ConfigTransbank) {
     if (!config.codigoComercio || !config.claveApi) {

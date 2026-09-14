@@ -36,9 +36,15 @@ Todo el trato con el proveedor pasa por una sola interfaz, `Pasarela`
 | `liberar` | si se cancela o expira sin que nadie la tome |
 | `reembolsar` | disputas y resoluciones de soporte |
 | `transferir` | pagarle el neto al trabajador |
+| `confirmar` | cerrar una retención que necesitó pasar por el sitio del banco |
+
+Cada adaptador además declara qué sabe hacer en `capacidades`:
+`transferencias` (girarle plata a un tercero por API) y `cobroDirecto`
+(cobrarle a una tarjeta guardada sin que la persona esté delante). De esos dos
+booleanos dependen el retiro del saldo y el cobro de las comisiones adeudadas.
 
 Cambiar de proveedor es escribir un adaptador nuevo: el flujo de la tarea no se
-toca. Hay tres implementaciones:
+toca. Hay cuatro implementaciones:
 
 - **`PasarelaSandbox`** — de mentira, para desarrollo y pruebas. Acepta tokens
   `tok_ok_…` y rechaza `tok_rechazada`, así se puede probar el camino triste.
@@ -62,6 +68,55 @@ Por eso su adaptador declara `capacidades.transferencias = false`, y el neto
 queda en el **saldo del trabajador** dentro de la app, que retira desde la
 pantalla de Saldo. El libro mayor registra el mismo movimiento en los dos casos:
 lo único que cambia es dónde está la plata.
+
+## El saldo del trabajador, en los dos sentidos
+
+El saldo de `PerfilTrabajador` es un solo número que puede ir para los dos
+lados: **positivo es plata a cobrar, negativo es comisión adeudada**. El libro
+mayor (`MovimientoSaldo`) es la verdad; el saldo es su suma.
+
+### Retiros: el saldo se vuelve plata en el banco
+
+Cuando el proveedor no transfiere por API, el neto de cada trabajo se acredita
+como saldo y queda ahí. Eso es una promesa hasta que alguien hace la
+transferencia, y eso es lo que resuelven los retiros
+(`apps/api/src/modulos/retiros/`):
+
+```
+PUT  /retiros/banco   →  el trabajador carga su cuenta (el número va cifrado;
+                         en la app sólo se ven los últimos cuatro dígitos)
+POST /retiros         →  pide el retiro: el saldo se descuenta en el acto
+GET  /soporte/retiros →  la cola de transferencias, con la cuenta para copiar
+POST /soporte/retiros/:id/pagado    →  se anota el comprobante
+POST /soporte/retiros/:id/rechazar  →  la plata vuelve al saldo, con motivo
+```
+
+Dos detalles que no son detalles: el saldo se descuenta **al pedir**, no al
+pagar —si no, entre el pedido y la transferencia se podría pedir dos veces la
+misma plata—, y el RUT del titular se valida con módulo 11 antes de guardarlo,
+porque un dígito cambiado hace rebotar la transferencia días después.
+
+### Deudas: la comisión de los trabajos en efectivo
+
+Quien cobra en efectivo se lleva el 100% en la mano y queda debiendo la
+comisión. Si después hace un trabajo con tarjeta, la deuda se compensa sola. Si
+trabaja siempre en efectivo, no: acumula hasta el límite, deja de poder tomar
+trabajos y se va sin que nadie se lo haya cobrado. El módulo `deudas` cierra eso
+(`apps/api/src/modulos/deudas/`):
+
+```
+PUT  /deudas/tarjeta   →  guarda una tarjeta (se prueba y se libera al guardarla)
+POST /deudas/pagar     →  pagar ahora
+POST /deudas/confirmar →  vuelta del banco, cuando hizo falta redirección
+```
+
+Si el proveedor tiene `cobroDirecto`, el reloj cobra solo cuando la deuda pasa
+el mínimo. **Webpay no lo tiene**: manda siempre al sitio del banco, así que en
+Chile la deuda se paga a mano desde la app y el cobro automático queda apagado
+hasta contratar Oneclick. Las esperas entre reintentos y el mínimo cobrable son
+reglas puras y viven en `packages/domain/src/deudas.ts`: se espera cada vez más
+—24 h, 3 días, una semana— y después de cuatro rechazos se deja de insistir,
+porque golpear una tarjeta sin fondos la hace ver como fraude al emisor.
 
 ## Los avisos del proveedor (webhooks)
 
@@ -122,7 +177,12 @@ Dos límites de Webpay que conviene tener presentes: el **diferido** (autorizar
 ahora y capturar después) hay que pedirlo en el contrato, y la autorización
 **caduca a los 7 días**. Y Webpay no le paga a terceros: todo llega a la cuenta
 del comercio y a cada trabajador se le transfiere por fuera, así que el neto
-queda en su saldo dentro de la app.
+queda en su saldo dentro de la app y se saca por la cola de retiros.
+
+Lo mismo al revés: como Webpay no guarda tarjetas, la comisión que debe quien
+trabaja en efectivo no se puede cobrar sola. El trabajador la paga desde la app
+cuando quiere, y el límite de deuda sigue siendo lo que le impide seguir
+tomando trabajos si no lo hace.
 
 ## Cómo encenderlo
 

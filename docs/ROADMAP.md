@@ -1,6 +1,6 @@
 # Qué falta para lanzar
 
-Estado al 11 de septiembre de 2026. Lo de arriba bloquea el lanzamiento; lo de
+Estado al 14 de septiembre de 2026. Lo de arriba bloquea el lanzamiento; lo de
 abajo se puede hacer con la app ya en la calle.
 
 ---
@@ -21,7 +21,16 @@ abajo se puede hacer con la app ya en la calle.
   para que el silencio del cliente no deje a nadie sin cobrar, publica las
   calificaciones a ciegas y libera las reservas antes de que el banco las
   caduque. Se corre con `pnpm --filter @tareas/api reloj` desde un cron.
-- 111 pruebas automáticas.
+- **Panel de soporte**: bandeja de disputas, documentos y matrículas; resolución
+  de reclamos completa, parcial o a favor del cliente; ajustes de saldo y
+  suspensiones, todo firmado por quien lo hizo.
+- **Retiros**: el trabajador carga su cuenta bancaria (el número cifrado, el RUT
+  validado) y pide el retiro; el saldo se descuenta al pedir y vuelve si el pago
+  se rechaza. Es lo que hace falta cuando el proveedor no transfiere por API.
+- **Cobro de las comisiones adeudadas** por los trabajos en efectivo: tarjeta
+  guardada, cobro automático desde el reloj con esperas crecientes entre
+  rechazos, y pago a mano cuando el proveedor no cobra solo (Webpay).
+- 166 pruebas automáticas.
 
 ## Bloquea el lanzamiento
 
@@ -51,11 +60,7 @@ KYC que compare la selfie con el documento.
 La interfaz está; falta el adaptador (Twilio, Vonage o el que convenga por costo
 local) para los códigos de verificación.
 
-### 6. Panel de soporte
-Disputas, reembolsos parciales, ajustes de saldo y revisión de documentos. Sin
-esto, cada problema termina siendo un mensaje de WhatsApp a las once de la noche.
-
-### 7. Decisiones de negocio sin las que no se puede cobrar
+### 6. Decisiones de negocio sin las que no se puede cobrar
 - **Moneda y precios por país.** El catálogo está en dólares de referencia y se
   ajusta con un solo factor, pero hay que fijar los números reales del mercado
   donde se lance.
@@ -70,10 +75,9 @@ esto, cada problema termina siendo un mensaje de WhatsApp a las once de la noche
 
 - Búsqueda geográfica en la base (PostGIS): hoy el radar trae las últimas 200
   tareas y filtra en memoria.
-- Cobro automático de las deudas de comisión de quienes trabajan en efectivo
-  (el reloj ya tiene dónde engancharlo).
-- Retiros del trabajador a su banco, para el caso en que el proveedor no
-  transfiere por API.
+- Pantalla de soporte de verdad: hoy son endpoints, se operan con `curl`.
+- Oneclick de Transbank, para poder cobrar la comisión adeudada sin molestar al
+  trabajador. Mientras tanto la paga a mano desde la app.
 - Antifraude: cuentas que se califican entre sí, tareas fantasma, y quien intenta
   pactar por fuera para evitar la comisión.
 - Tareas recurrentes (la limpieza de todos los martes) y equipos para trabajos

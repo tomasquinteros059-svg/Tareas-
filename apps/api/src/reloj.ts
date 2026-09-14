@@ -21,6 +21,7 @@ console.log(
     `confirmadas solas: ${resumen.confirmadas}`,
     `calificaciones publicadas: ${resumen.calificacionesLiberadas}`,
     `reservas liberadas: ${resumen.reservasLiberadas}`,
+    `deudas cobradas: ${resumen.deudasCobradas} (${resumen.deudasCobradasMonto})`,
   ].join(' · '),
 );
 if (resumen.errores.length) {

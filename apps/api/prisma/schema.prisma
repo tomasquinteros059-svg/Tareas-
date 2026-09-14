@@ -232,6 +232,22 @@ model PerfilTrabajador {
   bancoUltimos4          String?
   bancoTitular           String?
   bancoRutTitular        String?
+
+  /// Tarjeta que el trabajador deja guardada para saldar la comisión de los
+  /// trabajos en efectivo. Sólo el token del proveedor: la app nunca ve la
+  /// tarjeta. Ver `modulos/deudas`.
+  medioPagoToken         String?
+  medioPagoMarca         String?
+  medioPagoUltimos4      String?
+  /// Rechazos seguidos del cobro de deuda y cuándo se puede volver a intentar.
+  /// Insistir sobre una tarjeta sin fondos la hace ver como fraude al emisor.
+  cobroIntentos          Int                @default(0)
+  cobroProximoIntento    DateTime?
+  cobroUltimoError       String?
+  /// Cobro que quedó a mitad de camino porque el banco pidió que el trabajador
+  /// fuera a su sitio (Webpay): se completa cuando vuelve.
+  cobroPendienteRef      String?
+  cobroPendienteMonto    Int?
   creadoEn               DateTime           @default(now())
   actualizadoEn          DateTime           @updatedAt
 
@@ -239,6 +255,7 @@ model PerfilTrabajador {
 
   @@index([nivel])
   @@index([disponible])
+  @@index([saldo])
 }
 
 /// Rubro habilitado en el perfil de un trabajador, con su matrícula si el rubro

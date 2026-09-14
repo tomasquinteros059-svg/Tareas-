@@ -326,6 +326,23 @@ export async function registrarRutas(app: FastifyInstance, ctx: Contexto) {
       return ctx.soporte.levantarSuspension(id);
     });
 
+    /* --- Deuda de comisiones de los trabajos en efectivo. --- */
+    privadas.get('/deudas', async (req) => ctx.deudas.estado(req.usuarioId()));
+
+    privadas.put('/deudas/tarjeta', async (req) => {
+      const { metodoPagoToken } = z.object({ metodoPagoToken: z.string().min(4) }).parse(req.body);
+      return ctx.deudas.guardarMedioDePago(req.usuarioId(), metodoPagoToken);
+    });
+
+    privadas.post('/deudas/pagar', async (req) => {
+      const { metodoPagoToken } = z
+        .object({ metodoPagoToken: z.string().min(4).optional() })
+        .parse(req.body ?? {});
+      return ctx.deudas.pagar(req.usuarioId(), metodoPagoToken);
+    });
+
+    privadas.post('/deudas/confirmar', async (req) => ctx.deudas.confirmarPago(req.usuarioId()));
+
     /* --- Retiros: el saldo se vuelve plata en el banco del trabajador. --- */
     privadas.get('/retiros', async (req) => ctx.retiros.mios(req.usuarioId()));
 
