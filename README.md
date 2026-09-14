@@ -84,14 +84,14 @@ trabajador de servicio sólo controla su propio origen, y de eso dependen los
 avisos.
 
 Adentro, en **Perfil → Conectar con el servidor**, la app deja de estar sola:
-se entra con el teléfono y un código que manda el servidor de verdad, la sesión
-queda guardada, se ven los trabajos publicados en el servidor y ahí sí se pueden
-prender los avisos —antes no había con qué sesión suscribirse—. Abierta como
-archivo suelto lo dice de frente: no hay ningún servidor al que llamar.
+se entra con el teléfono y un código que manda el servidor de verdad, y de ahí
+en más publicar, tomar, el ciclo de estados, confirmar, calificar, el chat y el
+saldo son del servidor. Una cinta arriba lo dice: *estás en el servidor, lo que
+hagas es de verdad*. La demostración de este teléfono queda guardada aparte y
+vuelve intacta al salir.
 
-Publicar y tomar trabajos desde el modo conectado es lo que sigue; el resto de
-las pantallas son todavía la demostración local. Ver el punto 3 de
-[`docs/ROADMAP.md`](docs/ROADMAP.md).
+Abierta como archivo suelto lo dice de frente: no hay ningún servidor al que
+llamar, y todo se guarda en el dispositivo.
 
 ## El reloj
 

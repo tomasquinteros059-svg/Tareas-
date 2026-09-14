@@ -50,9 +50,14 @@ abajo se puede hacer con la app ya en la calle.
   muestra los avisos que le llegan.
 - **Un solo catálogo** para la app y el servidor, generado desde el dominio, con
   un test que impide que se vuelvan a separar.
-- **La app conectada al servidor**: cliente completo de la API, ingreso con
-  teléfono y código de verdad, sesión guardada y el muro del servidor a la vista.
-- 281 pruebas automáticas.
+- **La app opera contra el servidor**: entrar con teléfono y código, activar el
+  perfil de trabajador, cargar el documento, publicar, tomar, el ciclo de
+  estados con el código en la puerta, confirmar, calificar, el chat y el saldo.
+  Probado de punta a punta con dos navegadores contra un servidor real.
+- **Los precios salen de la moneda de la instalación**: con `CLP`, el piso de
+  cada oficio es el chileno. Antes se validaba siempre contra la tabla en
+  dólares y una tarea pasaba el mínimo por diez veces menos de lo que vale.
+- 298 pruebas automáticas.
 
 ## Bloquea el lanzamiento
 
@@ -68,22 +73,20 @@ El código está listo; falta la cuenta, las claves y correr el ciclo completo c
 credenciales de prueba primero y de producción después. Y decidir quién absorbe
 un contracargo cuando el trabajo ya se hizo y al trabajador ya se le pagó.
 
-### 3. Terminar de conectar la app al servidor
-El puente está hecho y funciona: en **Perfil → Conectar con el servidor** se
-entra con el teléfono y un código real, la sesión queda guardada, se ve el muro
-del servidor y se prenden los avisos. Hay un cliente completo de la API
-(`apps/web/api.js`) con todos los endpoints.
+### 3. Probar la app conectada en teléfonos de verdad
+La app ya opera contra el servidor: en **Perfil → Conectar con el servidor** se
+entra con el teléfono y un código real, y de ahí en más publicar, tomar,
+ejecutar, confirmar y cobrar son del servidor. La demostración de este teléfono
+queda guardada aparte y vuelve intacta al salir.
 
-Falta mover el resto de las pantallas de la demostración local a ese cliente:
-publicar, tomar, el ciclo de estados, el chat, calificar, el saldo y los
-retiros. Es trabajo mecánico y bastante: cada pantalla pasa de leer una
-variable a esperar una respuesta, y hay que decidir qué se ve mientras carga y
-qué pasa cuando se corta la señal.
+Lo que falta es probarlo fuera del escritorio: Android, iPhone, señal mala, y
+las pantallas que todavía no se movieron —retiros, pago de la deuda de
+comisiones y la disputa— que siguen siendo locales.
 
-Y hay una decisión de producto en el medio: hoy el servidor exige identidad
+Y hay una consecuencia de producto para mirar: el servidor exige identidad
 verificada para tomar un trabajo —correctamente—, así que hasta que la
-verificación esté conectada (punto 4), una cuenta nueva puede publicar pero no
-puede trabajar.
+verificación esté conectada (punto 4), una cuenta nueva puede publicar pero
+tiene que esperar a que soporte le apruebe el documento para trabajar.
 
 Una app nativa (iOS/Android en las tiendas) sigue siendo mejor —avisos más
 confiables, ubicación en segundo plano— pero son meses. Conviene conectar la
