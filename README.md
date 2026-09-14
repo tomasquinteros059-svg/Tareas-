@@ -122,7 +122,7 @@ probar de verdad contra Postgres.
 | Método | Ruta | Qué hace |
 | --- | --- | --- |
 | `GET` | `/catalogo` | Rubros disponibles con su tarifa mínima |
-| `POST` | `/cotizar` | Presupuesto mínimo y sugerido de una tarea |
+| `POST` | `/cotizar` | Presupuesto mínimo y sugerido, en la moneda de la instalación |
 | `POST` | `/auth/telefono/codigo` | Manda el código por SMS (Twilio o al log en desarrollo) |
 | `POST` | `/auth/telefono/verificar` | Verifica el código y devuelve la sesión |
 | `GET` | `/auth/google` · `/auth/linkedin` | Ingreso social (LinkedIn además trae el perfil profesional) |

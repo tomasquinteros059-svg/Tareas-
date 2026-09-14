@@ -54,6 +54,18 @@ export const PRECIOS_CHILE: ConfiguracionPrecios = {
   paso: 500,
 };
 
+/**
+ * Los precios que corresponden a una moneda.
+ *
+ * Existe porque el piso por oficio —lo que impide que una tarea se publique por
+ * menos de lo que el oficio vale— depende de la moneda, y equivocarse no es un
+ * detalle de formato: con la configuración de dólares, un trabajo de dos horas
+ * de jardinería en Chile pasa el mínimo con $1.850 en vez de $16.000.
+ */
+export function preciosDe(moneda: string): ConfiguracionPrecios {
+  return moneda.toUpperCase() === 'CLP' ? PRECIOS_CHILE : PRECIOS_POR_DEFECTO;
+}
+
 export interface SolicitudCotizacion {
   rubroSlug: string;
   unidades: number;

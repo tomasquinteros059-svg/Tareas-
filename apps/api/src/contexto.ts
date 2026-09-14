@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
+import { preciosDe } from '@tareas/domain';
 import type { Env } from './lib/env.js';
 import { ServicioTareas } from './modulos/tareas/servicio.js';
 import { ServicioCalificaciones } from './modulos/calificaciones/servicio.js';
@@ -34,6 +35,7 @@ export interface Contexto {
   avisos: ServicioAvisos;
   perfil: ServicioPerfil;
   pasarela: Pasarela;
+  precios: ReturnType<typeof preciosDe>;
   oauth: { google?: ProveedorOauth; linkedin?: ProveedorOauth };
 }
 
@@ -122,7 +124,8 @@ export function crearContexto(
     clavePrivada: env.VAPID_PRIVATE_KEY,
     contacto: env.VAPID_SUBJECT,
   });
-  const tareas = new ServicioTareas(prisma, pasarela, antifraude);
+  const precios = preciosDe(env.PAYMENTS_CURRENCY);
+  const tareas = new ServicioTareas(prisma, pasarela, antifraude, precios);
   const calificaciones = new ServicioCalificaciones(prisma);
   const deudas = new ServicioDeudas(prisma, pasarela, env.PAYMENTS_CURRENCY);
 
@@ -130,6 +133,7 @@ export function crearContexto(
     prisma,
     env,
     pasarela,
+    precios,
     tareas,
     calificaciones,
     reloj: new Planificador(prisma, tareas, calificaciones, pasarela, deudas, avisos),

@@ -5,34 +5,34 @@
  *   pnpm db:seed
  */
 import { PrismaClient } from '@prisma/client';
-import { cotizar, generarFolio } from '@tareas/domain';
+import { cotizar, generarFolio, PRECIOS_CHILE } from '@tareas/domain';
 
 const prisma = new PrismaClient();
 
 async function main() {
   await prisma.$executeRawUnsafe(`
-    TRUNCATE TABLE "MovimientoSaldo", "Calificacion", "Mensaje", "Pregunta", "EventoTarea",
-      "Pago", "Tarea", "Habilidad", "PerfilTrabajador", "Direccion", "Identidad",
-      "CuentaOAuth", "CodigoOtp", "Usuario" RESTART IDENTITY CASCADE;
+    TRUNCATE TABLE "SuscripcionPush", "Alerta", "Retiro", "MovimientoSaldo", "Calificacion",
+      "Mensaje", "Pregunta", "EventoTarea", "Pago", "Tarea", "Habilidad", "PerfilTrabajador",
+      "Direccion", "Identidad", "CuentaOAuth", "CodigoOtp", "Usuario" RESTART IDENTITY CASCADE;
   `);
 
   const cliente = await prisma.usuario.create({
     data: {
       nombre: 'Ana',
       apellido: 'Rivas',
-      telefono: '+5491140000001',
+      telefono: '+56955550001',
       telefonoOk: true,
       email: 'ana@ejemplo.com',
       direcciones: {
         create: {
           etiqueta: 'Casa',
-          calle: 'Av. Siempre Viva',
-          numero: '742',
-          ciudad: 'Buenos Aires',
-          provincia: 'CABA',
-          pais: 'AR',
-          lat: -34.6037,
-          lng: -58.3816,
+          calle: 'Av. Providencia',
+          numero: '1650',
+          ciudad: 'Santiago',
+          provincia: 'Región Metropolitana',
+          pais: 'CL',
+          lat: -33.4372,
+          lng: -70.6506,
           principal: true,
         },
       },
@@ -41,13 +41,13 @@ async function main() {
   });
 
   const trabajadores = await Promise.all([
-    crearTrabajador('Beto', 'Suárez', '+5491140000002', 'PLATINO', [
+    crearTrabajador('Beto', 'Suárez', '+56955550002', 'PLATINO', [
       'jardineria-corte-pasto',
       'limpieza-hogar',
     ]),
-    crearTrabajador('Carla', 'Núñez', '+5491140000003', 'PLATA', ['electricidad'], ['electricidad']),
-    crearTrabajador('Diego', 'Ferrer', '+5491140000004', 'NUEVO', ['mudanza-flete']),
-    crearTrabajador('Elena', 'Ortiz', '+5491140000005', 'ORO', ['abogado-dia', 'abogado-consulta'], [
+    crearTrabajador('Carla', 'Núñez', '+56955550003', 'PLATA', ['electricidad'], ['electricidad']),
+    crearTrabajador('Diego', 'Ferrer', '+56955550004', 'NUEVO', ['mudanza-flete']),
+    crearTrabajador('Elena', 'Ortiz', '+56955550005', 'ORO', ['abogado-dia', 'abogado-consulta'], [
       'abogado-dia',
       'abogado-consulta',
     ]),
@@ -75,7 +75,10 @@ async function main() {
     metodoPago: 'TARJETA',
   });
 
-  console.log(`Listo: 1 cliente, ${trabajadores.length} trabajadores y 2 tareas publicadas.`);
+  console.log(
+    `Listo: 1 cliente, ${trabajadores.length} trabajadores y 2 tareas publicadas, en Santiago y en pesos.`,
+  );
+  console.log('Teléfonos para entrar desde la app: +56955550001 (clienta) a +56955550005.');
 }
 
 async function crearTrabajador(
@@ -100,8 +103,8 @@ async function crearTrabajador(
           trabajosCompletados: { NUEVO: 0, BRONCE: 5, PLATA: 20, ORO: 55, PLATINO: 140 }[nivel],
           trabajosAceptados: { NUEVO: 0, BRONCE: 6, PLATA: 22, ORO: 57, PLATINO: 143 }[nivel],
           disponible: true,
-          lat: -34.61,
-          lng: -58.39,
+          lat: -33.4372,
+          lng: -70.6506,
           radioKm: 20,
           habilidades: {
             create: rubros.map((rubroSlug) => ({
@@ -115,8 +118,8 @@ async function crearTrabajador(
       },
       identidad: {
         create: {
-          tipoDocumento: 'DNI',
-          paisEmision: 'AR',
+          tipoDocumento: 'CEDULA',
+          paisEmision: 'CL',
           numeroCifrado: 'semilla-no-cifrada',
           numeroHash: `semilla-${telefono}`,
           ultimos4: telefono.slice(-4),
@@ -145,7 +148,8 @@ async function publicar(
     metodoPago: 'TARJETA' | 'EFECTIVO';
   },
 ) {
-  const cotizacion = cotizar(datos);
+  // Los mismos precios que muestra la app: pesos chilenos, no dólares.
+  const cotizacion = cotizar(datos, PRECIOS_CHILE);
   const ahora = new Date();
   return prisma.tarea.create({
     data: {
@@ -155,9 +159,10 @@ async function publicar(
       ...datos,
       minimoCalculado: cotizacion.minimo,
       presupuesto: cotizacion.sugerido,
+      moneda: PRECIOS_CHILE.moneda,
       estado: 'PUBLICADA',
-      lat: -34.6037,
-      lng: -58.3816,
+      lat: -33.4372,
+      lng: -70.6506,
       codigoInicio: '4821',
       publicadaEn: ahora,
       expiraEn: new Date(ahora.getTime() + 24 * 60 * 60 * 1000),
@@ -165,6 +170,7 @@ async function publicar(
         create: {
           metodo: datos.metodoPago,
           estado: datos.metodoPago === 'TARJETA' ? 'RETENIDO' : 'PENDIENTE',
+          moneda: PRECIOS_CHILE.moneda,
           montoTarea: cotizacion.sugerido,
           totalCliente: datos.metodoPago === 'TARJETA' ? Math.round(cotizacion.sugerido * 1.05) : 0,
           referencia: datos.metodoPago === 'TARJETA' ? 'hold_semilla' : null,

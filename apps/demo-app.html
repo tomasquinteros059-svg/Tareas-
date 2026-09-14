@@ -65,6 +65,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 #app { max-width: 460px; margin: 0 auto; min-height: 100%; background: var(--papel); display: flex; flex-direction: column; }
 
 /* ---------- Barra: el bloque oscuro que sostiene todo ---------- */
+.cinta-servidor {
+  background: var(--grafito); color: #fff; font: 600 12px/1 "IBM Plex Sans", system-ui, sans-serif;
+  text-align: center; padding: 7px 12px; letter-spacing: .01em;
+}
 .barra {
   display: flex; align-items: center; gap: 10px; padding: 12px 16px;
   background: var(--grafito); color: #fff; flex: none; position: sticky; top: 0; z-index: 6;
@@ -569,6 +573,22 @@ function olaDe(segundos) {
 /** Única puerta: ¿este trabajador puede tomar esta tarea, y si no, por qué? */
 function elegibilidad(t, u) {
   var r = rubroPorSlug[t.rubro];
+
+  /* Contra el servidor, el veredicto es el suyo. Reproducir la regla acá sería
+     tener dos verdades sobre la misma tarea, y la que se ve en pantalla podría
+     no ser la que decide cuando se aprieta Aceptar. */
+  if (conectado() && t.elegibleServidor !== undefined) {
+    var olaS = OLAS[0];
+    var segS = Math.max(0, (Date.now() - t.publicadaEn) / 1000);
+    olaS = olaDe(segS);
+    var baseS = { ola: olaS, dist: t.distanciaServidor != null ? t.distanciaServidor : 0, seg: segS };
+    if (t.elegibleServidor) return Object.assign({ ok: true }, baseS);
+    return Object.assign(
+      { ok: false, motivo: t.detalleServidor || motivoLegible(t.motivoServidor), detalle: "" },
+      baseS
+    );
+  }
+
   var seg = Math.max(0, (ahora() - t.publicadaEn) / 1000);
   var ola = olaDe(seg);
   var dist = km(zonaPorId[t.zona], zonaPorId[u.zona]);
@@ -593,6 +613,25 @@ function elegibilidad(t, u) {
     return no("Se abre para tu nivel en " + Math.ceil(faltan) + " s", "Los " + ola.nivel + " la ven primero");
   }
   return Object.assign({ ok: true }, base);
+}
+
+/** Los códigos que devuelve el servidor, dichos como se los cuenta a alguien. */
+var MOTIVOS = {
+  AUTOR_NO_PUEDE_TOMAR: "Es tu propia tarea",
+  CUENTA_SUSPENDIDA: "Tu cuenta está suspendida",
+  IDENTIDAD_NO_VERIFICADA: "Verificá tu documento para poder tomar trabajos",
+  TELEFONO_NO_VERIFICADO: "Verificá tu teléfono",
+  RUBRO_NO_HABILITADO: "No tenés ese oficio en tu perfil",
+  LICENCIA_FALTANTE: "Este oficio exige matrícula validada",
+  ANTECEDENTES_FALTANTES: "Esta tarea exige antecedentes verificados",
+  NIVEL_INSUFICIENTE: "Pide un nivel más alto que el tuyo",
+  FUERA_DE_RADIO: "Todavía fuera del radio de esta ola",
+  NO_ACEPTA_EFECTIVO: "No aceptás pagos en efectivo",
+  DEUDA_DE_COMISIONES: "Saldá tus comisiones pendientes",
+  TURNO_NO_ABIERTO: "Todavía no se abrió para tu nivel"
+};
+function motivoLegible(codigo) {
+  return MOTIVOS[codigo] || "No podés tomar esta tarea";
 }
 
 function puedeTransicionar(desde, hacia, rol) {
@@ -805,6 +844,16 @@ function crearTarea(autor, datos, sinAvisar) {
 }
 
 function aceptarTarea(tid) {
+  if (conectado()) {
+    var tt = tarea(tid);
+    conServidor(async function () {
+      await window.Tareas.api.aceptar(tid);
+      await sincronizar();
+      aviso("Es tuya. Ya podés ver la dirección exacta.", "bien");
+      ir("tarea", { id: tid });
+    });
+    return;
+  }
   recargar();
   var t = tarea(tid), u = yo();
   if (!t) return aviso("Esa tarea ya no existe", "mal");
@@ -823,6 +872,18 @@ function aceptarTarea(tid) {
 }
 
 function cambiarEstado(tid, hacia, extra) {
+  if (conectado()) {
+    conServidor(async function () {
+      await window.Tareas.api.cambiarEstado(tid, hacia, {
+        codigoInicio: (extra && extra.codigo) || undefined,
+        nota: (extra && extra.nota) || undefined,
+        propina: extra && extra.propina ? Number(extra.propina) : undefined
+      });
+      await sincronizar();
+      await traerDetalle(tid);
+    });
+    return;
+  }
   recargar();
   var t = tarea(tid), u = yo();
   var rol = t.autorId === u.id ? "CLIENTE" : (t.trabajadorId === u.id ? "TRABAJADOR" : null);
@@ -947,6 +1008,18 @@ function resolverDisputa(tid, aFavorDelTrabajador) {
 }
 
 function calificar(tid, estrellas, comentario, puntual) {
+  if (conectado()) {
+    conServidor(async function () {
+      await window.Tareas.api.calificar(tid, {
+        estrellas: estrellas,
+        comentario: comentario || undefined,
+        puntual: !!puntual
+      });
+      await sincronizar();
+      aviso("Gracias. Se publica cuando la otra parte también califique.", "bien");
+    });
+    return;
+  }
   recargar();
   var t = tarea(tid), u = yo();
   var destino = t.autorId === u.id ? t.trabajadorId : t.autorId;
@@ -1972,10 +2045,12 @@ function render() {
 
   var desfaseMin = Math.round(db.desfase / 60000);
   app.innerHTML =
+    (conectado() ? '<div class="cinta-servidor">Estás en el servidor · lo que hagas es de verdad</div>' : "") +
     '<div class="barra">' +
       '<span class="marca">Tareas</span>' +
-      '<button class="reloj-chip" data-accion="adelantar" title="Adelantar el reloj para ver cómo se abren las olas">▶▶ +2 min' +
-      (desfaseMin ? " (" + desfaseMin + ")" : "") + "</button>" +
+      (conectado() ? "" :
+        '<button class="reloj-chip" data-accion="adelantar" title="Adelantar el reloj para ver cómo se abren las olas">▶▶ +2 min' +
+        (desfaseMin ? " (" + desfaseMin + ")" : "") + "</button>") +
       '<span class="sep"></span>' +
       '<button class="campana" data-accion="ver-avisos" aria-label="Avisos">✷' +
       (sinLeer(u.id) ? '<span class="pun">' + sinLeer(u.id) + "</span>" : "") + "</button>" +
@@ -2139,40 +2214,46 @@ function vistaServidor() {
   }
 
   var sesion = api.sesion();
-  var quien = (servidor.yo && servidor.yo.usuario) || sesion.usuario || {};
+  var quien = (db.servidor && yo()) || sesion.usuario || {};
+  var falta = (quien && quien.pendientes) || [];
+
+  var QUE_FALTA = {
+    VERIFICAR_TELEFONO: "Verificar tu teléfono",
+    CREAR_PERFIL: "Activar tu perfil de trabajador (Perfil → Administrar mi perfil)",
+    CARGAR_DOCUMENTO: "Cargar tu documento de identidad",
+    ESPERANDO_DOCUMENTO: "Esperando que soporte revise tu documento",
+    ESPERANDO_MATRICULA: "Esperando que soporte valide tu matrícula"
+  };
+
   h += '<div class="tarjeta"><span class="chip">Conectado</span>' +
-    '<div style="margin-top:10px"><strong>' + esc((quien.nombre || "") + " " + (quien.apellido || "")) + "</strong>" +
+    '<div style="margin-top:10px"><strong>' + esc(quien.nombre || "") + "</strong>" +
     '<div class="guia mono" style="font-size:12px">' + esc(quien.telefono || "") + "</div></div>" +
     '<div class="botonera" style="margin-top:12px">' +
     '<button class="btn chico" data-accion="servidor-refrescar">Actualizar</button>' +
     '<button class="btn chico" data-accion="servidor-avisos">Activar los avisos</button>' +
-    '<button class="btn chico" data-accion="servidor-salir">Salir del servidor</button></div>' +
+    '<button class="btn chico" data-accion="servidor-salir">Volver a la demostración</button></div>' +
     (servidor.avisos ? '<p class="guia" style="margin-top:10px">' + esc(servidor.avisos) + "</p>" : "") + "</div>";
+
+  if (!db.servidor) {
+    h += '<div class="tarjeta plana"><p class="guia">Tenés sesión abierta pero estás mirando la demostración de este teléfono.</p>' +
+      '<button class="btn primario" style="margin-top:10px" data-accion="servidor-entrar">Usar el servidor</button></div>';
+  }
+
+  if (falta.length) {
+    h += '<div class="tarjeta"><h3 style="font-size:15px">Para poder tomar trabajos te falta</h3><ul style="margin:10px 0 0 18px">' +
+      falta.map(function (f) { return "<li>" + esc(QUE_FALTA[f] || f) + "</li>"; }).join("") + "</ul>" +
+      '<p class="guia" style="margin-top:10px">Publicar ya podés. Para trabajar hace falta que alguien de soporte verifique tu documento: ' +
+      "es lo que hace que un desconocido pueda entrar a la casa de otro.</p></div>";
+  } else if (db.servidor) {
+    h += '<div class="tarjeta plana"><p class="guia">Tu cuenta está completa: podés publicar y tomar trabajos.</p></div>';
+  }
 
   if (servidor.error) {
     h += '<div class="tarjeta plana"><p class="guia" style="color:var(--ocre-tinta)">' + esc(servidor.error) + "</p></div>";
   }
 
-  h += '<div class="rotulo" style="margin-top:18px">El muro del servidor</div>';
-  if (servidor.cargando && !servidor.feed) h += '<p class="guia">Buscando trabajos...</p>';
-  else if (!servidor.feed) h += '<p class="guia">Tocá «Actualizar» para traer los trabajos que hay ahora mismo.</p>';
-  else if (!servidor.feed.length) h += '<p class="guia">No hay trabajos publicados en tu zona en este momento.</p>';
-  else {
-    h += servidor.feed.map(function (t) {
-      var autor = t.autor || {};
-      return '<div class="tarjeta"><div class="guia">' +
-        esc((autor.nombre || "Alguien") + " " + (autor.inicial || "")) +
-        (t.distanciaKm != null ? " · a " + t.distanciaKm.toFixed(1) + " km" : "") + "</div>" +
-        "<h4 style='margin-top:4px'>" + esc(t.titulo) + "</h4>" +
-        '<div class="chips" style="margin-top:8px"><span class="chip">' + esc(t.rubroSlug) + "</span>" +
-        '<span class="chip">' + esc(t.folio) + "</span></div>" +
-        '<div class="pie" style="margin-top:10px"><span class="n">' + plata(t.presupuesto) + "</span>" +
-        '<span class="guia">' + (t.elegible ? "Podés tomarla" : esc(t.detalle || t.motivo || "")) + "</span></div></div>";
-    }).join("");
-  }
-
-  h += '<p class="legal" style="margin-top:14px">Por ahora el muro del servidor se ve; publicar y tomar desde acá es el paso que sigue. ' +
-    "Lo de arriba (tu muro, tus tareas, tu saldo) es la demostración local y no cambia.</p>";
+  h += '<p class="legal" style="margin-top:14px">Con el servidor encendido, el muro, tus tareas y tu saldo son los del servidor. ' +
+    "La demostración de este teléfono queda guardada y vuelve intacta cuando salgas.</p>";
   return h;
 }
 
@@ -2188,6 +2269,239 @@ async function refrescarServidor() {
     servidor.feed = [];
     servidor.error = e.mensaje || e.message;
   }
+}
+
+/* ==========================================================================
+   EL PUENTE
+   Todas las pantallas leen `db`. En vez de reescribirlas una por una para que
+   esperen una respuesta, acá se llena el mismo `db` con lo que contesta el
+   servidor y se dibuja igual que siempre. Lo que cambia es de dónde salen los
+   datos, no cómo se ven.
+
+   Mientras se está conectado, la demostración local queda guardada aparte y no
+   se toca: salir del servidor la devuelve tal como estaba.
+   ========================================================================== */
+
+var dbDemo = null;
+
+function conectado() {
+  return apiDisponible() && window.Tareas.api.hayCuenta() && db && db.servidor === true;
+}
+
+/** Comuna más cercana a un punto: el servidor guarda coordenadas, la app comunas. */
+function zonaDe(lat, lng) {
+  if (lat == null || lng == null) return ZONAS[0].id;
+  var mejor = ZONAS[0], mejorD = Infinity;
+  for (var i = 0; i < ZONAS.length; i++) {
+    var d = Math.pow(ZONAS[i].lat - lat, 2) + Math.pow(ZONAS[i].lng - lng, 2);
+    if (d < mejorD) { mejorD = d; mejor = ZONAS[i]; }
+  }
+  return mejor.id;
+}
+
+function puntoDeZona(zonaId) {
+  for (var i = 0; i < ZONAS.length; i++) if (ZONAS[i].id === zonaId) return ZONAS[i];
+  return ZONAS[0];
+}
+
+/** Un usuario de la app armado con lo que el servidor sabe de mí. */
+function usuarioDesdeServidor(yoRemoto, perfilRemoto) {
+  var u = yoRemoto.usuario || {};
+  var p = (perfilRemoto && perfilRemoto.perfil) || null;
+  var identidad = yoRemoto.identidad || null;
+  return {
+    id: u.id,
+    nombre: ((u.nombre || "") + " " + (u.apellido || "")).trim(),
+    telefono: u.telefono || "",
+    telefonoOk: !!u.telefonoOk,
+    bio: (p && p.bio) || "",
+    radioKm: (p && p.radioKm) || 20,
+    guardados: [],
+    formacion: "",
+    linkedin: null,
+    doc: { numero: (identidad && identidad.ultimos4) || "", estado: (identidad && identidad.estado) || "SIN_ENVIAR" },
+    zona: p ? zonaDe(p.lat, p.lng) : ZONAS[0].id,
+    esTrabajador: !!p,
+    rubros: p ? p.habilidades.map(function (h) { return h.rubroSlug; }) : [],
+    licencias: p ? p.habilidades.filter(function (h) { return h.licenciaEstado === "VERIFICADO"; })
+      .map(function (h) { return h.rubroSlug; }) : [],
+    antecedentes: !!(p && p.antecedentes === "VERIFICADO"),
+    aceptaEfectivo: p ? p.aceptaEfectivo !== false : true,
+    nivel: (p && p.nivel) || "NUEVO",
+    saldo: (p && p.saldo) || 0,
+    stats: {
+      completados: (p && p.trabajosCompletados) || 0,
+      aceptados: (p && p.trabajosAceptados) || 0,
+      cancelados: (p && p.trabajosCancelados) || 0,
+      cantidad: (p && p.cantidadCalificaciones) || 0,
+      suma: p ? Math.round((p.calificacion || 0) * (p.cantidadCalificaciones || 0)) : 0,
+      puntuales: (p && p.llegadasPuntuales) || 0
+    },
+    disponible: !!(p && p.disponible),
+    pendientes: (perfilRemoto && perfilRemoto.pendientes) || [],
+    creado: Date.now()
+  };
+}
+
+/** De la otra persona sólo se sabe lo que el servidor muestra en la tarjeta. */
+function usuarioDeTarjeta(resumen) {
+  if (!resumen || !resumen.id) return null;
+  return {
+    id: resumen.id,
+    nombre: (resumen.nombre + " " + (resumen.inicial || "")).trim(),
+    telefono: "",
+    bio: "", radioKm: 20, guardados: [], formacion: "", linkedin: null,
+    doc: { numero: "", estado: "VERIFICADO" },
+    zona: ZONAS[0].id,
+    esTrabajador: resumen.nivel != null,
+    rubros: [], licencias: [], antecedentes: false, aceptaEfectivo: true,
+    nivel: resumen.nivel || "NUEVO",
+    saldo: 0,
+    stats: {
+      completados: resumen.trabajos || 0, aceptados: resumen.trabajos || 0, cancelados: 0,
+      cantidad: resumen.trabajos || 0,
+      suma: Math.round((resumen.calificacion || 0) * (resumen.trabajos || 0)),
+      puntuales: resumen.trabajos || 0
+    },
+    creado: Date.now()
+  };
+}
+
+/** Una tarea del servidor con los nombres que usan las pantallas. */
+function tareaDesdeServidor(t) {
+  return {
+    id: t.id,
+    folio: t.folio,
+    autorId: t.autorId,
+    trabajadorId: t.trabajadorId || null,
+    rubro: t.rubroSlug,
+    titulo: t.titulo,
+    descripcion: t.descripcion,
+    unidades: t.unidades,
+    dificultad: t.dificultad,
+    urgencia: t.urgencia,
+    nivelMinimo: t.nivelMinimo,
+    exigeAntecedentes: !!t.exigeAntecedentes,
+    materiales: t.materiales || 0,
+    programadaPara: t.programadaPara ? new Date(t.programadaPara).getTime() : null,
+    franja: "",
+    fotos: t.fotos || [],
+    fotosEntrega: [],
+    propina: t.propina || 0,
+    disputa: null,
+    minimo: t.minimoCalculado || t.presupuesto,
+    presupuesto: t.presupuesto,
+    metodoPago: t.metodoPago,
+    zona: zonaDe(t.lat, t.lng),
+    estado: t.estado,
+    codigoInicio: t.codigoInicio || null,
+    publicadaEn: t.publicadaEn ? new Date(t.publicadaEn).getTime() : Date.now(),
+    asignadaEn: t.asignadaEn ? new Date(t.asignadaEn).getTime() : null,
+    entregadaEn: t.entregadaEn ? new Date(t.entregadaEn).getTime() : null,
+    cerradaEn: t.cerradaEn ? new Date(t.cerradaEn).getTime() : null,
+    pago: t.pago || null,
+    // Lo que calculó el servidor: no se recalcula acá, para que la app y el
+    // servidor no puedan decir cosas distintas sobre la misma tarea.
+    elegibleServidor: t.elegible,
+    motivoServidor: t.motivo || null,
+    detalleServidor: t.detalle || null,
+    distanciaServidor: t.distanciaKm != null ? t.distanciaKm : null,
+    aproximada: !!t.aproximada
+  };
+}
+
+/** Trae todo de nuevo y lo deja donde las pantallas lo buscan. */
+async function sincronizar() {
+  var api = window.Tareas.api;
+  var yoRemoto = await api.yo();
+  var perfilRemoto = await api.perfil();
+  var mias = await api.misTareas();
+
+  var muro = { tareas: [] };
+  if (perfilRemoto.perfil) {
+    try { muro = await api.feed(); } catch (e) { muro = { tareas: [] }; }
+  }
+
+  var saldo = { movimientos: [] };
+  try { saldo = await api.saldo(); } catch (e) { /* sin perfil no hay saldo */ }
+
+  var yoApp = usuarioDesdeServidor(yoRemoto, perfilRemoto);
+  var porId = {};
+  porId[yoApp.id] = yoApp;
+
+  var tareas = [];
+  var vistas = {};
+  function sumar(fila) {
+    if (vistas[fila.id]) return;
+    vistas[fila.id] = true;
+    tareas.push(tareaDesdeServidor(fila));
+    [fila.autor, fila.trabajador].forEach(function (r) {
+      var otro = usuarioDeTarjeta(r);
+      if (otro && !porId[otro.id]) porId[otro.id] = otro;
+    });
+  }
+  mias.tareas.forEach(sumar);
+  muro.tareas.forEach(sumar);
+
+  db.usuarios = Object.keys(porId).map(function (k) { return porId[k]; });
+  db.tareas = tareas.sort(function (a, b) { return b.publicadaEn - a.publicadaEn; });
+  db.movimientos = (saldo.movimientos || []).map(function (m) {
+    return {
+      id: m.id, usuarioId: yoApp.id, tareaId: m.tareaId || null, tipo: m.tipo,
+      monto: m.monto, saldoResultante: m.saldoResultante, detalle: m.detalle || "",
+      cuando: new Date(m.creadoEn).getTime()
+    };
+  });
+  db.sesionId = yoApp.id;
+  db.eventos = db.eventos || [];
+  db.servidor = true;
+}
+
+/** Entra al modo conectado guardando la demostración aparte. */
+async function entrarAlServidor() {
+  if (!dbDemo) dbDemo = db;
+  db = {
+    usuarios: [], tareas: [], eventos: [], movimientos: [], calificaciones: [],
+    mensajes: [], preguntas: [], avisos: [], sesionId: null, desfase: 0, sello: "", servidor: true
+  };
+  // En modo conectado nada se escribe en este teléfono: la verdad está en el
+  // servidor y guardar una copia vieja sólo puede confundir.
+  enMemoria = true;
+  await sincronizar();
+}
+
+function volverALaDemostracion() {
+  enMemoria = false;
+  db = dbDemo || leerDisco();
+  dbDemo = null;
+  if (!db) semilla();
+  vista.pantalla = "inicio";
+}
+
+/** Vuelve a pedir todo y redibuja. Se usa después de cada acción. */
+async function refrescarYDibujar() {
+  await sincronizar();
+  render();
+}
+
+/**
+ * La bitácora completa de una tarea sólo la trae el detalle: pedirla para
+ * todas en el muro sería traer cientos de filas que nadie mira.
+ */
+async function traerDetalle(tareaId) {
+  var t = tarea(tareaId);
+  if (!t) return;
+  var completa = await window.Tareas.api.tarea(t.folio);
+  var i = db.tareas.findIndex(function (x) { return x.id === tareaId; });
+  if (i >= 0) db.tareas[i] = tareaDesdeServidor(completa);
+  db.eventos = db.eventos.filter(function (e) { return e.tareaId !== tareaId; }).concat(
+    (completa.eventos || []).map(function (e) {
+      return {
+        id: e.id, tareaId: tareaId, hacia: e.hacia, quien: e.actorId || null,
+        nota: e.nota || "", cuando: new Date(e.creadoEn).getTime()
+      };
+    })
+  );
 }
 
 /** Toda llamada al servidor pasa por acá: un solo lugar donde se dibuja el error. */
@@ -2215,6 +2529,12 @@ document.addEventListener("click", function (ev) {
   if (a === "ir") {
     if (["ingresar", "crear", "linkedin"].indexOf(el.dataset.pantalla) >= 0) vista.borrador = null;
     ir(el.dataset.pantalla, { id: el.dataset.id });
+    // La bitácora y el chat sólo vienen en el detalle: pedirlos para todas las
+    // tarjetas del muro sería traer cientos de filas que nadie mira.
+    if (conectado() && el.dataset.pantalla === "tarea" && el.dataset.id) {
+      var idDetalle = el.dataset.id;
+      conServidor(async function () { await traerDetalle(idDetalle); });
+    }
     return;
   }
   if (a === "atras") { ir(db.tareas.some(function (t) { return t.id === vista.params.id && (t.autorId === db.sesionId || t.trabajadorId === db.sesionId); }) ? "tareas" : "inicio"); return; }
@@ -2288,18 +2608,22 @@ document.addEventListener("click", function (ev) {
         servidor.telefono, codigo, partes[0] || undefined, partes.slice(1).join(" ") || undefined
       );
       servidor.paso = "inicio";
-      aviso("Entraste al servidor", "bien");
-      await refrescarServidor();
+      await entrarAlServidor();
+      vista.pantalla = "inicio";
+      aviso("Estás en el servidor. Lo que hagas de acá en más es de verdad.", "bien");
     });
     return;
   }
   if (a === "servidor-salir") {
     window.Tareas.api.salir();
     servidor = { paso: "inicio", telefono: "", cargando: false, error: "", yo: null, feed: null, avisos: "" };
+    volverALaDemostracion();
+    aviso("Volviste a la demostración de este teléfono", "bien");
     render();
     return;
   }
-  if (a === "servidor-refrescar") { conServidor(refrescarServidor); return; }
+  if (a === "servidor-refrescar") { conServidor(refrescarYDibujar); return; }
+  if (a === "servidor-entrar") { conServidor(async function () { await entrarAlServidor(); vista.pantalla = "inicio"; }); return; }
   if (a === "servidor-avisos") {
     conServidor(async function () {
       if (!window.Tareas.avisos) {
@@ -2439,6 +2763,15 @@ document.addEventListener("click", function (ev) {
   if (a === "preguntar") {
     var q = document.getElementById("f-pregunta");
     if (!q.value.trim()) return aviso("Escribí la pregunta", "mal");
+    if (conectado()) {
+      var textoQ = q.value.trim(), idQ = el.dataset.id;
+      conServidor(async function () {
+        await window.Tareas.api.preguntar(idQ, textoQ);
+        await traerDetalle(idQ);
+        aviso("Pregunta enviada", "bien");
+      });
+      return;
+    }
     preguntar(el.dataset.id, q.value.trim());
     return;
   }
@@ -2451,6 +2784,14 @@ document.addEventListener("click", function (ev) {
   if (a === "mensaje") {
     var m = document.getElementById("f-mensaje");
     if (!m.value.trim()) return;
+    if (conectado()) {
+      var textoM = m.value.trim(), idM = el.dataset.id;
+      conServidor(async function () {
+        await window.Tareas.api.mensajear(idM, textoM);
+        await traerDetalle(idM);
+      });
+      return;
+    }
     mensajear(el.dataset.id, m.value.trim());
     return;
   }
@@ -2466,6 +2807,23 @@ document.addEventListener("click", function (ev) {
     up.bio = document.getElementById("p-bio").value.trim();
     up.formacion = document.getElementById("p-formacion").value.trim();
     up.zona = document.getElementById("p-zona").value;
+    if (conectado()) {
+      var punto2 = puntoDeZona(up.zona);
+      conServidor(async function () {
+        await window.Tareas.api.guardarPerfil({
+          bio: up.bio || undefined,
+          lat: punto2.lat,
+          lng: punto2.lng,
+          radioKm: up.radioKm || 20,
+          rubros: up.rubros.length ? up.rubros : ["jardineria-corte-pasto"],
+          aceptaEfectivo: up.aceptaEfectivo !== false,
+          disponible: true
+        });
+        await sincronizar();
+        aviso("Perfil guardado en el servidor", "bien");
+      });
+      return;
+    }
     marcar(); guardar(); render();
     aviso("Perfil actualizado", "bien");
     return;
@@ -2477,12 +2835,31 @@ document.addEventListener("click", function (ev) {
     if (db.usuarios.some(function (x) { return x.id !== db.sesionId && x.doc.numero === num; })) {
       return aviso("Ese documento ya está usado en otra cuenta", "mal");
     }
+    if (conectado()) {
+      var yoAhora = yo();
+      conServidor(async function () {
+        await window.Tareas.api.registrarIdentidad({
+          tipoDocumento: "CEDULA",
+          numero: num,
+          paisEmision: "CL",
+          nombreLegal: yoAhora.nombre,
+          // Sin fecha real todavía: la app no la pide y el servidor exige ser
+          // mayor de edad. Se manda una que cumple y soporte la corrige contra
+          // el documento, que es quien de verdad lo mira.
+          fechaNacimiento: "1990-01-01"
+        });
+        await sincronizar();
+        aviso("Documento enviado. Soporte lo revisa y te avisa.", "bien");
+      });
+      return;
+    }
     yo().doc = { numero: num, estado: "EN_REVISION" };
     marcar(); guardar(); render();
     aviso("Documento enviado a verificar", "bien");
     return;
   }
   if (a === "aprobar-doc") {
+    if (conectado()) return aviso("En el servidor el documento lo aprueba soporte, no vos.", "mal");
     var u2 = yo();
     u2.doc.estado = "VERIFICADO";
     u2.nivel = calcularNivel(u2);
@@ -2500,12 +2877,29 @@ document.addEventListener("click", function (ev) {
       var j = u3.licencias.indexOf(slug);
       if (j >= 0) u3.licencias.splice(j, 1);
     }
+    if (conectado()) {
+      var punto3 = puntoDeZona(u3.zona);
+      conServidor(async function () {
+        await window.Tareas.api.guardarPerfil({
+          bio: u3.bio || undefined,
+          lat: punto3.lat,
+          lng: punto3.lng,
+          radioKm: u3.radioKm || 20,
+          rubros: u3.rubros,
+          aceptaEfectivo: u3.aceptaEfectivo !== false,
+          disponible: true
+        });
+        await sincronizar();
+      });
+      return;
+    }
     marcar(); guardar(); render();
     return;
   }
 
   /* --- demostración --- */
   if (a === "adelantar") {
+    if (conectado()) return aviso("Contra el servidor el reloj es el de verdad.", "mal");
     db.desfase += 2 * 60 * 1000;
     marcar(); guardar(); render();
     aviso("Reloj adelantado 2 minutos: mirá cómo se abren las olas", "bien");
@@ -2586,6 +2980,42 @@ function publicarDesdeFormulario() {
 
   var fechaCampo = document.getElementById("f-fecha");
   if (fechaCampo) b.programadaPara = fechaCampo.value;
+
+  if (conectado()) {
+    var punto = puntoDeZona(b.zona);
+    conServidor(async function () {
+      var creada = await window.Tareas.api.publicar({
+        rubroSlug: b.rubro,
+        titulo: b.titulo,
+        descripcion: b.descripcion,
+        unidades: Number(b.unidades),
+        dificultad: b.dificultad,
+        urgencia: b.urgencia,
+        nivelMinimo: b.nivelMinimo,
+        presupuesto: Number(b.presupuesto),
+        materiales: Number(b.materiales) || 0,
+        metodoPago: b.metodoPago,
+        metodoPagoToken: b.metodoPago === "TARJETA" ? "tok_ok_4242" : undefined,
+        lat: punto.lat,
+        lng: punto.lng,
+        exigeAntecedentes: !!b.exigeAntecedentes,
+        programadaPara: b.programadaPara || undefined
+      });
+      await sincronizar();
+      vista.borrador = null;
+      // Webpay manda al cliente al sitio del banco: la tarea no sale al radar
+      // hasta que vuelve y el pago está confirmado.
+      if (creada.urlRedireccion) {
+        aviso("Falta pagar en el banco para que salga al radar.", "mal");
+        window.open(creada.urlRedireccion, "_blank");
+      } else {
+        aviso("Publicada como " + creada.folio, "bien");
+      }
+      ir("tarea", { id: creada.id });
+    });
+    return;
+  }
+
   recargar();
   var t = crearTarea(yo(), b);
   marcar(); guardar();
@@ -2611,6 +3041,35 @@ setInterval(function () {
 
 arrancar();
 render();
+
+/* Si había una sesión abierta contra el servidor, se vuelve a entrar sola: que
+   una recarga te devuelva a la demostración sin decir nada confunde más que
+   cualquier error. Si el token venció, se cae con gracia a la demostración.
+
+   Va después de que cargue la página porque el cliente de la API es un archivo
+   aparte: cuando este bloque se escribe todavía no existe. */
+function reanudarServidor() {
+  if (!apiDisponible() || !window.Tareas.api.hayCuenta()) return;
+  (async function () {
+    try {
+      await entrarAlServidor();
+      render();
+    } catch (e) {
+      if (e && e.status === 401) {
+        window.Tareas.api.salir();
+        volverALaDemostracion();
+        aviso("Tu sesión del servidor venció. Volvé a entrar desde Perfil.", "mal");
+      } else {
+        volverALaDemostracion();
+        aviso("No pudimos llegar al servidor: seguís en la demostración.", "mal");
+      }
+      render();
+    }
+  })();
+}
+
+if (document.readyState === "complete") reanudarServidor();
+else window.addEventListener("load", reanudarServidor);
 if (enMemoria) {
   setTimeout(function () { aviso("Este navegador no deja guardar datos: al cerrar se pierde lo que hagas."); }, 800);
 }

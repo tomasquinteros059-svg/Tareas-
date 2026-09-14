@@ -90,7 +90,7 @@ export async function registrarRutas(app: FastifyInstance, ctx: Contexto) {
 
   app.post('/cotizar', async (req) => {
     const datos = cotizacionSchema.parse(req.body);
-    return cotizar(datos);
+    return cotizar(datos, ctx.precios);
   });
 
   /*
@@ -300,11 +300,13 @@ export async function registrarRutas(app: FastifyInstance, ctx: Contexto) {
           ]),
           codigoInicio: z.string().length(4).optional(),
           nota: z.string().max(500).optional(),
+          propina: z.number().int().min(0).optional(),
         })
         .parse(req.body);
       return ctx.tareas.cambiarEstado(id, req.usuarioId(), cuerpo.estado, {
         codigoInicio: cuerpo.codigoInicio,
         nota: cuerpo.nota,
+        propina: cuerpo.propina,
       });
     });
 

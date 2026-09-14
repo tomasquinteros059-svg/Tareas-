@@ -244,3 +244,45 @@ describe('las puertas', () => {
     expect(r.statusCode).toBe(403);
   });
 });
+
+describe('la moneda de la instalación', () => {
+  it('en pesos chilenos el piso del oficio es el chileno, no el de dólares', async () => {
+    const enChile = await crearServidor(
+      { ...ctx, ...contextoDePrueba(), precios: (await import('@tareas/domain')).PRECIOS_CHILE },
+      { ...env, PAYMENTS_CURRENCY: 'CLP' },
+    );
+    try {
+      const r = await enChile.inject({
+        method: 'POST',
+        url: '/cotizar',
+        payload: {
+          rubroSlug: 'jardineria-corte-pasto',
+          unidades: 2,
+          dificultad: 'BASICA',
+          urgencia: 'PROGRAMADA',
+        },
+      });
+      const cotizacion = JSON.parse(r.body);
+      expect(cotizacion.moneda).toBe('CLP');
+      // Dos horas de jardinería en Chile arrancan en $16.000, no en $1.850.
+      expect(cotizacion.minimo).toBeGreaterThanOrEqual(16_000);
+    } finally {
+      await enChile.close();
+    }
+  });
+
+  it('una tarea publicada en pesos no pasa el mínimo con monedas de dólar', async () => {
+    const { PRECIOS_CHILE } = await import('@tareas/domain');
+    const { ServicioTareas } = await import('../modulos/tareas/servicio.js');
+    const chileno = new ServicioTareas(prisma, ctx.pasarela, undefined, PRECIOS_CHILE);
+    const cliente = await crearCliente();
+
+    await expect(
+      chileno.publicar(cliente.id, { ...TAREA_BASE, presupuesto: 3_000 }),
+    ).rejects.toMatchObject({ codigo: 'PRESUPUESTO_INSUFICIENTE' });
+
+    const buena = await chileno.publicar(cliente.id, { ...TAREA_BASE, presupuesto: 30_000 });
+    expect(buena.moneda).toBe('CLP');
+    expect(buena.minimoCalculado).toBeGreaterThanOrEqual(24_000);
+  });
+});

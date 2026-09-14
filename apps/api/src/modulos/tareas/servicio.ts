@@ -14,7 +14,9 @@ import {
   radioDeBusqueda,
   rubroObligatorio,
   validarPresupuesto,
+  PRECIOS_POR_DEFECTO,
   type Actor,
+  type ConfiguracionPrecios,
   type EstadoTarea,
 } from '@tareas/domain';
 import { conflicto, invalido, noEncontrado, sinPermiso } from '../../lib/errores.js';
@@ -53,6 +55,12 @@ export class ServicioTareas {
     private readonly prisma: PrismaClient,
     private readonly pasarela: Pasarela,
     private readonly antifraude?: ServicioAntifraude,
+    /**
+     * Los precios de la moneda en la que opera esta instalación. No es un
+     * detalle: el piso por oficio sale de acá, y con la configuración
+     * equivocada una tarea se publica por diez veces menos de lo que vale.
+     */
+    private readonly precios: ConfiguracionPrecios = PRECIOS_POR_DEFECTO,
   ) {}
 
   /**
@@ -70,7 +78,7 @@ export class ServicioTareas {
       nivelMinimo: datos.nivelMinimo,
       materiales: datos.materiales ?? 0,
     };
-    const validacion = validarPresupuesto(datos.presupuesto, solicitud);
+    const validacion = validarPresupuesto(datos.presupuesto, solicitud, this.precios);
     if (!validacion.valido) {
       throw invalido('PRESUPUESTO_INSUFICIENTE', validacion.motivo!, {
         minimo: validacion.minimo,
@@ -115,7 +123,7 @@ export class ServicioTareas {
       }
       const hold = await this.pasarela.retener({
         monto: liquidacion.cobroAlCliente,
-        moneda: 'USD',
+        moneda: this.precios.moneda,
         metodoPagoToken: datos.metodoPagoToken,
         descripcion: `Tarea ${folio} - ${datos.titulo}`,
         idempotencia: folio,
@@ -143,6 +151,7 @@ export class ServicioTareas {
           exigeAntecedentes: datos.exigeAntecedentes ?? false,
           minimoCalculado: validacion.minimo,
           presupuesto: datos.presupuesto,
+          moneda: this.precios.moneda,
           materiales: datos.materiales ?? 0,
           metodoPago: datos.metodoPago,
           estado: esperandoBanco ? 'BORRADOR' : 'PUBLICADA',
@@ -353,7 +362,7 @@ export class ServicioTareas {
     tareaId: string,
     actorId: string,
     hacia: EstadoTarea,
-    opciones: { codigoInicio?: string; nota?: string } = {},
+    opciones: { codigoInicio?: string; nota?: string; propina?: number } = {},
   ) {
     const tarea = await this.prisma.tarea.findUnique({ where: { id: tareaId } });
     if (!tarea) throw noEncontrado('La tarea');
@@ -370,7 +379,18 @@ export class ServicioTareas {
     const datos: Record<string, unknown> = { estado: hacia };
     if (hacia === 'EN_PROGRESO') datos.iniciadaEn = ahora;
     if (hacia === 'ENTREGADA') datos.entregadaEn = ahora;
-    if (hacia === 'CONFIRMADA') datos.confirmadaEn = ahora;
+    if (hacia === 'CONFIRMADA') {
+      datos.confirmadaEn = ahora;
+      // La propina va entera al trabajador y sólo la deja el cliente al
+      // confirmar: es lo último que pasa antes de que se liquide la plata.
+      if (opciones.propina !== undefined) {
+        if (actor !== 'CLIENTE') throw sinPermiso('La propina la deja quien pagó el trabajo');
+        if (!Number.isInteger(opciones.propina) || opciones.propina < 0) {
+          throw invalido('PROPINA_INVALIDA', 'La propina tiene que ser un monto entero');
+        }
+        datos.propina = opciones.propina;
+      }
+    }
     if (hacia === 'PUBLICADA') {
       // El trabajador se bajó: la tarea vuelve a la fila y le queda la cancelación.
       datos.trabajadorId = null;
@@ -584,7 +604,7 @@ export class ServicioTareas {
 
   /** Cotizador público: alimenta el slider de presupuesto en la app. */
   cotizarTarea(datos: Parameters<typeof cotizar>[0]) {
-    return cotizar(datos);
+    return cotizar(datos, this.precios);
   }
 
   private rolEn(tarea: Tarea, usuarioId: string): Actor {
