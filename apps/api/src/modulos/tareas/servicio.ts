@@ -20,6 +20,7 @@ import {
 import { conflicto, invalido, noEncontrado, sinPermiso } from '../../lib/errores.js';
 import { aPerfilDominio, aTareaDominio } from './mapeos.js';
 import type { Pasarela } from '../pagos/pasarela.js';
+import type { ServicioAntifraude } from '../antifraude/servicio.js';
 
 /** Cuánto vive una tarea publicada antes de expirar si nadie la toma. */
 const VENTANA_PUBLICACION_MS = 24 * 60 * 60 * 1000;
@@ -51,6 +52,7 @@ export class ServicioTareas {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly pasarela: Pasarela,
+    private readonly antifraude?: ServicioAntifraude,
   ) {}
 
   /**
@@ -476,6 +478,11 @@ export class ServicioTareas {
       }),
     ]);
 
+    // Recién con la tarea cerrada se puede mirar el ritmo del trabajo y la
+    // relación entre las dos cuentas. Si esto falla, la plata ya se movió bien:
+    // no puede tumbar la liquidación.
+    await this.antifraude?.revisarTareaCerrada(tareaId).catch(() => undefined);
+
     return actualizada;
   }
 
@@ -505,6 +512,7 @@ export class ServicioTareas {
         `Podés hacer hasta ${MAX_PREGUNTAS_POR_TRABAJADOR} preguntas por tarea. Si te sirve el trabajo, tomalo.`,
       );
     }
+    await this.antifraude?.revisarPregunta(tareaId, autorId, texto);
     return this.prisma.pregunta.create({ data: { tareaId, autorId, texto } });
   }
 
@@ -519,6 +527,7 @@ export class ServicioTareas {
     if (!abiertos.includes(tarea.estado)) {
       throw conflicto('CHAT_CERRADO', 'El chat está disponible mientras la tarea está en curso');
     }
+    await this.antifraude?.revisarMensaje(tareaId, autorId, texto);
     return this.prisma.mensaje.create({ data: { tareaId, autorId, texto } });
   }
 

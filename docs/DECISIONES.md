@@ -177,3 +177,27 @@ soporte). El trabajador no puede darse por confirmado a sí mismo; el cliente no
 puede autoasignarse una tarea; sólo soporte resuelve disputas. Si el trabajador se
 baja, la tarea vuelve a la fila y le queda la cancelación en su historial. Si el
 cliente no confirma en 24 h, el sistema confirma solo y se libera el pago.
+
+---
+
+## 8. Antifraude: sumar señales, no acusar
+
+Tres cosas rompen un marketplace de trabajos y ninguna necesita hackear nada:
+pactar por fuera después de conocerse por la app, dos cuentas que se califican
+entre sí hasta llegar a ORO, y tareas fantasma que se publican y se confirman en
+dos minutos sin que nadie haya trabajado.
+
+La decisión de fondo es que **una sospecha no cierra una cuenta**. Un teléfono en
+un mensaje puede ser "llamame cuando llegues"; dos trabajos entre las mismas
+personas puede ser un cliente que quedó contento. Una cuenta bloqueada por un
+falso positivo es una persona que se queda sin trabajar por un error nuestro, y
+eso no se arregla pidiendo disculpas. Entonces las señales se suman en un
+puntaje y se levanta una alerta para que la mire alguien.
+
+La única excepción es el **teléfono en una pregunta pública antes de asignar**:
+ahí no hay nada que coordinar todavía, el único uso posible es sacar el trabajo
+de la app, y el daño es inmediato. Eso sí se rechaza en el momento.
+
+El puntaje no es una suma simple: tres señales flojas no equivalen a una fuerte.
+Se toma la más pesada y el resto aporta la mitad, que es la forma de que veinte
+indicios menores no terminen pareciendo una certeza.

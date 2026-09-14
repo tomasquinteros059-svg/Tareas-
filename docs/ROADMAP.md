@@ -33,7 +33,11 @@ abajo se puede hacer con la app ya en la calle.
 - **El radar busca por zona en la base**: primero el rectángulo que contiene el
   radio del trabajador —que Postgres resuelve con un índice— y recién sobre esas
   filas la distancia exacta y las reglas de despacho.
-- 177 pruebas automáticas.
+- **Antifraude**: teléfonos y propuestas de arreglar por fuera en las preguntas
+  públicas, cuentas que se publican trabajos entre sí y tareas de tres horas
+  entregadas en noventa segundos. Levanta alertas para que las mire una persona;
+  lo único que corta en el momento es el contacto en una pregunta pública.
+- 201 pruebas automáticas.
 
 ## Bloquea el lanzamiento
 
@@ -82,8 +86,8 @@ local) para los códigos de verificación.
 - Pantalla de soporte de verdad: hoy son endpoints, se operan con `curl`.
 - Oneclick de Transbank, para poder cobrar la comisión adeudada sin molestar al
   trabajador. Mientras tanto la paga a mano desde la app.
-- Antifraude: cuentas que se califican entre sí, tareas fantasma, y quien intenta
-  pactar por fuera para evitar la comisión.
+- Antifraude de segunda vuelta: dispositivos y medios de pago repetidos entre
+  cuentas, que es lo que queda cuando las señales de texto y de ritmo ya están.
 - Tareas recurrentes (la limpieza de todos los martes) y equipos para trabajos
   de más de una persona.
 - Precios dinámicos por demanda: la fórmula ya tiene el lugar donde entran.

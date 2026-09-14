@@ -22,7 +22,7 @@ export function contextoDePrueba(): Contexto & { pasarela: PasarelaSandbox; envi
 
 export async function limpiar() {
   await prisma.$executeRawUnsafe(`
-    TRUNCATE TABLE "Retiro", "MovimientoSaldo", "Calificacion", "Mensaje", "Pregunta", "EventoTarea",
+    TRUNCATE TABLE "Alerta", "Retiro", "MovimientoSaldo", "Calificacion", "Mensaje", "Pregunta", "EventoTarea",
       "Pago", "Tarea", "Habilidad", "PerfilTrabajador", "Direccion", "Identidad",
       "CuentaOAuth", "CodigoOtp", "Usuario" RESTART IDENTITY CASCADE;
   `);

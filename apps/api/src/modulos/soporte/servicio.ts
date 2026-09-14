@@ -23,7 +23,7 @@ export class ServicioSoporte {
 
   /** La cola de trabajo: lo más viejo primero, que es lo que más duele. */
   async bandeja() {
-    const [disputas, identidades, matriculas] = await Promise.all([
+    const [disputas, identidades, matriculas, alertas, retiros] = await Promise.all([
       this.prisma.tarea.findMany({
         where: { estado: 'EN_DISPUTA' },
         orderBy: { actualizadoEn: 'asc' },
@@ -52,13 +52,17 @@ export class ServicioSoporte {
         where: { licenciaEstado: 'EN_REVISION' },
         include: { perfil: { include: { usuario: { select: { id: true, nombre: true } } } } },
       }),
+      this.prisma.alerta.count({ where: { estado: 'ABIERTA' } }),
+      this.prisma.retiro.count({ where: { estado: 'SOLICITADO' } }),
     ]);
 
     return {
       disputas,
       identidades,
       matriculas,
-      total: disputas.length + identidades.length + matriculas.length,
+      alertasAbiertas: alertas,
+      retirosPendientes: retiros,
+      total: disputas.length + identidades.length + matriculas.length + alertas + retiros,
     };
   }
 
@@ -210,7 +214,7 @@ export class ServicioSoporte {
     });
     if (!usuario) throw noEncontrado('El usuario');
 
-    const [publicadas, trabajadas, movimientos, disputas] = await Promise.all([
+    const [publicadas, trabajadas, movimientos, disputas, alertas] = await Promise.all([
       this.prisma.tarea.count({ where: { autorId: usuarioId } }),
       this.prisma.tarea.count({ where: { trabajadorId: usuarioId } }),
       this.prisma.movimientoSaldo.findMany({
@@ -221,9 +225,14 @@ export class ServicioSoporte {
       this.prisma.tarea.count({
         where: { estado: 'EN_DISPUTA', OR: [{ autorId: usuarioId }, { trabajadorId: usuarioId }] },
       }),
+      this.prisma.alerta.findMany({
+        where: { usuarioId },
+        orderBy: { creadoEn: 'desc' },
+        take: 20,
+      }),
     ]);
 
-    return { usuario, publicadas, trabajadas, movimientos, disputasAbiertas: disputas };
+    return { usuario, publicadas, trabajadas, movimientos, disputasAbiertas: disputas, alertas };
   }
 
   /** Suspender corta el acceso sin borrar nada: el historial se conserva. */

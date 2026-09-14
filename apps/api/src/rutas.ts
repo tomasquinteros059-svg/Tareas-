@@ -326,6 +326,20 @@ export async function registrarRutas(app: FastifyInstance, ctx: Contexto) {
       return ctx.soporte.levantarSuspension(id);
     });
 
+    privadas.get('/soporte/alertas', async (req) => {
+      exigirRol(req.roles(), 'SOPORTE');
+      return ctx.antifraude.pendientes();
+    });
+
+    privadas.post('/soporte/alertas/:id/resolver', async (req) => {
+      exigirRol(req.roles(), 'SOPORTE');
+      const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+      const { confirmada, nota } = z
+        .object({ confirmada: z.boolean(), nota: z.string().min(10).max(500) })
+        .parse(req.body);
+      return ctx.antifraude.resolver(id, req.usuarioId(), confirmada, nota);
+    });
+
     /* --- Deuda de comisiones de los trabajos en efectivo. --- */
     privadas.get('/deudas', async (req) => ctx.deudas.estado(req.usuarioId()));
 

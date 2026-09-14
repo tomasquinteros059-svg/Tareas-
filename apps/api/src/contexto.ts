@@ -7,6 +7,7 @@ import { Planificador } from './modulos/reloj/planificador.js';
 import { ServicioSoporte } from './modulos/soporte/servicio.js';
 import { ServicioRetiros } from './modulos/retiros/servicio.js';
 import { ServicioDeudas } from './modulos/deudas/servicio.js';
+import { ServicioAntifraude } from './modulos/antifraude/servicio.js';
 import { EnviadorConsola, ServicioOtp, type Enviador } from './modulos/auth/otp.js';
 import { ProveedorGoogle, ProveedorLinkedin, type ProveedorOauth } from './modulos/auth/oauth.js';
 import { PasarelaSandbox, type Pasarela } from './modulos/pagos/pasarela.js';
@@ -26,6 +27,7 @@ export interface Contexto {
   soporte: ServicioSoporte;
   retiros: ServicioRetiros;
   deudas: ServicioDeudas;
+  antifraude: ServicioAntifraude;
   pasarela: Pasarela;
   oauth: { google?: ProveedorOauth; linkedin?: ProveedorOauth };
 }
@@ -88,7 +90,8 @@ export function crearContexto(
     });
   }
 
-  const tareas = new ServicioTareas(prisma, pasarela);
+  const antifraude = new ServicioAntifraude(prisma);
+  const tareas = new ServicioTareas(prisma, pasarela, antifraude);
   const calificaciones = new ServicioCalificaciones(prisma);
   const deudas = new ServicioDeudas(prisma, pasarela, env.PAYMENTS_CURRENCY);
 
@@ -100,6 +103,7 @@ export function crearContexto(
     calificaciones,
     reloj: new Planificador(prisma, tareas, calificaciones, pasarela, deudas),
     deudas,
+    antifraude,
     soporte: new ServicioSoporte(prisma, tareas, pasarela),
     retiros: new ServicioRetiros(prisma, env.KYC_ENCRYPTION_KEY, env.PAYMENTS_CURRENCY),
     identidad: new ServicioIdentidad(prisma, env.KYC_ENCRYPTION_KEY),

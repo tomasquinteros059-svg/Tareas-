@@ -125,6 +125,7 @@ model Usuario {
   califRecibidas Calificacion[] @relation("CalificacionDestinatario")
   movimientos    MovimientoSaldo[]
   retiros        Retiro[]
+  alertas        Alerta[]
   codigosOtp     CodigoOtp[]
 
   @@index([telefono])
@@ -331,6 +332,7 @@ model Tarea {
   preguntas        Pregunta[]
   mensajes         Mensaje[]
   calificaciones   Calificacion[]
+  alertas          Alerta[]
   pago             Pago?
   movimientos      MovimientoSaldo[]
 
@@ -444,6 +446,41 @@ model Pago {
   actualizadoEn     DateTime   @updatedAt
 
   @@index([estado])
+}
+
+enum NivelRiesgo {
+  BAJO
+  MEDIO
+  ALTO
+}
+
+enum EstadoAlerta {
+  ABIERTA
+  REVISADA
+  DESCARTADA
+}
+
+/// Señales de fraude que encontró el sistema y espera que alguien mire. No
+/// bloquean a nadie por sí solas: una cuenta no se cierra por una sospecha.
+model Alerta {
+  id          String       @id @default(uuid())
+  /// A quién apunta la sospecha.
+  usuarioId   String?
+  usuario     Usuario?     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  tareaId     String?
+  tarea       Tarea?       @relation(fields: [tareaId], references: [id], onDelete: Cascade)
+  /// Los hallazgos tal como los devolvió el dominio, para poder explicarlos.
+  senales     Json
+  puntaje     Int
+  nivel       NivelRiesgo
+  estado      EstadoAlerta @default(ABIERTA)
+  nota        String?
+  revisadoPor String?
+  creadoEn    DateTime     @default(now())
+  resueltoEn  DateTime?
+
+  @@index([estado, puntaje])
+  @@index([usuarioId])
 }
 
 /// Libro mayor del trabajador. El saldo del perfil es la suma de estos
