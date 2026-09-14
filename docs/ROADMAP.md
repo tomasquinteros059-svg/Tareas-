@@ -47,8 +47,12 @@ abajo se puede hacer con la app ya en la calle.
   que nadie reciba dos avisos de lo mismo y termine apagándolos.
 - **App instalable** (manifiesto, trabajador de servicio, íconos), servida por la
   API desde el mismo dominio, que es lo que exigen los avisos. Abre sin señal y
-  muestra los avisos que le llegan; falta conectarla al servidor (punto 3).
-- 239 pruebas automáticas.
+  muestra los avisos que le llegan.
+- **Un solo catálogo** para la app y el servidor, generado desde el dominio, con
+  un test que impide que se vuelvan a separar.
+- **La app conectada al servidor**: cliente completo de la API, ingreso con
+  teléfono y código de verdad, sesión guardada y el muro del servidor a la vista.
+- 281 pruebas automáticas.
 
 ## Bloquea el lanzamiento
 
@@ -101,7 +105,15 @@ chileno (o dar de alta un remitente alfanumérico) y cargar las claves en
 `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` y `TWILIO_FROM`. Sin esto el código de
 verificación sólo se imprime en el log del servidor y no se registra nadie.
 
-### 6. Decisiones de negocio sin las que no se puede cobrar
+### 6. Construir y probar la imagen de Docker una vez
+Todo lo que la imagen hace está verificado fuera del contenedor —compilación
+desde una copia limpia, arranque en producción contra Postgres, `/salud`, el
+reloj y las migraciones— pero la imagen en sí nunca se construyó: el entorno
+donde se escribió esto tiene bloqueada la descarga desde los registros de
+contenedores. Es un `docker compose -f docker-compose.prod.yml up --build` en
+cualquier máquina con Docker; si algo falla, va a fallar ahí y no en producción.
+
+### 7. Decisiones de negocio sin las que no se puede cobrar
 - **Moneda y precios por país.** El catálogo está en dólares de referencia y se
   ajusta con un solo factor, pero hay que fijar los números reales del mercado
   donde se lance.
