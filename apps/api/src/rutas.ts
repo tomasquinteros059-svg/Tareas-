@@ -75,6 +75,9 @@ export async function registrarRutas(app: FastifyInstance, ctx: Contexto) {
       unidadesMinimas: r.unidadesMinimas,
       requiereLicencia: r.requiereLicencia,
       requiereAntecedentes: r.requiereAntecedentes,
+      requiereTitulo: r.requiereTitulo,
+      categoria: r.categoria,
+      comisionBase: r.comisionBase,
     })),
   }));
 

@@ -339,41 +339,43 @@ input[type="checkbox"], input[type="radio"] { width: auto; accent-color: var(--v
    El dinero va siempre en centavos enteros.
    ========================================================================== */
 
+/* CATALOGO:INICIO — generado por apps/web/catalogo.mjs, no editar a mano */
 var RUBROS = [
-  { slug: "jardineria", nombre: "Corte de pasto y jardinería", unidad: "HORA", piso: 8000, min: 2, com: .15 , cat: "UNO" },
-  { slug: "limpieza", nombre: "Limpieza de hogar", unidad: "HORA", piso: 7000, min: 3, com: .15 , cat: "UNO" },
-  { slug: "limpieza-profunda", nombre: "Limpieza profunda", unidad: "HORA", piso: 10000, min: 4, com: .15 , cat: "UNO" },
-  { slug: "muebles", nombre: "Armado de muebles", unidad: "HORA", piso: 9000, min: 2, com: .15 , cat: "UNO" },
-  { slug: "pintura", nombre: "Pintura", unidad: "M2", piso: 3500, min: 20, com: .15 , cat: "VARIOS" },
-  { slug: "plomeria", nombre: "Plomería", unidad: "HORA", piso: 16000, min: 1, com: .15, licencia: true , cat: "VARIOS" },
-  { slug: "electricidad", nombre: "Electricidad", unidad: "HORA", piso: 18000, min: 1, com: .15, licencia: true , cat: "VARIOS" },
-  { slug: "aire", nombre: "Aire acondicionado", unidad: "HORA", piso: 20000, min: 1, com: .15, licencia: true , cat: "VARIOS" },
-  { slug: "carpinteria", nombre: "Carpintería", unidad: "HORA", piso: 14000, min: 2, com: .15 , cat: "VARIOS" },
-  { slug: "albanileria", nombre: "Albañilería", unidad: "DIA", piso: 60000, min: 1, com: .15 , cat: "VARIOS" },
-  { slug: "mudanza", nombre: "Mudanzas y fletes", unidad: "HORA", piso: 15000, min: 2, com: .15 , cat: "VARIOS" },
-  { slug: "mensajeria", nombre: "Mensajería y trámites", unidad: "TRABAJO", piso: 6000, min: 1, com: .15 , cat: "UNO" },
-  { slug: "mascotas", nombre: "Paseo de mascotas", unidad: "HORA", piso: 7000, min: 1, com: .15, antecedentes: true , cat: "UNO" },
-  { slug: "ninos", nombre: "Cuidado de niños", unidad: "HORA", piso: 9000, min: 3, com: .15, antecedentes: true , cat: "UNO" },
-  { slug: "adultos", nombre: "Acompañamiento de adultos mayores", unidad: "HORA", piso: 10000, min: 3, com: .15, antecedentes: true , cat: "UNO" },
-  { slug: "mozo", nombre: "Mozo o personal de evento", unidad: "HORA", piso: 8000, min: 4, com: .15 , cat: "UNO" },
-  { slug: "cocinero", nombre: "Cocinero a domicilio", unidad: "HORA", piso: 15000, min: 3, com: .15 , cat: "VARIOS" },
-  { slug: "fotografia", nombre: "Fotografía y video", unidad: "HORA", piso: 25000, min: 2, com: .12 , cat: "VARIOS" },
-  { slug: "clases", nombre: "Clases particulares", unidad: "HORA", piso: 12000, min: 1, com: .12 , cat: "VARIOS" },
-  { slug: "soporte", nombre: "Soporte técnico", unidad: "HORA", piso: 18000, min: 1, com: .12 , cat: "VARIOS" },
-  { slug: "software", nombre: "Desarrollo de software", unidad: "HORA", piso: 35000, min: 2, com: .10 , cat: "ESPECIAL" },
-  { slug: "diseno", nombre: "Diseño gráfico", unidad: "TRABAJO", piso: 50000, min: 1, com: .12 , cat: "ESPECIAL" },
-  { slug: "contabilidad", nombre: "Contabilidad e impuestos", unidad: "HORA", piso: 30000, min: 1, com: .10, licencia: true , cat: "ESPECIAL", titulo: true },
-  { slug: "abogado-dia", nombre: "Abogado por el día", unidad: "DIA", piso: 250000, min: 1, com: .10, licencia: true , cat: "ESPECIAL", titulo: true },
-  { slug: "abogado-consulta", nombre: "Consulta legal", unidad: "HORA", piso: 50000, min: 1, com: .10, licencia: true , cat: "ESPECIAL", titulo: true },
-  { slug: "traduccion", nombre: "Traducción y redacción", unidad: "TRABAJO", piso: 25000, min: 1, com: .12 , cat: "VARIOS" },
-  { slug: "enfermeria", nombre: "Enfermería a domicilio", unidad: "HORA", piso: 22000, min: 2, com: .10, licencia: true, antecedentes: true , cat: "ESPECIAL", titulo: true },
-  { slug: "ingenieria-civil", nombre: "Ingeniería civil · cálculo y planos", unidad: "DIA", piso: 300000, min: 1, com: .10, licencia: true, cat: "ESPECIAL", titulo: true },
-  { slug: "ingenieria-electrica", nombre: "Ingeniería eléctrica · proyecto y certificación", unidad: "HORA", piso: 40000, min: 2, com: .10, licencia: true, cat: "ESPECIAL", titulo: true },
-  { slug: "arquitectura", nombre: "Arquitectura · proyecto y dirección de obra", unidad: "HORA", piso: 38000, min: 2, com: .10, licencia: true, cat: "ESPECIAL", titulo: true },
-  { slug: "topografia", nombre: "Topografía y mensura", unidad: "DIA", piso: 200000, min: 1, com: .10, licencia: true, cat: "ESPECIAL", titulo: true },
-  { slug: "peritaje", nombre: "Peritaje técnico y tasación", unidad: "TRABAJO", piso: 150000, min: 1, com: .10, licencia: true, cat: "ESPECIAL", titulo: true },
-  { slug: "kinesiologia", nombre: "Kinesiología y masajes", unidad: "HORA", piso: 25000, min: 1, com: .15, licencia: true , cat: "ESPECIAL", titulo: true }
+  { slug: "jardineria-corte-pasto", nombre: "Corte de pasto y jardinería", unidad: "HORA", piso: 8000, min: 2, com: 0.15, cat: "UNO" },
+  { slug: "limpieza-hogar", nombre: "Limpieza de hogar", unidad: "HORA", piso: 7000, min: 3, com: 0.15, cat: "UNO" },
+  { slug: "limpieza-profunda", nombre: "Limpieza profunda / fin de obra", unidad: "HORA", piso: 10000, min: 4, com: 0.15, cat: "UNO" },
+  { slug: "armado-muebles", nombre: "Armado de muebles", unidad: "HORA", piso: 9000, min: 2, com: 0.15, cat: "UNO" },
+  { slug: "mensajeria", nombre: "Mensajería y trámites", unidad: "TRABAJO", piso: 6000, min: 1, com: 0.15, cat: "UNO" },
+  { slug: "paseo-mascotas", nombre: "Paseo y cuidado de mascotas", unidad: "HORA", piso: 7000, min: 1, com: 0.15, antecedentes: true, cat: "UNO" },
+  { slug: "cuidado-ninos", nombre: "Cuidado de niños", unidad: "HORA", piso: 9000, min: 3, com: 0.15, antecedentes: true, cat: "UNO" },
+  { slug: "cuidado-adultos", nombre: "Acompañamiento de adultos mayores", unidad: "HORA", piso: 10000, min: 3, com: 0.15, antecedentes: true, cat: "UNO" },
+  { slug: "mozo-evento", nombre: "Mozo / personal de evento", unidad: "HORA", piso: 8000, min: 4, com: 0.15, cat: "UNO" },
+  { slug: "pintura", nombre: "Pintura de interiores y exteriores", unidad: "M2", piso: 3500, min: 20, com: 0.15, cat: "VARIOS" },
+  { slug: "plomeria", nombre: "Plomería", unidad: "HORA", piso: 16000, min: 1, com: 0.15, licencia: true, cat: "VARIOS" },
+  { slug: "electricidad", nombre: "Electricidad", unidad: "HORA", piso: 18000, min: 1, com: 0.15, licencia: true, cat: "VARIOS" },
+  { slug: "aire-acondicionado", nombre: "Aire acondicionado y refrigeración", unidad: "HORA", piso: 20000, min: 1, com: 0.15, licencia: true, cat: "VARIOS" },
+  { slug: "carpinteria", nombre: "Carpintería", unidad: "HORA", piso: 14000, min: 2, com: 0.15, cat: "VARIOS" },
+  { slug: "albanileria", nombre: "Albañilería", unidad: "DIA", piso: 60000, min: 1, com: 0.15, cat: "VARIOS" },
+  { slug: "mudanza-flete", nombre: "Mudanzas y fletes", unidad: "HORA", piso: 15000, min: 2, com: 0.15, cat: "VARIOS" },
+  { slug: "cocinero-evento", nombre: "Cocinero a domicilio", unidad: "HORA", piso: 15000, min: 3, com: 0.15, cat: "VARIOS" },
+  { slug: "fotografia", nombre: "Fotografía y video", unidad: "HORA", piso: 25000, min: 2, com: 0.12, cat: "VARIOS" },
+  { slug: "clases-particulares", nombre: "Clases particulares", unidad: "HORA", piso: 12000, min: 1, com: 0.12, cat: "VARIOS" },
+  { slug: "soporte-tecnico", nombre: "Soporte técnico e informática", unidad: "HORA", piso: 18000, min: 1, com: 0.12, cat: "VARIOS" },
+  { slug: "traduccion", nombre: "Traducción y redacción", unidad: "TRABAJO", piso: 25000, min: 1, com: 0.12, cat: "VARIOS" },
+  { slug: "desarrollo-software", nombre: "Desarrollo de software", unidad: "HORA", piso: 35000, min: 2, com: 0.1, cat: "ESPECIAL" },
+  { slug: "diseno-grafico", nombre: "Diseño gráfico", unidad: "TRABAJO", piso: 50000, min: 1, com: 0.12, cat: "ESPECIAL" },
+  { slug: "contabilidad", nombre: "Contabilidad e impuestos", unidad: "HORA", piso: 30000, min: 1, com: 0.1, licencia: true, cat: "ESPECIAL", titulo: true },
+  { slug: "abogado-dia", nombre: "Abogado por el día", unidad: "DIA", piso: 250000, min: 1, com: 0.1, licencia: true, cat: "ESPECIAL", titulo: true },
+  { slug: "abogado-consulta", nombre: "Consulta legal", unidad: "HORA", piso: 50000, min: 1, com: 0.1, licencia: true, cat: "ESPECIAL", titulo: true },
+  { slug: "ingenieria-civil", nombre: "Ingeniería civil · cálculo y planos", unidad: "DIA", piso: 300000, min: 1, com: 0.1, licencia: true, cat: "ESPECIAL", titulo: true },
+  { slug: "ingenieria-electrica", nombre: "Ingeniería eléctrica · proyecto y certificación", unidad: "HORA", piso: 40000, min: 2, com: 0.1, licencia: true, cat: "ESPECIAL", titulo: true },
+  { slug: "arquitectura", nombre: "Arquitectura · proyecto y dirección de obra", unidad: "HORA", piso: 38000, min: 2, com: 0.1, licencia: true, cat: "ESPECIAL", titulo: true },
+  { slug: "topografia", nombre: "Topografía y mensura", unidad: "DIA", piso: 200000, min: 1, com: 0.1, licencia: true, cat: "ESPECIAL", titulo: true },
+  { slug: "peritaje", nombre: "Peritaje técnico y tasación", unidad: "TRABAJO", piso: 150000, min: 1, com: 0.1, licencia: true, cat: "ESPECIAL", titulo: true },
+  { slug: "enfermeria", nombre: "Enfermería a domicilio", unidad: "HORA", piso: 22000, min: 2, com: 0.1, licencia: true, antecedentes: true, cat: "ESPECIAL", titulo: true },
+  { slug: "kinesiologia", nombre: "Kinesiología y masajes", unidad: "HORA", piso: 25000, min: 1, com: 0.15, licencia: true, cat: "ESPECIAL", titulo: true }
 ];
+/* CATALOGO:FIN */
 
 var ZONAS = [
   { id: "santiago", nombre: "Santiago Centro", lat: -33.4372, lng: -70.6506 },
@@ -670,19 +672,19 @@ function semilla() {
   });
   var beto = nuevoUsuario({
     nombre: "Beto Suárez", telefono: "+56 9 5555 0002", zona: "providencia", docNumero: "28444555", docEstado: "VERIFICADO",
-    esTrabajador: true, rubros: ["jardineria", "limpieza", "muebles"], nivel: "ORO",
+    esTrabajador: true, rubros: ["jardineria-corte-pasto", "limpieza-hogar", "armado-muebles"], nivel: "ORO",
     bio: "Veinte años cortando pasto y armando muebles. Máquina y herramienta propia.",
     stats: { completados: 58, aceptados: 60, cancelados: 2, suma: 285, cantidad: 60, puntuales: 57 }
   });
   var carla = nuevoUsuario({
     nombre: "Carla Núñez", telefono: "+56 9 5555 0003", zona: "maipu", docNumero: "31777888", docEstado: "VERIFICADO",
-    esTrabajador: true, rubros: ["electricidad", "soporte"], licencias: ["electricidad"], nivel: "PLATA",
+    esTrabajador: true, rubros: ["electricidad", "soporte-tecnico"], licencias: ["electricidad"], nivel: "PLATA",
     bio: "Electricista matriculada. Tableros, instalaciones y certificados.",
     stats: { completados: 18, aceptados: 19, cancelados: 1, suma: 85, cantidad: 18, puntuales: 16 }
   });
   var diego = nuevoUsuario({
     nombre: "Diego Ferrer", telefono: "+56 9 5555 0004", zona: "puentealto", docNumero: "35999000", docEstado: "VERIFICADO",
-    esTrabajador: true, rubros: ["mudanza", "jardineria"], nivel: "NUEVO",
+    esTrabajador: true, rubros: ["mudanza-flete", "jardineria-corte-pasto"], nivel: "NUEVO",
     bio: "Arranco ahora. Tengo camioneta y muchas ganas."
   });
   // Perfil profesional: entró con LinkedIn, así que la app ya sabe qué estudió.
@@ -699,7 +701,7 @@ function semilla() {
   [beto, carla, diego, elena].forEach(function (u) { u.nivel = calcularNivel(u); });
 
   crearTarea(ana, {
-    rubro: "jardineria", titulo: "Cortar el pasto del fondo",
+    rubro: "jardineria-corte-pasto", titulo: "Cortar el pasto del fondo",
     descripcion: "Son unos 80 m². Hay canilla y enchufe. Traer máquina; las bolsas las pongo yo.",
     unidades: 3, dificultad: "BASICA", urgencia: "HOY", nivelMinimo: "NUEVO",
     presupuesto: 30000, metodoPago: "TARJETA", zona: "santiago"
@@ -717,13 +719,13 @@ function semilla() {
     presupuesto: 650000, metodoPago: "TARJETA", zona: "providencia"
   }, true);
   crearTarea(carla, {
-    rubro: "mudanza", titulo: "Mudanza chica de un ambiente",
+    rubro: "mudanza-flete", titulo: "Mudanza chica de un ambiente",
     descripcion: "Un monoambiente a diez cuadras. Somos dos para cargar, hace falta el flete y una mano.",
     unidades: 3, dificultad: "MEDIA", urgencia: "PROGRAMADA", nivelMinimo: "NUEVO",
     presupuesto: 70000, metodoPago: "EFECTIVO", zona: "maipu"
   }, true);
   crearTarea(ana, {
-    rubro: "mascotas", titulo: "Pasear a Rocco tres veces por semana",
+    rubro: "paseo-mascotas", titulo: "Pasear a Rocco tres veces por semana",
     descripcion: "Labrador de cuatro años, tranquilo pero fuerte. Lunes, miércoles y viernes a la tarde.",
     unidades: 2, dificultad: "BASICA", urgencia: "PROGRAMADA", nivelMinimo: "BRONCE",
     presupuesto: 22000, metodoPago: "TARJETA", zona: "santiago"
@@ -731,7 +733,7 @@ function semilla() {
 
   // Las que no son de recién: ya se abrieron a todos los niveles.
   db.tareas.forEach(function (t, i) {
-    if (t.rubro !== "jardineria") t.publicadaEn = Date.now() - (12 + i * 9) * 60 * 1000;
+    if (t.rubro !== "jardineria-corte-pasto") t.publicadaEn = Date.now() - (12 + i * 9) * 60 * 1000;
   });
 
   marcar();
@@ -1104,7 +1106,7 @@ function vistaPortada() {
       "<h4>Cortar el pasto del fondo</h4>" +
       '<div class="chips"><span class="chip">Jardinería</span><span class="chip">3 horas</span><span class="chip">Hoy</span></div>' +
       '<div class="pie"><span class="n">' +
-        plata(cotizar({ rubro: "jardineria", unidades: 3, dificultad: "BASICA", urgencia: "HOY", nivelMinimo: "NUEVO" }).minimo) +
+        plata(cotizar({ rubro: "jardineria-corte-pasto", unidades: 3, dificultad: "BASICA", urgencia: "HOY", nivelMinimo: "NUEVO" }).minimo) +
       '</span><span class="falso">Aceptar</span></div>' +
     "</div>" +
     '<p class="legal" style="margin-top:10px">Así se ve el muro: los trabajos de tu zona, uno abajo del otro.</p>' +
@@ -1359,7 +1361,7 @@ function postDe(t, e, u) {
 function vistaPublicar() {
   var u = yo();
   var b = vista.borrador || (vista.borrador = {
-    rubro: "jardineria", unidades: 3, dificultad: "BASICA", urgencia: "HOY",
+    rubro: "jardineria-corte-pasto", unidades: 3, dificultad: "BASICA", urgencia: "HOY",
     nivelMinimo: "NUEVO", metodoPago: "TARJETA", zona: u.zona, titulo: "", descripcion: "", presupuesto: null,
     programadaPara: "", franja: "", fotos: []
   });
