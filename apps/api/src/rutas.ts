@@ -59,6 +59,12 @@ export async function registrarRutas(app: FastifyInstance, ctx: Contexto) {
   });
 
   // --- Catálogo y cotizador: públicos, para que se pueda ver el precio sin cuenta.
+  // La clave pública de los avisos: el navegador la necesita para suscribirse.
+  app.get('/avisos/clave', async () => ({
+    activo: ctx.avisos.activo,
+    clavePublica: ctx.avisos.clavePublica,
+  }));
+
   app.get('/catalogo', async () => ({
     rubros: CATALOGO.map((r) => ({
       slug: r.slug,
@@ -355,6 +361,24 @@ export async function registrarRutas(app: FastifyInstance, ctx: Contexto) {
         .object({ confirmada: z.boolean(), nota: z.string().min(10).max(500) })
         .parse(req.body);
       return ctx.antifraude.resolver(id, req.usuarioId(), confirmada, nota);
+    });
+
+    /* --- Avisos push. --- */
+    privadas.post('/avisos/suscribir', async (req, reply) => {
+      const datos = z
+        .object({
+          endpoint: z.string().url(),
+          claves: z.object({ p256dh: z.string().min(10), auth: z.string().min(8) }),
+          agente: z.string().max(200).optional(),
+        })
+        .parse(req.body);
+      await ctx.avisos.suscribir(req.usuarioId(), datos);
+      return reply.code(201).send({ suscripto: true });
+    });
+
+    privadas.post('/avisos/baja', async (req) => {
+      const { endpoint } = z.object({ endpoint: z.string().url() }).parse(req.body);
+      return ctx.avisos.desuscribir(req.usuarioId(), endpoint);
     });
 
     /* --- Deuda de comisiones de los trabajos en efectivo. --- */

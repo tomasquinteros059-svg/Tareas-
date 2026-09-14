@@ -4,6 +4,10 @@ import { crearContexto, type Contexto } from '../contexto.js';
 import { PasarelaSandbox } from '../modulos/pagos/pasarela.js';
 import { EnviadorConsola } from '../modulos/auth/otp.js';
 import { URL_TEST } from './preparar-db.js';
+import webpush from 'web-push';
+
+/** Par de claves VAPID generado una vez por corrida. */
+export const VAPID_PRUEBA = webpush.generateVAPIDKeys();
 
 export const prisma = new PrismaClient({ datasources: { db: { url: URL_TEST } } });
 
@@ -11,6 +15,10 @@ export const env: Env = cargarEnv({
   DATABASE_URL: URL_TEST,
   JWT_SECRET: 'secreto-de-pruebas-con-mas-de-32-caracteres',
   KYC_ENCRYPTION_KEY: 'a'.repeat(64),
+  // Claves de avisos de mentira, sólo para que el servicio quede activo: en los
+  // tests el envío se reemplaza, nunca sale un push de verdad.
+  VAPID_PUBLIC_KEY: VAPID_PRUEBA.publicKey,
+  VAPID_PRIVATE_KEY: VAPID_PRUEBA.privateKey,
   NODE_ENV: 'test',
 } as NodeJS.ProcessEnv);
 
@@ -22,7 +30,7 @@ export function contextoDePrueba(): Contexto & { pasarela: PasarelaSandbox; envi
 
 export async function limpiar() {
   await prisma.$executeRawUnsafe(`
-    TRUNCATE TABLE "Alerta", "Retiro", "MovimientoSaldo", "Calificacion", "Mensaje", "Pregunta", "EventoTarea",
+    TRUNCATE TABLE "SuscripcionPush", "Alerta", "Retiro", "MovimientoSaldo", "Calificacion", "Mensaje", "Pregunta", "EventoTarea",
       "Pago", "Tarea", "Habilidad", "PerfilTrabajador", "Direccion", "Identidad",
       "CuentaOAuth", "CodigoOtp", "Usuario" RESTART IDENTITY CASCADE;
   `);
@@ -36,6 +44,7 @@ export interface OpcionesTrabajador {
   licencias?: string[];
   saldo?: number;
   aceptaEfectivo?: boolean;
+  disponible?: boolean;
   antecedentes?: boolean;
   lat?: number;
   lng?: number;
@@ -68,6 +77,7 @@ export async function crearTrabajador(nombre = 'Beto', opciones: OpcionesTrabaja
           trabajosAceptados: 62,
           antecedentes: opciones.antecedentes ? 'VERIFICADO' : 'PENDIENTE',
           aceptaEfectivo: opciones.aceptaEfectivo ?? true,
+          disponible: opciones.disponible ?? true,
           radioKm: 25,
           lat: opciones.lat ?? -34.61,
           lng: opciones.lng ?? -58.39,

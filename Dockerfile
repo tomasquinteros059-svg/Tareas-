@@ -26,12 +26,18 @@ RUN pnpm install --frozen-lockfile
 
 COPY packages/domain packages/domain
 COPY apps/api apps/api
+COPY apps/web apps/web
+COPY apps/demo-app.html apps/demo-app.html
 RUN pnpm --filter @tareas/api exec prisma generate \
   && pnpm --filter @tareas/domain build \
   && pnpm --filter @tareas/api build \
+  && node apps/web/construir.mjs \
   && pnpm store prune
 
 ENV NODE_ENV=production
+# La app instalable se sirve desde el mismo dominio que la API: un trabajador de
+# servicio sólo controla su propio origen, y de eso dependen los avisos push.
+ENV WEB_DIR=/app/apps/web/dist
 # Nada de esto corre como root: si alguien consigue ejecutar algo adentro del
 # contenedor, que sea con los permisos mínimos.
 USER node

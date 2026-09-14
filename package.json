@@ -12,6 +12,7 @@
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "dev:api": "pnpm --filter @tareas/api dev",
+    "build:web": "node apps/web/construir.mjs",
     "db:up": "docker compose up -d db",
     "db:migrate": "pnpm --filter @tareas/api migrate",
     "db:seed": "pnpm --filter @tareas/api seed"

@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { evaluarElegibilidad, olaActual, ordenarFeed, type TareaPublicada } from '../despacho.js';
-import type { PerfilTrabajador } from '../tipos.js';
+import {
+  OLAS,
+  destinatariosDeOla,
+  evaluarElegibilidad,
+  olaActual,
+  olasPendientes,
+  ordenarFeed,
+  type TareaPublicada,
+} from '../despacho.js';
+import type { Nivel, PerfilTrabajador } from '../tipos.js';
 
 const PUBLICADA = new Date('2026-09-08T12:00:00Z');
 
@@ -127,5 +135,90 @@ describe('ordenarFeed', () => {
     const bloqueada = tarea({ id: 'bloqueada', nivelMinimo: 'PLATINO' });
     const feed = ordenarFeed([lejos, bloqueada, cerca], trabajador(), { ahora: enSegundos(1000) });
     expect(feed.map((x) => x.tarea.id)).toEqual(['cerca', 'lejos']);
+  });
+});
+
+describe('a quién se le avisa en cada ola', () => {
+  const tarea: TareaPublicada = {
+    id: 't1',
+    folio: 'TQ-260914-A1B2',
+    rubroSlug: 'jardineria-corte-pasto',
+    autorId: 'cliente',
+    ubicacion: { lat: -33.4489, lng: -70.6693 },
+    nivelMinimo: 'NUEVO',
+    presupuesto: 30_000,
+    metodoPago: 'TARJETA',
+    publicadaEn: new Date('2026-09-14T12:00:00Z'),
+  };
+
+  /** Un trabajador habilitado, a `km` de la tarea. */
+  function trabajador(id: string, nivel: Nivel, km = 1): PerfilTrabajador {
+    return {
+      id,
+      nivel,
+      calificacion: 4.8,
+      trabajosCompletados: 50,
+      identidadVerificada: true,
+      telefonoVerificado: true,
+      antecedentesVerificados: true,
+      rubros: ['jardineria-corte-pasto'],
+      licencias: [],
+      ubicacion: { lat: -33.4489 + km / 111.32, lng: -70.6693 },
+      radioKm: 40,
+      deudaComisiones: 0,
+      aceptaEfectivo: true,
+      suspendido: false,
+    };
+  }
+
+  const todos = [
+    trabajador('oro', 'ORO'),
+    trabajador('plata', 'PLATA'),
+    trabajador('bronce', 'BRONCE'),
+    trabajador('nuevo', 'NUEVO'),
+    trabajador('oro-lejos', 'ORO', 30),
+  ];
+
+  it('la primera ola es sólo para los de nivel alto y cerca', () => {
+    const destinos = destinatariosDeOla(tarea, todos, OLAS[0]!).map((t) => t.id);
+    expect(destinos).toEqual(['oro']);
+  });
+
+  it('cada ola avisa sólo a los que recién ahora pueden tomarla', () => {
+    expect(destinatariosDeOla(tarea, todos, OLAS[1]!).map((t) => t.id)).toEqual(['plata']);
+    expect(destinatariosDeOla(tarea, todos, OLAS[2]!).map((t) => t.id)).toEqual(['bronce']);
+  });
+
+  it('el que estaba fuera de radio entra cuando el radio crece', () => {
+    const destinos = destinatariosDeOla(tarea, todos, OLAS[3]!).map((t) => t.id);
+    expect(destinos).toContain('nuevo');
+    expect(destinos).toContain('oro-lejos');
+  });
+
+  it('nadie recibe dos avisos por la misma tarea', () => {
+    const avisados = OLAS.flatMap((ola) => destinatariosDeOla(tarea, todos, ola).map((t) => t.id));
+    expect(new Set(avisados).size).toBe(avisados.length);
+  });
+});
+
+describe('qué olas quedaron pendientes de avisar', () => {
+  const publicada = new Date('2026-09-14T12:00:00Z');
+  const enSegundos = (s: number) => new Date(publicada.getTime() + s * 1000);
+
+  it('recién publicada, la primera', () => {
+    expect(olasPendientes(publicada, -1, enSegundos(1)).map((o) => o.indice)).toEqual([0]);
+  });
+
+  it('avisada la primera, espera a que se abra la segunda', () => {
+    expect(olasPendientes(publicada, 0, enSegundos(30))).toEqual([]);
+    expect(olasPendientes(publicada, 0, enSegundos(100)).map((o) => o.indice)).toEqual([1]);
+  });
+
+  it('si el reloj estuvo caído, se avisan todas las que se pasaron', () => {
+    expect(olasPendientes(publicada, 0, enSegundos(1000)).map((o) => o.indice)).toEqual([1, 2, 3]);
+  });
+
+  it('avisadas todas, no queda nada', () => {
+    expect(olasPendientes(publicada, 3, enSegundos(99999))).toEqual([]);
   });
 });

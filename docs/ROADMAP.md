@@ -42,7 +42,12 @@ abajo se puede hacer con la app ya en la calle.
   de la cuenta.
 - **Todo listo para un servidor**: imagen de Docker, base, API, reloj y un
   proxy que saca el certificado HTTPS solo. Ver [`DESPLIEGUE.md`](DESPLIEGUE.md).
-- 218 pruebas automáticas.
+- **Avisos push por olas**: la tarea se anuncia primero a los mejor calificados
+  y más cercanos, y en cada ola sólo a quien recién ahora puede tomarla, para
+  que nadie reciba dos avisos de lo mismo y termine apagándolos.
+- **App instalable** (manifiesto, trabajador de servicio, íconos), servida por la
+  API desde el mismo dominio, que es lo que exigen los avisos.
+- 239 pruebas automáticas.
 
 ## Bloquea el lanzamiento
 
@@ -58,10 +63,17 @@ El código está listo; falta la cuenta, las claves y correr el ciclo completo c
 credenciales de prueba primero y de producción después. Y decidir quién absorbe
 un contracargo cuando el trabajo ya se hizo y al trabajador ya se le pagó.
 
-### 3. La aplicación móvil
-Hoy la app es una página. Para la calle hace falta iOS y Android, que además es
-la única forma de tener avisos push — y sin push, el radar por olas no sirve:
-nadie va a estar mirando la pantalla esperando que aparezca un trabajo.
+### 3. Probar la app instalada en teléfonos de verdad
+La app ya se instala y recibe avisos push: `pnpm build:web` arma la versión
+instalable y la API la sirve. Falta probarla en la calle, en Android y en iPhone,
+con señal mala. **En iPhone los avisos sólo llegan si la app está agregada a la
+pantalla de inicio**, no desde el navegador: eso hay que explicarlo adentro de la
+app o los usuarios de iPhone no reciben nada y nadie entiende por qué.
+
+Una app nativa (iOS/Android en las tiendas) sigue siendo mejor —avisos más
+confiables, ubicación en segundo plano— pero es meses de trabajo. Conviene
+arrancar con la instalable, ver si el producto funciona, y hacer la nativa
+después.
 
 ### 4. Verificación de identidad automática
 Hoy la aprobación del documento es manual. Con volumen no escala y es la pieza

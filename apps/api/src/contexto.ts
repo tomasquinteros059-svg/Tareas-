@@ -8,6 +8,7 @@ import { ServicioSoporte } from './modulos/soporte/servicio.js';
 import { ServicioRetiros } from './modulos/retiros/servicio.js';
 import { ServicioDeudas } from './modulos/deudas/servicio.js';
 import { ServicioAntifraude } from './modulos/antifraude/servicio.js';
+import { ServicioAvisos } from './modulos/avisos/servicio.js';
 import { EnviadorConsola, ServicioOtp, type Enviador } from './modulos/auth/otp.js';
 import { EnviadorTwilio } from './modulos/auth/sms.js';
 import { ProveedorGoogle, ProveedorLinkedin, type ProveedorOauth } from './modulos/auth/oauth.js';
@@ -29,6 +30,7 @@ export interface Contexto {
   retiros: ServicioRetiros;
   deudas: ServicioDeudas;
   antifraude: ServicioAntifraude;
+  avisos: ServicioAvisos;
   pasarela: Pasarela;
   oauth: { google?: ProveedorOauth; linkedin?: ProveedorOauth };
 }
@@ -113,6 +115,11 @@ export function crearContexto(
   }
 
   const antifraude = new ServicioAntifraude(prisma);
+  const avisos = new ServicioAvisos(prisma, {
+    clavePublica: env.VAPID_PUBLIC_KEY,
+    clavePrivada: env.VAPID_PRIVATE_KEY,
+    contacto: env.VAPID_SUBJECT,
+  });
   const tareas = new ServicioTareas(prisma, pasarela, antifraude);
   const calificaciones = new ServicioCalificaciones(prisma);
   const deudas = new ServicioDeudas(prisma, pasarela, env.PAYMENTS_CURRENCY);
@@ -123,9 +130,10 @@ export function crearContexto(
     pasarela,
     tareas,
     calificaciones,
-    reloj: new Planificador(prisma, tareas, calificaciones, pasarela, deudas),
+    reloj: new Planificador(prisma, tareas, calificaciones, pasarela, deudas, avisos),
     deudas,
     antifraude,
+    avisos,
     soporte: new ServicioSoporte(prisma, tareas, pasarela),
     retiros: new ServicioRetiros(prisma, env.KYC_ENCRYPTION_KEY, env.PAYMENTS_CURRENCY),
     identidad: new ServicioIdentidad(prisma, env.KYC_ENCRYPTION_KEY),

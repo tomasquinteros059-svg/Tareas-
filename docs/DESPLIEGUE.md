@@ -56,6 +56,16 @@ openssl rand -hex 32     # para KYC_ENCRYPTION_KEY
 openssl rand -hex 16     # para POSTGRES_PASSWORD
 ```
 
+Y las claves de los avisos push, que se generan una sola vez:
+
+```bash
+docker run --rm node:22-slim node -e "console.log(require('web-push').generateVAPIDKeys())" \
+  2>/dev/null || echo "generalas desde el proyecto:  cd apps/api && node -e \"console.log(require('web-push').generateVAPIDKeys())\""
+```
+
+Si esas dos cambian, **todos los teléfonos suscriptos dejan de recibir avisos** y
+hay que volver a pedirles permiso. Se generan una vez y no se tocan más.
+
 `KYC_ENCRYPTION_KEY` es con lo que se cifran los documentos de identidad y los
 números de cuenta. **Si se pierde, esos datos no se pueden volver a leer**, y si
 se cambia, los que ya estaban guardados quedan ilegibles. Guardarla en un
@@ -85,6 +95,16 @@ docker compose -f docker-compose.prod.yml ps        # todo "running"/"healthy"
 docker compose -f docker-compose.prod.yml logs -f api
 ```
 
+### 6. Probar que se instala
+
+Desde el celular, entrar a `https://tareas.cl` y elegir **"Agregar a la pantalla
+de inicio"**. Tiene que abrirse a pantalla completa, sin la barra del navegador.
+
+En **iPhone los avisos sólo llegan si la app está agregada a la pantalla de
+inicio**: desde el navegador no llega ninguno. Es una limitación de Apple, no un
+error; conviene decirlo adentro de la app, o los usuarios de iPhone no reciben
+nada y nadie entiende por qué.
+
 ## Qué es cada pieza
 
 - **db** — Postgres. No se asoma a internet: sólo la ven los otros
@@ -92,7 +112,10 @@ docker compose -f docker-compose.prod.yml logs -f api
   reiniciar o reconstruir.
 - **migraciones** — corre una vez y se va. Si el esquema no queda al día, la API
   no arranca: es preferible eso a arrancar contra una base que no coincide.
-- **api** — el servidor. No expone puertos hacia afuera; sólo el proxy la ve.
+- **api** — el servidor, y también quien sirve la app instalable. No expone
+  puertos hacia afuera; sólo el proxy la ve. La app va en el mismo dominio a
+  propósito: los avisos push sólo funcionan en el origen del trabajador de
+  servicio.
 - **reloj** — una pasada por minuto de lo que tiene que pasar solo: expirar
   tareas, confirmar a las 24 h, publicar calificaciones, liberar reservas,
   cobrar comisiones. Cada trabajo es idempotente, así que no importa si una

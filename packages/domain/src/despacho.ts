@@ -194,6 +194,49 @@ export function segundosParaVer(nivel: Nivel, segundosTranscurridos: number): nu
 }
 
 /**
+ * A quién hay que avisarle cuando se abre una ola.
+ *
+ * Sin aviso, el radar por olas no existe: nadie va a estar mirando la pantalla
+ * esperando que aparezca un trabajo. Pero avisar de más es igual de malo —el
+ * que recibe cinco avisos por la misma tarea apaga los avisos, y después no se
+ * entera de ninguna—, así que en cada ola se avisa sólo a quien recién ahora
+ * puede tomarla: el que ya podía en la ola anterior ya fue avisado.
+ *
+ * La elegibilidad se evalúa en el momento en que la ola se abre, no ahora: si
+ * el reloj pasa tarde, el aviso tiene que ser el que correspondía igual.
+ */
+export function destinatariosDeOla(
+  tarea: TareaPublicada,
+  trabajadores: readonly PerfilTrabajador[],
+  ola: Ola,
+  opciones: OpcionesElegibilidad = {},
+): PerfilTrabajador[] {
+  const enOla = (o: Ola, t: PerfilTrabajador) =>
+    evaluarElegibilidad(tarea, t, {
+      ...opciones,
+      ahora: new Date(tarea.publicadaEn.getTime() + o.desdeSegundos * 1000),
+    }).elegible;
+
+  const anterior = ola.indice > 0 ? OLAS[ola.indice - 1] : undefined;
+  return trabajadores.filter((t) => enOla(ola, t) && !(anterior && enOla(anterior, t)));
+}
+
+/**
+ * Qué olas se abrieron desde el último aviso. Devuelve los índices pendientes,
+ * en orden: si el reloj estuvo caído y se pasaron dos olas, se avisan las dos.
+ */
+export function olasPendientes(
+  publicadaEn: Date,
+  ultimaAvisada: number,
+  ahora: Date = new Date(),
+): Ola[] {
+  const segundos = (ahora.getTime() - publicadaEn.getTime()) / 1000;
+  if (segundos < 0) return [];
+  const actual = olaActual(segundos);
+  return OLAS.filter((o) => o.indice > ultimaAvisada && o.indice <= actual.indice);
+}
+
+/**
  * Orden del feed para un trabajador: primero lo que puede tomar ya, y dentro de
  * eso lo más cercano y mejor pago. No hay puja ni comentarios: es una fila.
  */

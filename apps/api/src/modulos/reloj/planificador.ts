@@ -4,6 +4,7 @@ import type { ServicioTareas } from '../tareas/servicio.js';
 import type { ServicioCalificaciones } from '../calificaciones/servicio.js';
 import type { Pasarela } from '../pagos/pasarela.js';
 import type { ServicioDeudas } from '../deudas/servicio.js';
+import type { ServicioAvisos } from '../avisos/servicio.js';
 
 /**
  * El reloj del sistema.
@@ -19,7 +20,9 @@ import type { ServicioDeudas } from '../deudas/servicio.js';
  *  - con Webpay, la reserva caduca a los 7 días y nadie la libera: el cliente
  *    ve plata bloqueada en su tarjeta sin explicación;
  *  - el que trabaja siempre en efectivo acumula comisión adeudada hasta que el
- *    límite le cierra la puerta, sin que nadie se la haya cobrado nunca.
+ *    límite le cierra la puerta, sin que nadie se la haya cobrado nunca;
+ *  - una tarea recién publicada se abre por olas y nadie se entera, porque
+ *    nadie está mirando la pantalla esperando que aparezca un trabajo.
  *
  * Cada trabajo es idempotente y usa condiciones en el UPDATE, así que si el
  * reloj corre en dos servidores a la vez ninguna tarea se procesa dos veces.
@@ -36,6 +39,7 @@ export interface ResumenReloj {
   reservasLiberadas: number;
   deudasCobradas: number;
   deudasCobradasMonto: number;
+  avisosEnviados: number;
   errores: string[];
 }
 
@@ -46,6 +50,7 @@ export class Planificador {
     private readonly calificaciones: ServicioCalificaciones,
     private readonly pasarela: Pasarela,
     private readonly deudas: ServicioDeudas,
+    private readonly avisos: ServicioAvisos,
   ) {}
 
   /** Una pasada completa. Devuelve qué hizo, para poder registrarlo. */
@@ -57,6 +62,7 @@ export class Planificador {
       reservasLiberadas: 0,
       deudasCobradas: 0,
       deudasCobradasMonto: 0,
+      avisosEnviados: 0,
       errores: [],
     };
 
@@ -72,6 +78,12 @@ export class Planificador {
       resumen.deudasCobradasMonto = cobros.monto;
       return cobros.cobrados;
     }, resumen);
+    // Los avisos van primero en importancia y últimos en orden: una tarea que
+    // acaba de expirar no tiene que despertar a nadie.
+    resumen.avisosEnviados = await this.protegido(
+      async () => (await this.avisos.anunciarOlas(ahora)).avisos,
+      resumen,
+    );
     return resumen;
   }
 

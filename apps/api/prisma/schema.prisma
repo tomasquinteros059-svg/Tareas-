@@ -126,6 +126,7 @@ model Usuario {
   movimientos    MovimientoSaldo[]
   retiros        Retiro[]
   alertas        Alerta[]
+  suscripciones  SuscripcionPush[]
   codigosOtp     CodigoOtp[]
 
   @@index([telefono])
@@ -257,6 +258,8 @@ model PerfilTrabajador {
   @@index([nivel])
   @@index([disponible])
   @@index([saldo])
+  /// Para buscar a quién avisarle de una tarea nueva por zona.
+  @@index([disponible, lat, lng])
 }
 
 /// Rubro habilitado en el perfil de un trabajador, con su matrícula si el rubro
@@ -299,6 +302,10 @@ model Tarea {
   /// Mínimo que devolvió el cotizador al publicar: queda congelado como prueba.
   minimoCalculado  Int
   presupuesto      Int
+  /// Hasta qué ola del radar se avisó. Empieza en -1: todavía no se avisó nada.
+  /// Es lo que hace que cada ola se anuncie una sola vez aunque el reloj corra
+  /// dos veces o en dos servidores.
+  olaAvisada       Int         @default(-1)
   /// Si soporte resolvió un reclamo por un monto menor, acá queda lo pactado
   /// originalmente para que el recibo y la bitácora no pierdan la historia.
   presupuestoOriginal Int?
@@ -446,6 +453,25 @@ model Pago {
   actualizadoEn     DateTime   @updatedAt
 
   @@index([estado])
+}
+
+/// Un navegador o un teléfono suscripto a los avisos. Una persona puede tener
+/// varios —el celular y la computadora— y cada uno se da de baja solo cuando el
+/// navegador dice que la suscripción ya no existe.
+model SuscripcionPush {
+  id          String    @id @default(uuid())
+  usuarioId   String
+  usuario     Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  /// La dirección que da el navegador. Es única: identifica al dispositivo.
+  endpoint    String    @unique
+  p256dh      String
+  auth        String
+  agente      String?
+  creadoEn    DateTime  @default(now())
+  ultimoEnvio DateTime?
+  fallos      Int       @default(0)
+
+  @@index([usuarioId])
 }
 
 enum NivelRiesgo {

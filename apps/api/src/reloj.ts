@@ -22,6 +22,7 @@ console.log(
     `calificaciones publicadas: ${resumen.calificacionesLiberadas}`,
     `reservas liberadas: ${resumen.reservasLiberadas}`,
     `deudas cobradas: ${resumen.deudasCobradas} (${resumen.deudasCobradasMonto})`,
+    `avisos: ${resumen.avisosEnviados}`,
   ].join(' · '),
 );
 if (resumen.errores.length) {

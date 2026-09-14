@@ -25,6 +25,12 @@ const esquema = z.object({
   TWILIO_MESSAGING_SERVICE_SID: z.string().optional(),
   // País con el que se interpretan los teléfonos escritos sin código.
   DEFAULT_COUNTRY: z.string().length(2).default('CL'),
+  // Claves de los avisos push. Se generan una sola vez con:
+  //   node -e "console.log(require('web-push').generateVAPIDKeys())"
+  // Si cambian, todos los teléfonos suscriptos dejan de recibir avisos.
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().default('mailto:soporte@tareas.cl'),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   LINKEDIN_CLIENT_ID: z.string().optional(),
@@ -33,6 +39,9 @@ const esquema = z.object({
   // Dominios que pueden llamar a la API desde un navegador, separados por coma.
   // Vacío deja pasar a cualquiera: sirve en desarrollo, no en producción.
   CORS_ORIGINS: z.string().default(''),
+  // Carpeta con la app instalable (apps/web/dist). Vacío: no se sirve nada y
+  // la API queda sólo como API.
+  WEB_DIR: z.string().default(''),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 });
 

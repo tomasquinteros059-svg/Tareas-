@@ -66,6 +66,22 @@ ingeniera con LinkedIn conectado— y se puede cambiar de una a otra para ver lo
 Abriéndola en dos ventanas a la vez se comprueba lo que importa: la tarea se la lleva el
 primero que la acepta.
 
+## La app instalable
+
+`apps/demo-app.html` sigue siendo el archivo suelto que se abre con doble clic.
+Encima de ese mismo archivo se arma la versión que se instala en un teléfono:
+
+```bash
+pnpm build:web        # deja apps/web/dist listo
+```
+
+Suma tres cosas: el manifiesto (para que se pueda "agregar a la pantalla de
+inicio"), un trabajador de servicio que la hace abrir sin señal —el que corta el
+pasto está en el fondo de una casa con media barra— y los avisos push, que son
+lo único que hace que alguien se entere de una tarea nueva sin estar mirando la
+pantalla. Se sirve desde el **mismo dominio que la API**: un trabajador de
+servicio sólo controla su propio origen, y de eso dependen los avisos.
+
 ## El reloj
 
 Lo que pasa solo —tareas que nadie tomó, confirmaciones automáticas a las 24 h,

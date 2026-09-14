@@ -1,5 +1,8 @@
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import cors from '@fastify/cors';
+import estaticos from '@fastify/static';
 import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
 import { ZodError } from 'zod';
@@ -91,5 +94,31 @@ export async function crearServidor(ctx: Contexto, env: Env): Promise<FastifyIns
   });
 
   await registrarRutas(app, ctx);
+
+  /*
+   * La app instalable se sirve desde acá, en el mismo dominio que la API.
+   *
+   * No es un detalle de comodidad: un trabajador de servicio sólo controla su
+   * propio origen, y los avisos push se piden y se reciben en ese origen. Con
+   * la app en un dominio y la API en otro, la instalación anda pero los avisos
+   * no, que es justamente lo que hace falta para el radar por olas.
+   */
+  if (env.WEB_DIR) {
+    const carpeta = resolve(env.WEB_DIR);
+    if (!existsSync(carpeta)) {
+      throw new Error(`WEB_DIR apunta a ${carpeta}, que no existe. ¿Falta correr apps/web/construir.mjs?`);
+    }
+    await app.register(estaticos, { root: carpeta, index: ['index.html'] });
+    // Cualquier dirección que no sea de la API abre la app: es una sola
+    // pantalla que decide qué mostrar, y recargar en /tarea/TQ-... no puede
+    // devolver un 404.
+    app.setNotFoundHandler((req, reply) => {
+      if (req.method !== 'GET' || req.headers.accept?.includes('application/json')) {
+        return reply.code(404).send({ error: { codigo: 'NO_ENCONTRADO', mensaje: 'No existe esa ruta' } });
+      }
+      return reply.sendFile('index.html');
+    });
+  }
+
   return app;
 }
