@@ -3,6 +3,7 @@ import webpush from 'web-push';
 import {
   cajaDeBusqueda,
   destinatariosDeOla,
+  OLAS,
   olasPendientes,
   RADIO_MAXIMO_OLA,
 } from '@tareas/domain';
@@ -46,6 +47,8 @@ export interface DatosSuscripcion {
 
 /** Cuántos rechazos seguidos antes de dar por muerta una suscripción. */
 const MAX_FALLOS = 5;
+/** Con la última ola ya avisada no queda nada por anunciar de esa tarea. */
+const ULTIMA_OLA = OLAS[OLAS.length - 1]!.indice;
 
 export class ServicioAvisos {
   private readonly configurado: boolean;
@@ -149,7 +152,7 @@ export class ServicioAvisos {
     if (!this.configurado) return resumen;
 
     const tareas = await this.prisma.tarea.findMany({
-      where: { estado: 'PUBLICADA', expiraEn: { gt: ahora }, olaAvisada: { lt: 3 } },
+      where: { estado: 'PUBLICADA', expiraEn: { gt: ahora }, olaAvisada: { lt: ULTIMA_OLA } },
       orderBy: { publicadaEn: 'asc' },
       take: limite,
     });
@@ -159,6 +162,12 @@ export class ServicioAvisos {
       const pendientes = olasPendientes(tarea.publicadaEn, tarea.olaAvisada, ahora);
       if (pendientes.length === 0) continue;
 
+      // Buscar a los candidatos antes de marcar la ola: si la consulta falla,
+      // la ola queda sin avisar y se reintenta en la pasada siguiente. Al revés
+      // —marcar primero— un error dejaría esa ola muda para siempre.
+      const candidatos = await this.candidatos(tarea.lat, tarea.lng, tarea.autorId);
+      const enDominio = aTareaDominio(tarea);
+
       const ultima = pendientes[pendientes.length - 1]!;
       const { count } = await this.prisma.tarea.updateMany({
         where: { id: tarea.id, olaAvisada: tarea.olaAvisada },
@@ -166,8 +175,6 @@ export class ServicioAvisos {
       });
       if (count === 0) continue;
 
-      const candidatos = await this.candidatos(tarea.lat, tarea.lng, tarea.autorId);
-      const enDominio = aTareaDominio(tarea);
       let avisados = 0;
       for (const ola of pendientes) {
         const destinos = destinatariosDeOla(enDominio, candidatos.perfiles, ola);

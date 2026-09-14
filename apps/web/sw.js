@@ -14,7 +14,20 @@
  * —guardado primero— la gente se queda con una versión vieja durante días.
  */
 const CACHE = 'tareas-v1';
-const BASICOS = ['/', '/manifest.webmanifest', '/icono-192.png', '/icono-512.png'];
+/*
+ * Todo lo que la app necesita para abrir se guarda en la instalación, no al
+ * pasar. En la primera visita el trabajador de servicio todavía no controla la
+ * página, así que los archivos de esa primera carga no pasan por acá: si no se
+ * guardan ahora, quedan afuera hasta la visita siguiente —y la app abre sin el
+ * botón de avisos justo cuando la persona se queda sin señal—.
+ */
+const BASICOS = [
+  '/',
+  '/instalar.js',
+  '/manifest.webmanifest',
+  '/icono-192.png',
+  '/icono-512.png',
+];
 
 self.addEventListener('install', (evento) => {
   evento.waitUntil(

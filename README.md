@@ -77,10 +77,16 @@ pnpm build:web        # deja apps/web/dist listo
 
 Suma tres cosas: el manifiesto (para que se pueda "agregar a la pantalla de
 inicio"), un trabajador de servicio que la hace abrir sin señal —el que corta el
-pasto está en el fondo de una casa con media barra— y los avisos push, que son
-lo único que hace que alguien se entere de una tarea nueva sin estar mirando la
-pantalla. Se sirve desde el **mismo dominio que la API**: un trabajador de
-servicio sólo controla su propio origen, y de eso dependen los avisos.
+pasto está en el fondo de una casa con media barra— y la recepción de los avisos
+push, que son lo único que hace que alguien se entere de una tarea nueva sin
+estar mirando la pantalla. Se sirve desde el **mismo dominio que la API**: un
+trabajador de servicio sólo controla su propio origen, y de eso dependen los
+avisos.
+
+La app sigue guardando los datos en el propio teléfono: **todavía no habla con
+la API**. El servidor ya sabe a quién avisarle en cada ola y sabe mandarlo, y la
+app sabe recibirlo; falta el eslabón del medio, que es la sesión contra el
+servidor. Ver el punto 3 de [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## El reloj
 

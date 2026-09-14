@@ -1103,7 +1103,9 @@ function vistaPortada() {
       "<small>Centro · hace 3 min · a 1,2 km</small></span></div>" +
       "<h4>Cortar el pasto del fondo</h4>" +
       '<div class="chips"><span class="chip">Jardinería</span><span class="chip">3 horas</span><span class="chip">Hoy</span></div>' +
-      '<div class="pie"><span class="n">$30</span><span class="falso">Aceptar</span></div>' +
+      '<div class="pie"><span class="n">' +
+        plata(cotizar({ rubro: "jardineria", unidades: 3, dificultad: "BASICA", urgencia: "HOY", nivelMinimo: "NUEVO" }).minimo) +
+      '</span><span class="falso">Aceptar</span></div>' +
     "</div>" +
     '<p class="legal" style="margin-top:10px">Así se ve el muro: los trabajos de tu zona, uno abajo del otro.</p>' +
     '<div class="portada-acciones">' +

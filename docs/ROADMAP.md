@@ -46,7 +46,8 @@ abajo se puede hacer con la app ya en la calle.
   y más cercanos, y en cada ola sólo a quien recién ahora puede tomarla, para
   que nadie reciba dos avisos de lo mismo y termine apagándolos.
 - **App instalable** (manifiesto, trabajador de servicio, íconos), servida por la
-  API desde el mismo dominio, que es lo que exigen los avisos.
+  API desde el mismo dominio, que es lo que exigen los avisos. Abre sin señal y
+  muestra los avisos que le llegan; falta conectarla al servidor (punto 3).
 - 239 pruebas automáticas.
 
 ## Bloquea el lanzamiento
@@ -63,17 +64,28 @@ El código está listo; falta la cuenta, las claves y correr el ciclo completo c
 credenciales de prueba primero y de producción después. Y decidir quién absorbe
 un contracargo cuando el trabajo ya se hizo y al trabajador ya se le pagó.
 
-### 3. Probar la app instalada en teléfonos de verdad
-La app ya se instala y recibe avisos push: `pnpm build:web` arma la versión
-instalable y la API la sirve. Falta probarla en la calle, en Android y en iPhone,
-con señal mala. **En iPhone los avisos sólo llegan si la app está agregada a la
-pantalla de inicio**, no desde el navegador: eso hay que explicarlo adentro de la
-app o los usuarios de iPhone no reciben nada y nadie entiende por qué.
+### 3. Conectar la app al servidor
+Es el paso grande que queda. Hoy son dos mitades que funcionan y no se hablan:
+
+- **el servidor** decide todo y está probado: quién puede tomar cada tarea, el
+  precio, el pago, las olas del radar y a quién avisarle en cada una;
+- **la app** se instala en el teléfono, abre sin señal y su trabajador de
+  servicio recibe y muestra los avisos. Pero guarda los datos en el propio
+  teléfono: no tiene sesión contra el servidor, así que todavía no hay dónde
+  apretar "activar avisos", y dos personas en dos teléfonos no ven la misma
+  tarea.
+
+Conectarlas es reemplazar el guardado local por llamadas a la API que ya existe.
+Mientras tanto la app sirve para mostrar el producto, no para operarlo.
 
 Una app nativa (iOS/Android en las tiendas) sigue siendo mejor —avisos más
-confiables, ubicación en segundo plano— pero es meses de trabajo. Conviene
-arrancar con la instalable, ver si el producto funciona, y hacer la nativa
-después.
+confiables, ubicación en segundo plano— pero son meses. Conviene conectar la
+instalable, ver si el producto funciona y hacer la nativa después.
+
+Cuando se pruebe en teléfonos de verdad: **en iPhone los avisos sólo llegan si
+la app está agregada a la pantalla de inicio**, no desde el navegador. Es una
+limitación de Apple; hay que decirlo adentro de la app o los usuarios de iPhone
+no reciben nada y nadie entiende por qué.
 
 ### 4. Verificación de identidad automática
 Hoy la aprobación del documento es manual. Con volumen no escala y es la pieza
