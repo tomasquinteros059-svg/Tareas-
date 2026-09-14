@@ -180,6 +180,17 @@
       return pedir('POST', '/deudas/pagar', metodoPagoToken ? { metodoPagoToken: metodoPagoToken } : {});
     },
 
+    /* --- Perfil de trabajador --- */
+    perfil: function () {
+      return pedir('GET', '/perfil');
+    },
+    guardarPerfil: function (datos) {
+      return pedir('PUT', '/perfil', datos);
+    },
+    disponibilidad: function (disponible) {
+      return pedir('POST', '/perfil/disponibilidad', { disponible: disponible });
+    },
+
     /* --- Identidad --- */
     registrarIdentidad: function (datos) {
       return pedir('POST', '/identidad', datos);

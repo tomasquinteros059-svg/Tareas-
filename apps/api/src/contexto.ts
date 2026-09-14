@@ -9,6 +9,7 @@ import { ServicioRetiros } from './modulos/retiros/servicio.js';
 import { ServicioDeudas } from './modulos/deudas/servicio.js';
 import { ServicioAntifraude } from './modulos/antifraude/servicio.js';
 import { ServicioAvisos } from './modulos/avisos/servicio.js';
+import { ServicioPerfil } from './modulos/perfil/servicio.js';
 import { EnviadorConsola, ServicioOtp, type Enviador } from './modulos/auth/otp.js';
 import { EnviadorTwilio } from './modulos/auth/sms.js';
 import { ProveedorGoogle, ProveedorLinkedin, type ProveedorOauth } from './modulos/auth/oauth.js';
@@ -31,6 +32,7 @@ export interface Contexto {
   deudas: ServicioDeudas;
   antifraude: ServicioAntifraude;
   avisos: ServicioAvisos;
+  perfil: ServicioPerfil;
   pasarela: Pasarela;
   oauth: { google?: ProveedorOauth; linkedin?: ProveedorOauth };
 }
@@ -134,6 +136,7 @@ export function crearContexto(
     deudas,
     antifraude,
     avisos,
+    perfil: new ServicioPerfil(prisma),
     soporte: new ServicioSoporte(prisma, tareas, pasarela),
     retiros: new ServicioRetiros(prisma, env.KYC_ENCRYPTION_KEY, env.PAYMENTS_CURRENCY),
     identidad: new ServicioIdentidad(prisma, env.KYC_ENCRYPTION_KEY),

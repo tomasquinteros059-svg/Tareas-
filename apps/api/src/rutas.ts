@@ -207,6 +207,29 @@ export async function registrarRutas(app: FastifyInstance, ctx: Contexto) {
       return { usuario, identidad: await ctx.identidad.ver(usuario.id) };
     });
 
+    /* --- El perfil de trabajador: pasar de mirar a poder trabajar. --- */
+    privadas.get('/perfil', async (req) => ctx.perfil.ver(req.usuarioId()));
+
+    privadas.put('/perfil', async (req) => {
+      const datos = z
+        .object({
+          bio: z.string().max(600).optional(),
+          lat: z.number().min(-90).max(90),
+          lng: z.number().min(-180).max(180),
+          radioKm: z.number().min(1).max(60),
+          rubros: z.array(z.string().min(2).max(60)).min(1).max(8),
+          aceptaEfectivo: z.boolean().optional(),
+          disponible: z.boolean().optional(),
+        })
+        .parse(req.body);
+      return ctx.perfil.guardar(req.usuarioId(), datos);
+    });
+
+    privadas.post('/perfil/disponibilidad', async (req) => {
+      const { disponible } = z.object({ disponible: z.boolean() }).parse(req.body);
+      return ctx.perfil.cambiarDisponibilidad(req.usuarioId(), disponible);
+    });
+
     privadas.post('/identidad', async (req) => {
       const datos = z
         .object({

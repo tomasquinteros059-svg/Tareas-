@@ -213,6 +213,9 @@ describe('las puertas', () => {
     ['POST', '/retiros'],
     ['PUT', '/retiros/banco'],
     ['PUT', '/deudas/tarjeta'],
+    ['GET', '/perfil'],
+    ['PUT', '/perfil'],
+    ['POST', '/perfil/disponibilidad'],
   ];
 
   it.each(PRIVADAS)('sin sesión, %s %s responde 401', async (metodo, url) => {
