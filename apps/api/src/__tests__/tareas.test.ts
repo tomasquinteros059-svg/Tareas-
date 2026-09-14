@@ -356,3 +356,74 @@ describe('preguntas y chat', () => {
     await expect(ctx.tareas.mensajear(tarea.id, ajeno.id, '¿Cuánto pagan?')).rejects.toThrow(/sólo entre/);
   });
 });
+
+describe('el radar busca por zona en la base', () => {
+  it('no muestra tareas del otro extremo del país', async () => {
+    const cliente = await crearCliente();
+    const trabajador = await crearTrabajador('Beto', { lat: -33.4489, lng: -70.6693 });
+    const cerca = await ctx.tareas.publicar(cliente.id, {
+      ...TAREA_BASE,
+      lat: -33.45,
+      lng: -70.66,
+    });
+    // Arica, 2.000 km al norte.
+    await ctx.tareas.publicar(cliente.id, { ...TAREA_BASE, lat: -18.4783, lng: -70.3126 });
+
+    const feed = await ctx.tareas.feed(trabajador.id);
+
+    expect(feed.map((t) => t.id)).toEqual([cerca.id]);
+  });
+
+  it('las tareas lejanas no tapan la de al lado por más que sean nuevas', async () => {
+    const cliente = await crearCliente();
+    const trabajador = await crearTrabajador('Beto', { lat: -33.4489, lng: -70.6693 });
+    const cerca = await ctx.tareas.publicar(cliente.id, {
+      ...TAREA_BASE,
+      lat: -33.45,
+      lng: -70.66,
+    });
+
+    // 250 tareas en Arica, todas publicadas después: antes de buscar por zona,
+    // el corte de las últimas 200 dejaba afuera la que tenía al lado.
+    const base = await prisma.tarea.findUniqueOrThrow({ where: { id: cerca.id } });
+    const ahora = Date.now();
+    await prisma.tarea.createMany({
+      data: Array.from({ length: 250 }, (_, i) => ({
+        folio: `TQ-260914-L${i.toString().padStart(3, '0')}`,
+        autorId: cliente.id,
+        rubroSlug: base.rubroSlug,
+        titulo: base.titulo,
+        descripcion: base.descripcion,
+        unidades: base.unidades,
+        dificultad: base.dificultad,
+        urgencia: base.urgencia,
+        nivelMinimo: base.nivelMinimo,
+        minimoCalculado: base.minimoCalculado,
+        presupuesto: base.presupuesto,
+        metodoPago: 'EFECTIVO' as const,
+        moneda: base.moneda,
+        lat: -18.4783,
+        lng: -70.3126,
+        estado: 'PUBLICADA' as const,
+        publicadaEn: new Date(ahora + (i + 1) * 1000),
+        expiraEn: new Date(ahora + 24 * 3600_000),
+        codigoInicio: '1111',
+      })),
+    });
+
+    const feed = await ctx.tareas.feed(trabajador.id);
+
+    expect(feed.map((t) => t.id)).toContain(cerca.id);
+    expect(feed).toHaveLength(1);
+  });
+
+  it('sin zona marcada, el radar lo dice en vez de devolver nada', async () => {
+    const trabajador = await crearTrabajador('Sin zona');
+    await prisma.perfilTrabajador.update({
+      where: { usuarioId: trabajador.id },
+      data: { lat: null, lng: null },
+    });
+
+    await expect(ctx.tareas.feed(trabajador.id)).rejects.toMatchObject({ codigo: 'SIN_UBICACION' });
+  });
+});

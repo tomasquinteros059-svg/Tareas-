@@ -335,6 +335,9 @@ model Tarea {
   movimientos      MovimientoSaldo[]
 
   @@index([estado, publicadaEn])
+  /// El radar busca por rectángulo de coordenadas: sin este índice, cada feed
+  /// recorre la tabla entera.
+  @@index([estado, lat, lng])
   @@index([rubroSlug, estado])
   @@index([autorId])
   @@index([trabajadorId])

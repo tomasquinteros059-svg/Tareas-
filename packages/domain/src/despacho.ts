@@ -27,6 +27,23 @@ export const OLAS: readonly Ola[] = [
   { indice: 3, desdeSegundos: 900, hastaSegundos: null, nivelMinimo: 'NUEVO', radioKm: 40 },
 ];
 
+/** El radio de la última ola: más lejos que esto no llega ninguna tarea. */
+export const RADIO_MAXIMO_OLA = Math.max(...OLAS.map((o) => o.radioKm));
+
+/**
+ * Con qué radio se le piden tareas a la base.
+ *
+ * No es el radio del trabajador: el feed también muestra lo que está un poco
+ * más lejos —marcado como fuera de radio, para que sepa que existe y pueda
+ * ampliar su zona—. Pero "un poco más lejos" tiene que tener un límite, o el de
+ * Punta Arenas termina viendo las tareas de Arica.
+ */
+export const MARGEN_FEED = 1.5;
+
+export function radioDeBusqueda(radioKmTrabajador: number): number {
+  return Math.min(Math.max(radioKmTrabajador, 0), RADIO_MAXIMO_OLA) * MARGEN_FEED;
+}
+
 export function olaActual(segundosDesdePublicacion: number): Ola {
   const s = Math.max(0, segundosDesdePublicacion);
   for (const ola of OLAS) {

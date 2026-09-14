@@ -1,6 +1,7 @@
 import { randomInt } from 'node:crypto';
 import type { PrismaClient, Tarea } from '@prisma/client';
 import {
+  cajaDeBusqueda,
   cargoPorCancelacion,
   cotizar,
   esFolioValido,
@@ -10,6 +11,7 @@ import {
   liquidar,
   normalizarFolio,
   ordenarFeed,
+  radioDeBusqueda,
   rubroObligatorio,
   validarPresupuesto,
   type Actor,
@@ -224,10 +226,30 @@ export class ServicioTareas {
   }
 
   /** Lo que ve un trabajador en su radar, ya filtrado y ordenado. */
+  /**
+   * El radar del trabajador.
+   *
+   * La búsqueda por zona se hace en la base, no en memoria: primero se le pide
+   * el rectángulo que contiene su radio —que la base resuelve con el índice de
+   * lat/lng— y recién sobre esas filas se mide la distancia exacta y se aplican
+   * las reglas de despacho. Traer las últimas doscientas tareas del país y
+   * filtrarlas acá funcionaba con veinte tareas; con veinte mil, el de Punta
+   * Arenas no ve una sola tarea suya.
+   */
   async feed(trabajadorId: string) {
     const perfil = await this.perfilDominio(trabajadorId);
+    if (perfil.ubicacion.lat === 0 && perfil.ubicacion.lng === 0) {
+      throw invalido('SIN_UBICACION', 'Marcá tu zona de trabajo para ver los trabajos cerca tuyo');
+    }
+
+    const caja = cajaDeBusqueda(perfil.ubicacion, radioDeBusqueda(perfil.radioKm));
     const candidatas = await this.prisma.tarea.findMany({
-      where: { estado: 'PUBLICADA', expiraEn: { gt: new Date() } },
+      where: {
+        estado: 'PUBLICADA',
+        expiraEn: { gt: new Date() },
+        lat: { gte: caja.latMin, lte: caja.latMax },
+        lng: { gte: caja.lngMin, lte: caja.lngMax },
+      },
       orderBy: { publicadaEn: 'desc' },
       take: 200,
     });

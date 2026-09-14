@@ -30,7 +30,10 @@ abajo se puede hacer con la app ya en la calle.
 - **Cobro de las comisiones adeudadas** por los trabajos en efectivo: tarjeta
   guardada, cobro automático desde el reloj con esperas crecientes entre
   rechazos, y pago a mano cuando el proveedor no cobra solo (Webpay).
-- 166 pruebas automáticas.
+- **El radar busca por zona en la base**: primero el rectángulo que contiene el
+  radio del trabajador —que Postgres resuelve con un índice— y recién sobre esas
+  filas la distancia exacta y las reglas de despacho.
+- 177 pruebas automáticas.
 
 ## Bloquea el lanzamiento
 
@@ -73,8 +76,9 @@ local) para los códigos de verificación.
 
 ## Después del lanzamiento
 
-- Búsqueda geográfica en la base (PostGIS): hoy el radar trae las últimas 200
-  tareas y filtra en memoria.
+- PostGIS, si la caja de coordenadas deja de alcanzar: hoy el rectángulo con
+  índice resuelve bien un país largo y angosto; con muchas tareas por comuna
+  conviene un índice espacial de verdad.
 - Pantalla de soporte de verdad: hoy son endpoints, se operan con `curl`.
 - Oneclick de Transbank, para poder cobrar la comisión adeudada sin molestar al
   trabajador. Mientras tanto la paga a mano desde la app.
