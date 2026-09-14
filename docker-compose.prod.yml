@@ -26,6 +26,7 @@ services:
   # esquema no está al día, es preferible no arrancar que arrancar roto.
   migraciones:
     build: .
+    init: true
     working_dir: /app/apps/api
     command: ['./node_modules/.bin/prisma', 'migrate', 'deploy']
     env_file: [.env]
@@ -35,6 +36,7 @@ services:
 
   api:
     build: .
+    init: true
     restart: unless-stopped
     env_file: [.env]
     depends_on:
@@ -46,6 +48,10 @@ services:
   # una pasada se superpone con la anterior no duplica nada.
   reloj:
     build: .
+    # init: true hace que Docker ponga un init como PID 1, así `docker stop`
+    # llega al proceso en vez de matarlo a los diez segundos. Igual una pasada
+    # cortada por la mitad no rompe nada: cada trabajo del reloj es idempotente.
+    init: true
     restart: unless-stopped
     command: ['sh', '-c', 'while true; do node apps/api/dist/reloj.js || true; sleep 60; done']
     env_file: [.env]

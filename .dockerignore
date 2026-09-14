@@ -1,7 +1,18 @@
+# Lo que no tiene que entrar en la imagen.
 node_modules
 **/node_modules
 **/dist
 .git
+
+# Nunca las claves: un .env de desarrollo copiado adentro de la imagen queda
+# en cada copia de esa imagen, la vea quien la vea.
+.env
+**/.env
+.env.*
+!.env.example
+!.env.servidor.example
+
 docs
-apps/demo-app.html
 *.md
+apps/demo-app.html
+
