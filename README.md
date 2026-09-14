@@ -66,6 +66,19 @@ ingeniera con LinkedIn conectado— y se puede cambiar de una a otra para ver lo
 Abriéndola en dos ventanas a la vez se comprueba lo que importa: la tarea se la lleva el
 primero que la acepta.
 
+## El reloj
+
+Lo que pasa solo —tareas que nadie tomó, confirmaciones automáticas a las 24 h,
+calificaciones a ciegas que se publican, reservas de tarjeta que van a caducar—
+lo hace el planificador:
+
+```bash
+pnpm --filter @tareas/api reloj      # una pasada; pensado para un cron
+```
+
+Cada trabajo es idempotente y condiciona el UPDATE al estado esperado, así que
+correrlo dos veces, o en dos servidores a la vez, no duplica nada.
+
 ## Probarlo
 
 ```bash

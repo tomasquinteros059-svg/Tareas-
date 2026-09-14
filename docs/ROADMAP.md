@@ -17,7 +17,11 @@ abajo se puede hacer con la app ya en la calle.
   verificación de firma y control de repetidos. Ver [`PAGOS.md`](PAGOS.md).
 - App completa en un archivo (`apps/demo-app.html`) con portada, ingreso con
   LinkedIn, muro por categorías, avisos, fotos, buscador y perfiles públicos.
-- 94 pruebas automáticas.
+- **El reloj del sistema**: expira lo que nadie tomó, confirma a las 24 horas
+  para que el silencio del cliente no deje a nadie sin cobrar, publica las
+  calificaciones a ciegas y libera las reservas antes de que el banco las
+  caduque. Se corre con `pnpm --filter @tareas/api reloj` desde un cron.
+- 111 pruebas automáticas.
 
 ## Bloquea el lanzamiento
 
@@ -66,9 +70,8 @@ esto, cada problema termina siendo un mensaje de WhatsApp a las once de la noche
 
 - Búsqueda geográfica en la base (PostGIS): hoy el radar trae las últimas 200
   tareas y filtra en memoria.
-- Trabajos programados que corran solos: expirar lo que nadie tomó, confirmar a
-  las 24 horas, liberar calificaciones y cobrar deudas de comisión. La lógica
-  está escrita; falta el planificador.
+- Cobro automático de las deudas de comisión de quienes trabajan en efectivo
+  (el reloj ya tiene dónde engancharlo).
 - Retiros del trabajador a su banco, para el caso en que el proveedor no
   transfiere por API.
 - Antifraude: cuentas que se califican entre sí, tareas fantasma, y quien intenta

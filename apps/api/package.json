@@ -11,7 +11,8 @@
     "test": "vitest run",
     "migrate": "prisma migrate dev",
     "generate": "prisma generate",
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "reloj": "tsx src/reloj.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.0.1",
