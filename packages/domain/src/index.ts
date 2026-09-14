@@ -8,3 +8,4 @@ export * from './despacho.js';
 export * from './estados.js';
 export * from './comisiones.js';
 export * from './folio.js';
+export * from './rut.js';

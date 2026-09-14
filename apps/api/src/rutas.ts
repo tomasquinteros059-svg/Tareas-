@@ -326,6 +326,47 @@ export async function registrarRutas(app: FastifyInstance, ctx: Contexto) {
       return ctx.soporte.levantarSuspension(id);
     });
 
+    /* --- Retiros: el saldo se vuelve plata en el banco del trabajador. --- */
+    privadas.get('/retiros', async (req) => ctx.retiros.mios(req.usuarioId()));
+
+    privadas.put('/retiros/banco', async (req) => {
+      const datos = z
+        .object({
+          bancoNombre: z.string().min(3).max(60),
+          tipoCuenta: z.enum(['CORRIENTE', 'VISTA', 'AHORRO', 'RUT']),
+          numero: z.string().min(5).max(30),
+          titular: z.string().min(5).max(120),
+          rutTitular: z.string().min(8).max(15),
+        })
+        .parse(req.body);
+      return ctx.retiros.guardarBanco(req.usuarioId(), datos);
+    });
+
+    privadas.post('/retiros', async (req, reply) => {
+      const { monto } = z.object({ monto: z.number().int().positive() }).parse(req.body);
+      const retiro = await ctx.retiros.solicitar(req.usuarioId(), monto);
+      return reply.code(201).send(retiro);
+    });
+
+    privadas.get('/soporte/retiros', async (req) => {
+      exigirRol(req.roles(), 'SOPORTE');
+      return ctx.retiros.pendientes();
+    });
+
+    privadas.post('/soporte/retiros/:id/pagado', async (req) => {
+      exigirRol(req.roles(), 'SOPORTE');
+      const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+      const { referencia } = z.object({ referencia: z.string().min(3).max(120) }).parse(req.body);
+      return ctx.retiros.marcarPagado(id, req.usuarioId(), referencia);
+    });
+
+    privadas.post('/soporte/retiros/:id/rechazar', async (req) => {
+      exigirRol(req.roles(), 'SOPORTE');
+      const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+      const { motivo } = z.object({ motivo: z.string().min(10).max(500) }).parse(req.body);
+      return ctx.retiros.rechazar(id, req.usuarioId(), motivo);
+    });
+
     privadas.get('/saldo', async (req) => {
       const usuarioId = req.usuarioId();
       const [perfil, movimientos] = await Promise.all([

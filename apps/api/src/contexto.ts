@@ -5,6 +5,7 @@ import { ServicioCalificaciones } from './modulos/calificaciones/servicio.js';
 import { ServicioIdentidad } from './modulos/identidad/servicio.js';
 import { Planificador } from './modulos/reloj/planificador.js';
 import { ServicioSoporte } from './modulos/soporte/servicio.js';
+import { ServicioRetiros } from './modulos/retiros/servicio.js';
 import { EnviadorConsola, ServicioOtp, type Enviador } from './modulos/auth/otp.js';
 import { ProveedorGoogle, ProveedorLinkedin, type ProveedorOauth } from './modulos/auth/oauth.js';
 import { PasarelaSandbox, type Pasarela } from './modulos/pagos/pasarela.js';
@@ -22,6 +23,7 @@ export interface Contexto {
   otp: ServicioOtp;
   reloj: Planificador;
   soporte: ServicioSoporte;
+  retiros: ServicioRetiros;
   pasarela: Pasarela;
   oauth: { google?: ProveedorOauth; linkedin?: ProveedorOauth };
 }
@@ -95,6 +97,7 @@ export function crearContexto(
     calificaciones,
     reloj: new Planificador(prisma, tareas, calificaciones, pasarela),
     soporte: new ServicioSoporte(prisma, tareas, pasarela),
+    retiros: new ServicioRetiros(prisma, env.KYC_ENCRYPTION_KEY, env.PAYMENTS_CURRENCY),
     identidad: new ServicioIdentidad(prisma, env.KYC_ENCRYPTION_KEY),
     otp: new ServicioOtp(prisma, enviador),
     oauth,

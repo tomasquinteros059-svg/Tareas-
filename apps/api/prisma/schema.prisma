@@ -124,6 +124,7 @@ model Usuario {
   califEmitidas  Calificacion[] @relation("CalificacionAutor")
   califRecibidas Calificacion[] @relation("CalificacionDestinatario")
   movimientos    MovimientoSaldo[]
+  retiros        Retiro[]
   codigosOtp     CodigoOtp[]
 
   @@index([telefono])
@@ -222,6 +223,15 @@ model PerfilTrabajador {
   /// Cuenta del trabajador en la pasarela (Stripe Connect, CVU, CBU...).
   /// Mientras esté vacía, el neto se acumula en el saldo y se retira a mano.
   cuentaCobro            String?
+
+  /// Datos bancarios para los retiros. El número va cifrado igual que el
+  /// documento: en la app sólo se muestran los últimos cuatro dígitos.
+  bancoNombre            String?
+  bancoTipoCuenta        String?
+  bancoNumeroCifrado     String?
+  bancoUltimos4          String?
+  bancoTitular           String?
+  bancoRutTitular        String?
   creadoEn               DateTime           @default(now())
   actualizadoEn          DateTime           @updatedAt
 
@@ -431,6 +441,34 @@ model MovimientoSaldo {
   creadoEn          DateTime       @default(now())
 
   @@index([usuarioId, creadoEn])
+}
+
+enum EstadoRetiro {
+  SOLICITADO
+  PAGADO
+  RECHAZADO
+}
+
+/// Pedido de retiro del saldo hacia la cuenta bancaria del trabajador. Cuando
+/// el proveedor no transfiere por API —Webpay, por ejemplo— este es el camino:
+/// la plata se descuenta al pedirlo y vuelve al saldo si el pago se rechaza.
+model Retiro {
+  id            String       @id @default(uuid())
+  usuarioId     String
+  usuario       Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  monto         Int
+  estado        EstadoRetiro @default(SOLICITADO)
+  bancoNombre   String
+  bancoUltimos4 String
+  /// Comprobante de la transferencia, o el motivo del rechazo.
+  referencia    String?
+  motivo        String?
+  revisadoPor   String?
+  solicitadoEn  DateTime     @default(now())
+  resueltoEn    DateTime?
+
+  @@index([estado, solicitadoEn])
+  @@index([usuarioId])
 }
 
 /// Códigos de un solo uso para verificar el teléfono. Se guarda el hash, no el
