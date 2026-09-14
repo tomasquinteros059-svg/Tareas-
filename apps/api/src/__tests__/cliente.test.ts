@@ -188,3 +188,56 @@ describe('mirar una tarea por su folio', () => {
     expect(JSON.parse(r.body).codigoInicio).toMatch(/^\d{4}$/);
   });
 });
+
+describe('las puertas', () => {
+  /**
+   * Una ruta privada que se escapa del bloque con sesión no se nota escribiendo
+   * la funcionalidad: se nota el día que alguien la encuentra. Esta lista es el
+   * candado, y crece cada vez que se agrega una ruta.
+   */
+  const PRIVADAS: Array<[string, string]> = [
+    ['GET', '/yo'],
+    ['GET', '/feed'],
+    ['GET', '/tareas/mias'],
+    ['GET', '/saldo'],
+    ['GET', '/retiros'],
+    ['GET', '/deudas'],
+    ['GET', '/soporte/bandeja'],
+    ['GET', '/soporte/alertas'],
+    ['GET', '/soporte/retiros'],
+    ['POST', '/tareas'],
+    ['POST', '/identidad'],
+    ['POST', '/avisos/suscribir'],
+    ['POST', '/avisos/baja'],
+    ['POST', '/deudas/pagar'],
+    ['POST', '/retiros'],
+    ['PUT', '/retiros/banco'],
+    ['PUT', '/deudas/tarjeta'],
+  ];
+
+  it.each(PRIVADAS)('sin sesión, %s %s responde 401', async (metodo, url) => {
+    const r = await app.inject({ method: metodo as 'GET', url, payload: metodo === 'GET' ? undefined : {} });
+    expect(r.statusCode).toBe(401);
+  });
+
+  const PUBLICAS: Array<[string, string]> = [
+    ['GET', '/salud'],
+    ['GET', '/catalogo'],
+    ['GET', '/avisos/clave'],
+  ];
+
+  it.each(PUBLICAS)('sin sesión, %s %s se puede ver', async (metodo, url) => {
+    const r = await app.inject({ method: metodo as 'GET', url });
+    expect(r.statusCode).toBe(200);
+  });
+
+  it('soporte no se abre con una sesión cualquiera', async () => {
+    const cualquiera = await crearCliente();
+    const r = await app.inject({
+      method: 'GET',
+      url: '/soporte/bandeja',
+      headers: { authorization: sesion(cualquiera.id, ['CLIENTE']) },
+    });
+    expect(r.statusCode).toBe(403);
+  });
+});
