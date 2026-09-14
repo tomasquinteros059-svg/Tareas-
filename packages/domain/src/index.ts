@@ -11,3 +11,4 @@ export * from './folio.js';
 export * from './rut.js';
 export * from './deudas.js';
 export * from './antifraude.js';
+export * from './telefono.js';

@@ -155,3 +155,25 @@ describe('verificación de teléfono', () => {
     await expect(ctx.otp.enviar(telefono)).rejects.toThrow(/muchos códigos/);
   });
 });
+
+describe('el teléfono como llave de la cuenta', () => {
+  it('las formas de escribir el mismo número llevan a la misma cuenta', async () => {
+    await ctx.otp.enviar('9 8765 4321');
+    const enviado = ctx.enviador.enviados.at(-1)!;
+    expect(enviado.telefono).toBe('+56987654321');
+
+    const codigo = /(\d{6})/.exec(enviado.texto)![1]!;
+    // Se verifica escribiéndolo distinto: tiene que ser el mismo número.
+    expect(await ctx.otp.verificar('+56 9 8765 4321', codigo)).toBe(true);
+  });
+
+  it('rechaza un fijo: el código llega por SMS', async () => {
+    await expect(ctx.otp.enviar('223456789')).rejects.toMatchObject({
+      codigo: 'TELEFONO_NO_MOVIL',
+    });
+  });
+
+  it('rechaza lo que no puede ser un número', async () => {
+    await expect(ctx.otp.enviar('12345')).rejects.toMatchObject({ codigo: 'TELEFONO_INVALIDO' });
+  });
+});

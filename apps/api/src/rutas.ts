@@ -120,10 +120,13 @@ export async function registrarRutas(app: FastifyInstance, ctx: Contexto) {
     const ok = await ctx.otp.verificar(cuerpo.telefono, cuerpo.codigo);
     if (!ok) throw invalido('CODIGO_INCORRECTO', 'El código no es correcto');
 
+    // Siempre el número normalizado: si se guarda como lo escribió cada uno, la
+    // misma persona termina con tres cuentas y el teléfono deja de ser único.
+    const telefono = ctx.otp.normalizar(cuerpo.telefono);
     const usuario = await ctx.prisma.usuario.upsert({
-      where: { telefono: cuerpo.telefono },
+      where: { telefono },
       create: {
-        telefono: cuerpo.telefono,
+        telefono,
         telefonoOk: true,
         nombre: cuerpo.nombre ?? 'Sin nombre',
         apellido: cuerpo.apellido ?? '',

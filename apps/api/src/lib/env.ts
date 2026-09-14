@@ -18,6 +18,13 @@ const esquema = z.object({
   TRANSBANK_API_KEY: z.string().optional(),
   TRANSBANK_PRODUCTION: z.coerce.boolean().default(false),
   TRANSBANK_RETURN_URL: z.string().optional(),
+  SMS_PROVIDER: z.enum(['consola', 'twilio']).default('consola'),
+  TWILIO_ACCOUNT_SID: z.string().optional(),
+  TWILIO_AUTH_TOKEN: z.string().optional(),
+  TWILIO_FROM: z.string().optional(),
+  TWILIO_MESSAGING_SERVICE_SID: z.string().optional(),
+  // País con el que se interpretan los teléfonos escritos sin código.
+  DEFAULT_COUNTRY: z.string().length(2).default('CL'),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   LINKEDIN_CLIENT_ID: z.string().optional(),

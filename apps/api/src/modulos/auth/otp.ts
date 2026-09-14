@@ -1,5 +1,6 @@
 import { createHash, randomInt } from 'node:crypto';
 import type { PrismaClient } from '@prisma/client';
+import { normalizarTelefono } from '@tareas/domain';
 import { conflicto, invalido } from '../../lib/errores.js';
 
 const VIGENCIA_MS = 5 * 60 * 1000;
@@ -28,9 +29,26 @@ export class ServicioOtp {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly enviador: Enviador,
+    private readonly paisPorDefecto = 'CL',
   ) {}
 
-  async enviar(telefono: string): Promise<{ expiraEn: Date }> {
+  /**
+   * El número se lleva a formato internacional antes de tocar nada. Es lo que
+   * hace que "912345678" y "+56 9 1234 5678" sean la misma cuenta y no dos, y
+   * lo que evita mandar un SMS a un número que no puede recibirlo y dejar a
+   * alguien esperando un código que nunca va a llegar.
+   */
+  normalizar(entrada: string): string {
+    const numero = normalizarTelefono(entrada, this.paisPorDefecto);
+    if (!numero) throw invalido('TELEFONO_INVALIDO', 'Ese número no parece válido. Revisalo.');
+    if (!numero.esMovil) {
+      throw invalido('TELEFONO_NO_MOVIL', 'El código llega por SMS: hace falta un celular');
+    }
+    return numero.e164;
+  }
+
+  async enviar(entrada: string): Promise<{ expiraEn: Date; telefono: string }> {
+    const telefono = this.normalizar(entrada);
     const desde = new Date(Date.now() - 60 * 60 * 1000);
     const recientes = await this.prisma.codigoOtp.count({ where: { telefono, creadoEn: { gt: desde } } });
     if (recientes >= MAX_ENVIOS_POR_HORA) {
@@ -43,11 +61,12 @@ export class ServicioOtp {
       data: { telefono, codigoHash: hashCodigo(codigo, telefono), expiraEn },
     });
     await this.enviador.enviarSms(telefono, `Tu código de Tareas es ${codigo}. Vence en 5 minutos.`);
-    return { expiraEn };
+    return { expiraEn, telefono };
   }
 
   /** Devuelve true si el código es correcto; consume el código en el intento. */
-  async verificar(telefono: string, codigo: string): Promise<boolean> {
+  async verificar(entrada: string, codigo: string): Promise<boolean> {
+    const telefono = this.normalizar(entrada);
     const registro = await this.prisma.codigoOtp.findFirst({
       where: { telefono, usado: false, expiraEn: { gt: new Date() } },
       orderBy: { creadoEn: 'desc' },

@@ -96,7 +96,7 @@ probar de verdad contra Postgres.
 | --- | --- | --- |
 | `GET` | `/catalogo` | Rubros disponibles con su tarifa mínima |
 | `POST` | `/cotizar` | Presupuesto mínimo y sugerido de una tarea |
-| `POST` | `/auth/telefono/codigo` | Manda el código por SMS |
+| `POST` | `/auth/telefono/codigo` | Manda el código por SMS (Twilio o al log en desarrollo) |
 | `POST` | `/auth/telefono/verificar` | Verifica el código y devuelve la sesión |
 | `GET` | `/auth/google` · `/auth/linkedin` | Ingreso social (LinkedIn además trae el perfil profesional) |
 | `POST` | `/identidad` | Carga del documento para verificación |

@@ -9,6 +9,7 @@ import { ServicioRetiros } from './modulos/retiros/servicio.js';
 import { ServicioDeudas } from './modulos/deudas/servicio.js';
 import { ServicioAntifraude } from './modulos/antifraude/servicio.js';
 import { EnviadorConsola, ServicioOtp, type Enviador } from './modulos/auth/otp.js';
+import { EnviadorTwilio } from './modulos/auth/sms.js';
 import { ProveedorGoogle, ProveedorLinkedin, type ProveedorOauth } from './modulos/auth/oauth.js';
 import { PasarelaSandbox, type Pasarela } from './modulos/pagos/pasarela.js';
 import { PasarelaStripe } from './modulos/pagos/stripe.js';
@@ -66,13 +67,34 @@ function elegirPasarela(env: Env): Pasarela {
   return new PasarelaSandbox();
 }
 
+/**
+ * El SMS es la puerta de entrada: si no sale, no entra nadie. Igual que con la
+ * pasarela, si falta una clave el servidor no arranca, en vez de descubrirlo
+ * con la primera persona que intenta registrarse.
+ */
+function elegirEnviador(env: Env): Enviador {
+  if (env.SMS_PROVIDER !== 'twilio') return new EnviadorConsola();
+  if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN) {
+    throw new Error('SMS_PROVIDER=twilio pero faltan TWILIO_ACCOUNT_SID o TWILIO_AUTH_TOKEN');
+  }
+  if (!env.TWILIO_FROM && !env.TWILIO_MESSAGING_SERVICE_SID) {
+    throw new Error('SMS_PROVIDER=twilio pero falta TWILIO_FROM o TWILIO_MESSAGING_SERVICE_SID');
+  }
+  return new EnviadorTwilio({
+    accountSid: env.TWILIO_ACCOUNT_SID,
+    authToken: env.TWILIO_AUTH_TOKEN,
+    desde: env.TWILIO_FROM ?? '',
+    messagingServiceSid: env.TWILIO_MESSAGING_SERVICE_SID,
+  });
+}
+
 export function crearContexto(
   prisma: PrismaClient,
   env: Env,
   overrides: { pasarela?: Pasarela; enviador?: Enviador } = {},
 ): Contexto {
   const pasarela = overrides.pasarela ?? elegirPasarela(env);
-  const enviador = overrides.enviador ?? new EnviadorConsola();
+  const enviador = overrides.enviador ?? elegirEnviador(env);
 
   const oauth: Contexto['oauth'] = {};
   if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
@@ -107,7 +129,7 @@ export function crearContexto(
     soporte: new ServicioSoporte(prisma, tareas, pasarela),
     retiros: new ServicioRetiros(prisma, env.KYC_ENCRYPTION_KEY, env.PAYMENTS_CURRENCY),
     identidad: new ServicioIdentidad(prisma, env.KYC_ENCRYPTION_KEY),
-    otp: new ServicioOtp(prisma, enviador),
+    otp: new ServicioOtp(prisma, enviador, env.DEFAULT_COUNTRY),
     oauth,
   };
 }

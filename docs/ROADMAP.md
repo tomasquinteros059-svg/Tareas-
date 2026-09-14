@@ -37,7 +37,10 @@ abajo se puede hacer con la app ya en la calle.
   públicas, cuentas que se publican trabajos entre sí y tareas de tres horas
   entregadas en noventa segundos. Levanta alertas para que las mire una persona;
   lo único que corta en el momento es el contacto en una pregunta pública.
-- 201 pruebas automáticas.
+- **Envío real de SMS** (Twilio) y teléfonos normalizados a formato
+  internacional, que es lo que hace que el número sea de verdad una llave única
+  de la cuenta.
+- 218 pruebas automáticas.
 
 ## Bloquea el lanzamiento
 
@@ -63,9 +66,11 @@ Hoy la aprobación del documento es manual. Con volumen no escala y es la pieza
 que sostiene toda la confianza del producto: hay que conectar un proveedor de
 KYC que compare la selfie con el documento.
 
-### 5. Envío real de SMS
-La interfaz está; falta el adaptador (Twilio, Vonage o el que convenga por costo
-local) para los códigos de verificación.
+### 5. La cuenta de Twilio
+El adaptador está escrito y probado. Falta crear la cuenta, comprar un número
+chileno (o dar de alta un remitente alfanumérico) y cargar las claves en
+`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` y `TWILIO_FROM`. Sin esto el código de
+verificación sólo se imprime en el log del servidor y no se registra nadie.
 
 ### 6. Decisiones de negocio sin las que no se puede cobrar
 - **Moneda y precios por país.** El catálogo está en dólares de referencia y se
