@@ -279,6 +279,53 @@ export async function registrarRutas(app: FastifyInstance, ctx: Contexto) {
       return ctx.calificaciones.calificar(id, req.usuarioId(), datos);
     });
 
+    /* --- Soporte. Todo acá exige el rol y queda firmado por quien lo hizo. --- */
+    privadas.get('/soporte/bandeja', async (req) => {
+      exigirRol(req.roles(), 'SOPORTE');
+      return ctx.soporte.bandeja();
+    });
+
+    privadas.post('/soporte/disputas/:id/resolver', async (req) => {
+      exigirRol(req.roles(), 'SOPORTE');
+      const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+      const cuerpo = z
+        .object({
+          resolucion: z.enum(['TRABAJADOR', 'CLIENTE', 'PARCIAL']),
+          nota: z.string().min(10, 'Explicá la resolución: queda registrada'),
+          montoAcordado: z.number().int().positive().optional(),
+        })
+        .parse(req.body);
+      return ctx.soporte.resolverDisputa({ tareaId: id, revisorId: req.usuarioId(), ...cuerpo });
+    });
+
+    privadas.get('/soporte/usuarios/:id', async (req) => {
+      exigirRol(req.roles(), 'SOPORTE');
+      const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+      return ctx.soporte.ficha(id);
+    });
+
+    privadas.post('/soporte/usuarios/:id/saldo', async (req) => {
+      exigirRol(req.roles(), 'SOPORTE');
+      const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+      const { monto, motivo } = z
+        .object({ monto: z.number().int(), motivo: z.string().min(10) })
+        .parse(req.body);
+      return ctx.soporte.ajustarSaldo({ usuarioId: id, monto, motivo, revisorId: req.usuarioId() });
+    });
+
+    privadas.post('/soporte/usuarios/:id/suspender', async (req) => {
+      exigirRol(req.roles(), 'SOPORTE');
+      const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+      const { motivo } = z.object({ motivo: z.string().min(10) }).parse(req.body);
+      return ctx.soporte.suspender(id, motivo, req.usuarioId());
+    });
+
+    privadas.post('/soporte/usuarios/:id/habilitar', async (req) => {
+      exigirRol(req.roles(), 'SOPORTE');
+      const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+      return ctx.soporte.levantarSuspension(id);
+    });
+
     privadas.get('/saldo', async (req) => {
       const usuarioId = req.usuarioId();
       const [perfil, movimientos] = await Promise.all([

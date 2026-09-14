@@ -271,6 +271,9 @@ model Tarea {
   /// Mínimo que devolvió el cotizador al publicar: queda congelado como prueba.
   minimoCalculado  Int
   presupuesto      Int
+  /// Si soporte resolvió un reclamo por un monto menor, acá queda lo pactado
+  /// originalmente para que el recibo y la bitácora no pierdan la historia.
+  presupuestoOriginal Int?
   materiales       Int         @default(0)
   propina          Int         @default(0)
   metodoPago       MetodoPago

@@ -4,6 +4,7 @@ import { ServicioTareas } from './modulos/tareas/servicio.js';
 import { ServicioCalificaciones } from './modulos/calificaciones/servicio.js';
 import { ServicioIdentidad } from './modulos/identidad/servicio.js';
 import { Planificador } from './modulos/reloj/planificador.js';
+import { ServicioSoporte } from './modulos/soporte/servicio.js';
 import { EnviadorConsola, ServicioOtp, type Enviador } from './modulos/auth/otp.js';
 import { ProveedorGoogle, ProveedorLinkedin, type ProveedorOauth } from './modulos/auth/oauth.js';
 import { PasarelaSandbox, type Pasarela } from './modulos/pagos/pasarela.js';
@@ -20,6 +21,7 @@ export interface Contexto {
   identidad: ServicioIdentidad;
   otp: ServicioOtp;
   reloj: Planificador;
+  soporte: ServicioSoporte;
   pasarela: Pasarela;
   oauth: { google?: ProveedorOauth; linkedin?: ProveedorOauth };
 }
@@ -92,6 +94,7 @@ export function crearContexto(
     tareas,
     calificaciones,
     reloj: new Planificador(prisma, tareas, calificaciones, pasarela),
+    soporte: new ServicioSoporte(prisma, tareas, pasarela),
     identidad: new ServicioIdentidad(prisma, env.KYC_ENCRYPTION_KEY),
     otp: new ServicioOtp(prisma, enviador),
     oauth,
