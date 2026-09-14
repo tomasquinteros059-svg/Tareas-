@@ -83,10 +83,15 @@ estar mirando la pantalla. Se sirve desde el **mismo dominio que la API**: un
 trabajador de servicio sólo controla su propio origen, y de eso dependen los
 avisos.
 
-La app sigue guardando los datos en el propio teléfono: **todavía no habla con
-la API**. El servidor ya sabe a quién avisarle en cada ola y sabe mandarlo, y la
-app sabe recibirlo; falta el eslabón del medio, que es la sesión contra el
-servidor. Ver el punto 3 de [`docs/ROADMAP.md`](docs/ROADMAP.md).
+Adentro, en **Perfil → Conectar con el servidor**, la app deja de estar sola:
+se entra con el teléfono y un código que manda el servidor de verdad, la sesión
+queda guardada, se ven los trabajos publicados en el servidor y ahí sí se pueden
+prender los avisos —antes no había con qué sesión suscribirse—. Abierta como
+archivo suelto lo dice de frente: no hay ningún servidor al que llamar.
+
+Publicar y tomar trabajos desde el modo conectado es lo que sigue; el resto de
+las pantallas son todavía la demostración local. Ver el punto 3 de
+[`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## El reloj
 

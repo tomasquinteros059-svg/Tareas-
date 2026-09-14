@@ -1781,6 +1781,7 @@ function vistaPerfil() {
 
   h += '<div class="tarjeta plana"><div class="rotulo">Cuenta</div><div class="botonera" style="margin-top:10px">' +
     '<button class="btn chico" data-accion="ir" data-pantalla="saldo">Ver mi saldo</button>' +
+    '<button class="btn chico" data-accion="ir" data-pantalla="servidor">Conectar con el servidor</button>' +
     '<button class="btn chico" data-accion="cerrar-sesion">Cerrar sesión</button>' +
     '<button class="btn peligro chico" data-accion="reiniciar">Borrar todo y empezar de nuevo</button></div></div>';
   return h;
@@ -1962,6 +1963,7 @@ function render() {
   else if (vista.pantalla === "editar") cuerpo = vistaEditar();
   else if (vista.pantalla === "avisos") { cuerpo = vistaAvisos(); pegado = true; }
   else if (vista.pantalla === "perfil-publico") cuerpo = vistaPerfilPublico();
+  else if (vista.pantalla === "servidor") cuerpo = vistaServidor();
 
   var pendientes = db.tareas.filter(function (t) {
     return (t.autorId === u.id && t.estado === "ENTREGADA") ||
@@ -2084,6 +2086,126 @@ function entrarComo(uid, saludo) {
   if (saludo !== false) aviso("Entraste como " + yo().nombre, "bien");
 }
 
+
+/* ==========================================================================
+   MODO CONECTADO
+   Todo lo de arriba guarda los datos en el propio teléfono: alcanza para
+   mostrar el producto y no para operarlo, porque dos personas en dos
+   teléfonos nunca ven la misma tarea. Esto conecta la app con el servidor de
+   verdad: se entra con el teléfono y un código que llega por SMS, se ve el
+   muro real y se prenden los avisos —que recién acá tienen dónde
+   engancharse, porque hasta ahora no había sesión con la que suscribirse—.
+   ========================================================================== */
+
+var servidor = { paso: "inicio", telefono: "", cargando: false, error: "", yo: null, feed: null, avisos: "" };
+
+function apiDisponible() {
+  return !!(window.Tareas && window.Tareas.api && window.Tareas.api.disponible);
+}
+
+function vistaServidor() {
+  var h = '<div class="tit"><span class="rotulo">Servidor</span><h2>Conectar con el servidor</h2></div>';
+
+  if (!apiDisponible()) {
+    return h + '<div class="tarjeta"><h3 style="font-size:15px">Esta copia no está conectada</h3>' +
+      '<p class="guia" style="margin-top:8px">Estás viendo el archivo suelto, abierto con doble clic: acá no hay ningún servidor al que llamar, ' +
+      'y todo lo que hacés se guarda en este dispositivo.</p>' +
+      '<p class="guia" style="margin-top:8px">Para usar la versión conectada hay que abrirla desde la dirección donde está instalada la app.</p></div>';
+  }
+
+  var api = window.Tareas.api;
+
+  if (!api.hayCuenta()) {
+    h += '<div class="tarjeta"><p class="guia">La app de este teléfono y el servidor son dos cosas distintas. ' +
+      'Entrando acá, los trabajos que veas son los de verdad y los avisos te llegan aunque la app esté cerrada.</p></div>';
+    if (servidor.paso === "inicio") {
+      h += '<div class="tarjeta"><label class="campo"><span>Tu teléfono</span>' +
+        '<input id="s-tel" type="tel" inputmode="tel" placeholder="9 1234 5678" value="' + esc(servidor.telefono) + '"></label>' +
+        (servidor.error ? '<p class="guia" style="color:var(--ocre-tinta);margin-top:8px">' + esc(servidor.error) + "</p>" : "") +
+        '<button class="btn primario" style="margin-top:12px" data-accion="servidor-codigo"' +
+        (servidor.cargando ? " disabled" : "") + ">" + (servidor.cargando ? "Mandando..." : "Mandarme el código") + "</button></div>";
+    } else {
+      h += '<div class="tarjeta"><p class="guia">Te mandamos un código de 6 dígitos a ' + esc(servidor.telefono) + ".</p>" +
+        '<label class="campo" style="margin-top:10px"><span>Código</span>' +
+        '<input id="s-codigo" inputmode="numeric" maxlength="6" placeholder="123456"></label>' +
+        '<label class="campo" style="margin-top:10px"><span>Tu nombre (si es tu primera vez)</span>' +
+        '<input id="s-nombre" placeholder="Ana Rivas"></label>' +
+        (servidor.error ? '<p class="guia" style="color:var(--ocre-tinta);margin-top:8px">' + esc(servidor.error) + "</p>" : "") +
+        '<button class="btn primario" style="margin-top:12px" data-accion="servidor-verificar"' +
+        (servidor.cargando ? " disabled" : "") + ">" + (servidor.cargando ? "Verificando..." : "Entrar") + "</button>" +
+        '<button class="btn chico" style="margin-top:8px" data-accion="servidor-volver">Usar otro teléfono</button></div>';
+    }
+    return h;
+  }
+
+  var sesion = api.sesion();
+  var quien = (servidor.yo && servidor.yo.usuario) || sesion.usuario || {};
+  h += '<div class="tarjeta"><span class="chip">Conectado</span>' +
+    '<div style="margin-top:10px"><strong>' + esc((quien.nombre || "") + " " + (quien.apellido || "")) + "</strong>" +
+    '<div class="guia mono" style="font-size:12px">' + esc(quien.telefono || "") + "</div></div>" +
+    '<div class="botonera" style="margin-top:12px">' +
+    '<button class="btn chico" data-accion="servidor-refrescar">Actualizar</button>' +
+    '<button class="btn chico" data-accion="servidor-avisos">Activar los avisos</button>' +
+    '<button class="btn chico" data-accion="servidor-salir">Salir del servidor</button></div>' +
+    (servidor.avisos ? '<p class="guia" style="margin-top:10px">' + esc(servidor.avisos) + "</p>" : "") + "</div>";
+
+  if (servidor.error) {
+    h += '<div class="tarjeta plana"><p class="guia" style="color:var(--ocre-tinta)">' + esc(servidor.error) + "</p></div>";
+  }
+
+  h += '<div class="rotulo" style="margin-top:18px">El muro del servidor</div>';
+  if (servidor.cargando && !servidor.feed) h += '<p class="guia">Buscando trabajos...</p>';
+  else if (!servidor.feed) h += '<p class="guia">Tocá «Actualizar» para traer los trabajos que hay ahora mismo.</p>';
+  else if (!servidor.feed.length) h += '<p class="guia">No hay trabajos publicados en tu zona en este momento.</p>';
+  else {
+    h += servidor.feed.map(function (t) {
+      var autor = t.autor || {};
+      return '<div class="tarjeta"><div class="guia">' +
+        esc((autor.nombre || "Alguien") + " " + (autor.inicial || "")) +
+        (t.distanciaKm != null ? " · a " + t.distanciaKm.toFixed(1) + " km" : "") + "</div>" +
+        "<h4 style='margin-top:4px'>" + esc(t.titulo) + "</h4>" +
+        '<div class="chips" style="margin-top:8px"><span class="chip">' + esc(t.rubroSlug) + "</span>" +
+        '<span class="chip">' + esc(t.folio) + "</span></div>" +
+        '<div class="pie" style="margin-top:10px"><span class="n">' + plata(t.presupuesto) + "</span>" +
+        '<span class="guia">' + (t.elegible ? "Podés tomarla" : esc(t.detalle || t.motivo || "")) + "</span></div></div>";
+    }).join("");
+  }
+
+  h += '<p class="legal" style="margin-top:14px">Por ahora el muro del servidor se ve; publicar y tomar desde acá es el paso que sigue. ' +
+    "Lo de arriba (tu muro, tus tareas, tu saldo) es la demostración local y no cambia.</p>";
+  return h;
+}
+
+/** Trae de nuevo quién soy y qué hay publicado. */
+async function refrescarServidor() {
+  servidor.yo = await window.Tareas.api.yo();
+  try {
+    var r = await window.Tareas.api.feed();
+    servidor.feed = r.tareas;
+  } catch (e) {
+    // Sin perfil de trabajador o sin zona marcada no hay muro, y está bien:
+    // el mensaje del servidor explica qué falta.
+    servidor.feed = [];
+    servidor.error = e.mensaje || e.message;
+  }
+}
+
+/** Toda llamada al servidor pasa por acá: un solo lugar donde se dibuja el error. */
+async function conServidor(trabajo) {
+  servidor.cargando = true;
+  servidor.error = "";
+  render();
+  try {
+    await trabajo();
+  } catch (e) {
+    servidor.error = e && e.mensaje ? e.mensaje : (e && e.message) || "Algo se rompió";
+    if (e && e.codigo === "SIN_CONEXION") servidor.error = "No pudimos llegar al servidor. Revisá la señal.";
+  } finally {
+    servidor.cargando = false;
+    render();
+  }
+}
+
 document.addEventListener("click", function (ev) {
   var el = ev.target.closest("[data-accion]");
   if (!el) return;
@@ -2141,6 +2263,56 @@ document.addEventListener("click", function (ev) {
     return;
   }
   if (a === "resolver") { resolverDisputa(el.dataset.id, el.dataset.favor === "trabajador"); return; }
+
+  /* --- modo conectado --- */
+  if (a === "servidor-volver") { servidor.paso = "inicio"; servidor.error = ""; render(); return; }
+  if (a === "servidor-codigo") {
+    var tel = document.getElementById("s-tel").value.trim();
+    if (!tel) return aviso("Escribí tu teléfono", "mal");
+    servidor.telefono = tel;
+    conServidor(async function () {
+      var r = await window.Tareas.api.pedirCodigo(tel);
+      // El servidor devuelve el número ya normalizado: se muestra ese, para que
+      // quien lo escribió vea con qué número quedó registrado.
+      servidor.telefono = r.telefono || tel;
+      servidor.paso = "codigo";
+    });
+    return;
+  }
+  if (a === "servidor-verificar") {
+    var codigo = document.getElementById("s-codigo").value.trim();
+    var nombreCompleto = document.getElementById("s-nombre").value.trim();
+    var partes = nombreCompleto.split(/\s+/);
+    conServidor(async function () {
+      await window.Tareas.api.verificarCodigo(
+        servidor.telefono, codigo, partes[0] || undefined, partes.slice(1).join(" ") || undefined
+      );
+      servidor.paso = "inicio";
+      aviso("Entraste al servidor", "bien");
+      await refrescarServidor();
+    });
+    return;
+  }
+  if (a === "servidor-salir") {
+    window.Tareas.api.salir();
+    servidor = { paso: "inicio", telefono: "", cargando: false, error: "", yo: null, feed: null, avisos: "" };
+    render();
+    return;
+  }
+  if (a === "servidor-refrescar") { conServidor(refrescarServidor); return; }
+  if (a === "servidor-avisos") {
+    conServidor(async function () {
+      if (!window.Tareas.avisos) {
+        servidor.avisos = "Los avisos sólo funcionan con la app instalada desde su dirección.";
+        return;
+      }
+      var r = await window.Tareas.avisos.activar(window.Tareas.api.sesion().token);
+      servidor.avisos = r.ok
+        ? "Listo: te vamos a avisar cuando aparezca un trabajo para vos."
+        : r.motivo;
+    });
+    return;
+  }
 
   /* --- entrar y salir --- */
   if (a === "entrar") { entrarComo(el.dataset.id); return; }

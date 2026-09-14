@@ -33,10 +33,10 @@ if (!html.includes('</head>')) throw new Error('El HTML no tiene </head>: no sé
 html = html.replace('</head>', cabeza);
 
 if (!html.includes('</body>')) throw new Error('El HTML no tiene </body>: no sé dónde poner el registro');
-html = html.replace('</body>', '<script src="/instalar.js"></script>\n</body>');
+html = html.replace('</body>', '<script src="/api.js"></script>\n<script src="/instalar.js"></script>\n</body>');
 
 writeFileSync(join(destino, 'index.html'), html);
-for (const archivo of ['sw.js', 'manifest.webmanifest', 'instalar.js']) {
+for (const archivo of ['sw.js', 'manifest.webmanifest', 'instalar.js', 'api.js']) {
   copyFileSync(join(aqui, archivo), join(destino, archivo));
 }
 escribirIconos(destino);

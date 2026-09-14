@@ -64,19 +64,22 @@ El código está listo; falta la cuenta, las claves y correr el ciclo completo c
 credenciales de prueba primero y de producción después. Y decidir quién absorbe
 un contracargo cuando el trabajo ya se hizo y al trabajador ya se le pagó.
 
-### 3. Conectar la app al servidor
-Es el paso grande que queda. Hoy son dos mitades que funcionan y no se hablan:
+### 3. Terminar de conectar la app al servidor
+El puente está hecho y funciona: en **Perfil → Conectar con el servidor** se
+entra con el teléfono y un código real, la sesión queda guardada, se ve el muro
+del servidor y se prenden los avisos. Hay un cliente completo de la API
+(`apps/web/api.js`) con todos los endpoints.
 
-- **el servidor** decide todo y está probado: quién puede tomar cada tarea, el
-  precio, el pago, las olas del radar y a quién avisarle en cada una;
-- **la app** se instala en el teléfono, abre sin señal y su trabajador de
-  servicio recibe y muestra los avisos. Pero guarda los datos en el propio
-  teléfono: no tiene sesión contra el servidor, así que todavía no hay dónde
-  apretar "activar avisos", y dos personas en dos teléfonos no ven la misma
-  tarea.
+Falta mover el resto de las pantallas de la demostración local a ese cliente:
+publicar, tomar, el ciclo de estados, el chat, calificar, el saldo y los
+retiros. Es trabajo mecánico y bastante: cada pantalla pasa de leer una
+variable a esperar una respuesta, y hay que decidir qué se ve mientras carga y
+qué pasa cuando se corta la señal.
 
-Conectarlas es reemplazar el guardado local por llamadas a la API que ya existe.
-Mientras tanto la app sirve para mostrar el producto, no para operarlo.
+Y hay una decisión de producto en el medio: hoy el servidor exige identidad
+verificada para tomar un trabajo —correctamente—, así que hasta que la
+verificación esté conectada (punto 4), una cuenta nueva puede publicar pero no
+puede trabajar.
 
 Una app nativa (iOS/Android en las tiendas) sigue siendo mejor —avisos más
 confiables, ubicación en segundo plano— pero son meses. Conviene conectar la
