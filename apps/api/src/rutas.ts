@@ -245,12 +245,17 @@ export async function registrarRutas(app: FastifyInstance, ctx: Contexto) {
       return ctx.tareas.confirmarPago(id, req.usuarioId());
     });
 
+    // Antes de la ruta con folio: "mias" no es un folio, y aunque el router
+    // prefiere lo estático, el orden acá lo deja claro para quien lea.
+    privadas.get('/tareas/mias', async (req) => ({ tareas: await ctx.tareas.mias(req.usuarioId()) }));
+
     privadas.get('/tareas/:folio', async (req) => {
       const { folio } = z.object({ folio: z.string() }).parse(req.params);
-      return ctx.tareas.porFolio(folio);
+      return ctx.tareas.porFolio(folio, { usuarioId: req.usuarioId(), roles: req.roles() });
     });
 
     privadas.get('/feed', async (req) => ({ tareas: await ctx.tareas.feed(req.usuarioId()) }));
+
 
     privadas.post('/tareas/:id/aceptar', async (req) => {
       const { id } = z.object({ id: z.string().uuid() }).parse(req.params);

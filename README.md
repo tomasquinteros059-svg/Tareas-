@@ -123,7 +123,8 @@ probar de verdad contra Postgres.
 | `GET` | `/auth/google` · `/auth/linkedin` | Ingreso social (LinkedIn además trae el perfil profesional) |
 | `POST` | `/identidad` | Carga del documento para verificación |
 | `POST` | `/tareas` | Publica la tarea (retiene los fondos si paga con tarjeta) |
-| `GET` | `/feed` | Radar del trabajador, filtrado y ordenado |
+| `GET` | `/feed` | Radar del trabajador, filtrado y ordenado, con quién publica |
+| `GET` | `/tareas/mias` | Lo que publiqué y lo que estoy haciendo |
 | `POST` | `/tareas/:id/aceptar` | La toma el primero que llega |
 | `POST` | `/tareas/:id/estado` | En camino, en progreso, entregada, confirmada, cancelada |
 | `POST` | `/tareas/:id/preguntas` | Hasta 2 preguntas por trabajador, antes de asignar |

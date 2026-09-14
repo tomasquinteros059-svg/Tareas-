@@ -254,13 +254,48 @@ export class ServicioTareas {
       },
       orderBy: { publicadaEn: 'desc' },
       take: 200,
+      // Quién publica va en la misma consulta: una tarjeta del muro sin el
+      // nombre y la calificación de quien publica no se puede dibujar, y pedir
+      // eso después sería una consulta por tarjeta.
+      include: { autor: { select: RESUMEN_PERSONA } },
     });
-    return ordenarFeed(candidatas.map(aTareaDominio), perfil).map(({ tarea, elegibilidad }) => ({
-      ...candidatas.find((t) => t.id === tarea.id)!,
-      elegible: elegibilidad.elegible,
-      motivo: elegibilidad.motivo ?? null,
-      detalle: elegibilidad.detalle ?? null,
-      distanciaKm: elegibilidad.distanciaKm,
+    return ordenarFeed(candidatas.map(aTareaDominio), perfil).map(({ tarea, elegibilidad }) => {
+      const fila = candidatas.find((t) => t.id === tarea.id)!;
+      return {
+        ...sinDireccionExacta(fila),
+        autor: resumir(fila.autor),
+        elegible: elegibilidad.elegible,
+        motivo: elegibilidad.motivo ?? null,
+        detalle: elegibilidad.detalle ?? null,
+        distanciaKm: elegibilidad.distanciaKm,
+        ola: elegibilidad.ola.indice,
+      };
+    });
+  }
+
+  /** Lo que una persona tiene en curso, de los dos lados del mostrador. */
+  async mias(usuarioId: string) {
+    const tareas = await this.prisma.tarea.findMany({
+      where: {
+        OR: [{ autorId: usuarioId }, { trabajadorId: usuarioId }],
+        estado: { not: 'BORRADOR' },
+      },
+      orderBy: { creadoEn: 'desc' },
+      take: 100,
+      include: {
+        autor: { select: RESUMEN_PERSONA },
+        trabajador: { select: RESUMEN_PERSONA },
+        pago: true,
+      },
+    });
+
+    return tareas.map((t) => ({
+      // Con la tarea ya asignada, las dos partes ven todo: es la información
+      // que necesitan para encontrarse.
+      ...(t.trabajadorId === usuarioId || t.autorId === usuarioId ? t : sinDireccionExacta(t)),
+      autor: resumir(t.autor),
+      trabajador: resumir(t.trabajador),
+      miRol: t.autorId === usuarioId ? ('CLIENTE' as const) : ('TRABAJADOR' as const),
     }));
   }
 
@@ -486,14 +521,30 @@ export class ServicioTareas {
     return actualizada;
   }
 
-  async porFolio(folio: string) {
+  /**
+   * La tarea completa, con su bitácora.
+   *
+   * Quién mira cambia lo que se devuelve: el cliente y el trabajador asignado
+   * ven todo —dirección exacta y código de inicio, que es lo que necesitan para
+   * encontrarse—; cualquier otro ve lo mismo que en el muro. Sin esta
+   * distinción, alguien con un folio ajeno tiene la dirección de una casa y el
+   * código con el que se entra a trabajar en ella.
+   */
+  async porFolio(folio: string, miradoPor?: { usuarioId: string; roles: string[] }) {
     if (!esFolioValido(folio)) throw invalido('FOLIO_INVALIDO', 'El folio no tiene el formato TQ-AAMMDD-XXXX');
     const tarea = await this.prisma.tarea.findUnique({
       where: { folio: normalizarFolio(folio) },
       include: { eventos: { orderBy: { creadoEn: 'asc' } }, pago: true },
     });
     if (!tarea) throw noEncontrado('La tarea');
-    return tarea;
+
+    const esParte =
+      miradoPor &&
+      (miradoPor.usuarioId === tarea.autorId ||
+        miradoPor.usuarioId === tarea.trabajadorId ||
+        miradoPor.roles.includes('SOPORTE') ||
+        miradoPor.roles.includes('ADMIN'));
+    return esParte ? tarea : sinDireccionExacta(tarea);
   }
 
   /** Pregunta previa a la asignación, con cupo por trabajador. */
@@ -632,4 +683,63 @@ export class ServicioTareas {
     }
     throw new Error('No se pudo generar un folio único');
   }
+}
+
+/** Lo que se muestra de una persona en una tarjeta: nada más que eso. */
+const RESUMEN_PERSONA = {
+  id: true,
+  nombre: true,
+  apellido: true,
+  fotoUrl: true,
+  perfil: { select: { nivel: true, calificacion: true, trabajosCompletados: true } },
+} as const;
+
+type PersonaResumida = {
+  id: string;
+  nombre: string;
+  apellido: string;
+  fotoUrl: string | null;
+  perfil: { nivel: string; calificacion: number; trabajosCompletados: number } | null;
+} | null;
+
+function resumir(persona: PersonaResumida) {
+  if (!persona) return null;
+  return {
+    id: persona.id,
+    nombre: persona.nombre,
+    // El apellido completo sólo después de asignar: en el muro alcanza la
+    // inicial, como en cualquier app donde dos desconocidos van a encontrarse.
+    inicial: persona.apellido ? `${persona.apellido[0]}.` : '',
+    fotoUrl: persona.fotoUrl,
+    nivel: persona.perfil?.nivel ?? null,
+    calificacion: persona.perfil?.calificacion ?? null,
+    trabajos: persona.perfil?.trabajosCompletados ?? 0,
+  };
+}
+
+/**
+ * Cómo se ve una tarea que todavía no es tuya.
+ *
+ * Dos cosas se sacan, y las dos por el mismo motivo: son lo que hace falta para
+ * presentarse en la puerta de alguien.
+ *
+ *  - **la dirección exacta**: el punto se corre unas cuadras. Alcanza para
+ *    saber si queda cerca y no alcanza para pararse enfrente de la casa;
+ *  - **el código de inicio**: son los cuatro dígitos que el cliente le dicta al
+ *    trabajador en la puerta, y son la prueba de que llegó al lugar correcto.
+ *    Si cualquiera los puede leer del muro, no prueban nada.
+ */
+function sinDireccionExacta<
+  T extends { lat: number; lng: number; direccionId?: string | null; codigoInicio?: string | null },
+>(tarea: T) {
+  const corrimiento = 0.004; // unos 400 metros
+  const semilla = Math.abs(Math.sin((tarea.lat + tarea.lng) * 1000));
+  return {
+    ...tarea,
+    lat: Number((tarea.lat + (semilla - 0.5) * corrimiento).toFixed(5)),
+    lng: Number((tarea.lng + (semilla - 0.5) * corrimiento).toFixed(5)),
+    direccionId: null,
+    codigoInicio: null,
+    aproximada: true,
+  };
 }
