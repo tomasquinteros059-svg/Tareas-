@@ -93,6 +93,29 @@ vuelve intacta al salir.
 Abierta como archivo suelto lo dice de frente: no hay ningún servidor al que
 llamar, y todo se guarda en el dispositivo.
 
+## Cien trabajos de ejemplo
+
+El muro no arranca vacío: trae **cien trabajos** repartidos en los 33 oficios,
+seis comunas y once vecinos que publican, con precios de $8.500 a $857.500 y
+fechas escalonadas desde hace ocho segundos hasta hace veinte horas, para que
+se vean las cuatro olas del radar conviviendo. Ninguno está por debajo del piso
+de su oficio: los precios los calcula el mismo cotizador que usa la app.
+
+La lista vive en `apps/web/ejemplos.mjs` y de ahí sale para los dos lados —la
+app de un archivo y la semilla del servidor—, con un test que impide que se
+separen:
+
+```bash
+pnpm generar                 # reescribe el catálogo y los ejemplos en la app
+pnpm db:seed -- --cien       # siembra los mismos cien en el servidor
+```
+
+## Como APK
+
+`apps/movil/` envuelve la misma app para Android: los archivos van adentro del
+paquete, así que el APK funciona sin servidor y sin señal. Hace falta Android
+Studio y son tres comandos; está en [`apps/movil/LEEME.md`](apps/movil/LEEME.md).
+
 ## El reloj
 
 Lo que pasa solo —tareas que nadie tomó, confirmaciones automáticas a las 24 h,

@@ -1,3 +1,6 @@
 packages:
   - "packages/*"
-  - "apps/*"
+  - "apps/api"
+# apps/movil queda fuera del espacio de trabajo a propósito: Capacitor y sus
+# dependencias pesan y sólo hacen falta para armar el APK. Quien compila la app
+# de Android corre `npm install` ahí adentro.

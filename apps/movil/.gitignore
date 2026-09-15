@@ -1,0 +1,3 @@
+# Lo genera `cap add android` en segundos: no tiene sentido versionarlo.
+android/
+node_modules/

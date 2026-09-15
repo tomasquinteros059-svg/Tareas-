@@ -42,3 +42,30 @@ describe('el catálogo de la app y el del servidor', () => {
     expect([...nombrados].filter((s) => !conocidos.has(s))).toEqual([]);
   });
 });
+
+describe('los cien trabajos de ejemplo', () => {
+  it('son los mismos en la app y en el archivo que siembra el servidor', async () => {
+    const { TRABAJOS } = (await import('../../../web/ejemplos.mjs')) as {
+      TRABAJOS: Array<[string, string, string, number, string]>;
+    };
+    const bloque = HTML.slice(HTML.indexOf('/* EJEMPLOS:INICIO'), HTML.indexOf('/* EJEMPLOS:FIN */'));
+
+    expect(bloque).toContain('no editar a mano');
+    const titulosEnLaApp = [...bloque.matchAll(/^\s*\["[a-z-]+", "([^"]+)"/gm)].map((m) => m[1]);
+    expect(titulosEnLaApp).toEqual(TRABAJOS.map((t) => t[1]));
+  });
+
+  it('son cien y ninguno inventa un oficio', () => {
+    const bloque = HTML.slice(HTML.indexOf('/* EJEMPLOS:INICIO'), HTML.indexOf('/* EJEMPLOS:FIN */'));
+    const oficios = [...bloque.matchAll(/^\s*\["([a-z-]+)"/gm)].map((m) => m[1]!);
+    expect(oficios).toHaveLength(100);
+    const conocidos = new Set(CATALOGO.map((r) => r.slug));
+    expect(oficios.filter((o) => !conocidos.has(o))).toEqual([]);
+  });
+
+  it('ninguno repite el título: un muro con lo mismo dos veces se nota armado', () => {
+    const bloque = HTML.slice(HTML.indexOf('/* EJEMPLOS:INICIO'), HTML.indexOf('/* EJEMPLOS:FIN */'));
+    const titulos = [...bloque.matchAll(/^\s*\["[a-z-]+", "([^"]+)"/gm)].map((m) => m[1]);
+    expect(new Set(titulos).size).toBe(titulos.length);
+  });
+});
