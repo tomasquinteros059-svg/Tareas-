@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import { preciosDe } from '@tareas/domain';
+import { paisDe } from '@tareas/domain';
 import type { Env } from './lib/env.js';
 import { ServicioTareas } from './modulos/tareas/servicio.js';
 import { ServicioCalificaciones } from './modulos/calificaciones/servicio.js';
@@ -35,7 +35,7 @@ export interface Contexto {
   avisos: ServicioAvisos;
   perfil: ServicioPerfil;
   pasarela: Pasarela;
-  precios: ReturnType<typeof preciosDe>;
+  pais: ReturnType<typeof paisDe>;
   oauth: { google?: ProveedorOauth; linkedin?: ProveedorOauth };
 }
 
@@ -124,16 +124,16 @@ export function crearContexto(
     clavePrivada: env.VAPID_PRIVATE_KEY,
     contacto: env.VAPID_SUBJECT,
   });
-  const precios = preciosDe(env.PAYMENTS_CURRENCY);
-  const tareas = new ServicioTareas(prisma, pasarela, antifraude, precios);
+  const pais = paisDe(env.PAYMENTS_CURRENCY);
+  const tareas = new ServicioTareas(prisma, pasarela, antifraude, pais);
   const calificaciones = new ServicioCalificaciones(prisma);
-  const deudas = new ServicioDeudas(prisma, pasarela, env.PAYMENTS_CURRENCY);
+  const deudas = new ServicioDeudas(prisma, pasarela, env.PAYMENTS_CURRENCY, paisDe(env.PAYMENTS_CURRENCY).deudas);
 
   return {
     prisma,
     env,
     pasarela,
-    precios,
+    pais,
     tareas,
     calificaciones,
     reloj: new Planificador(prisma, tareas, calificaciones, pasarela, deudas, avisos),
@@ -141,7 +141,7 @@ export function crearContexto(
     antifraude,
     avisos,
     perfil: new ServicioPerfil(prisma),
-    soporte: new ServicioSoporte(prisma, tareas, pasarela),
+    soporte: new ServicioSoporte(prisma, tareas, pasarela, pais),
     retiros: new ServicioRetiros(prisma, env.KYC_ENCRYPTION_KEY, env.PAYMENTS_CURRENCY),
     identidad: new ServicioIdentidad(prisma, env.KYC_ENCRYPTION_KEY),
     otp: new ServicioOtp(prisma, enviador, env.DEFAULT_COUNTRY),

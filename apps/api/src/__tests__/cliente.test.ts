@@ -189,6 +189,55 @@ describe('mirar una tarea por su folio', () => {
   });
 });
 
+describe('el límite de deuda, con la app en pesos', () => {
+  /**
+   * La regresión que encontró el QA: con el tope de deuda en dólares —5.000,
+   * que en pesos son cinco mil— un trabajador que hacía dos trabajos en
+   * efectivo quedaba bloqueado, porque la comisión de uno solo ya lo pasaba.
+   */
+  it('después de dos trabajos en efectivo sigue viendo el muro', async () => {
+    const { CHILE } = await import('@tareas/domain');
+    const { ServicioTareas } = await import('../modulos/tareas/servicio.js');
+    const chileno = new ServicioTareas(prisma, ctx.pasarela, undefined, CHILE);
+
+    const cliente = await crearCliente();
+    // La deuda que dejan dos trabajos de $30.000 cobrados en efectivo.
+    const trabajador = await crearTrabajador('Deudor', { saldo: -7_200 });
+    await chileno.publicar(cliente.id, {
+      ...TAREA_BASE,
+      presupuesto: 30_000,
+      metodoPago: 'EFECTIVO',
+      metodoPagoToken: undefined,
+    });
+
+    const muro = await chileno.feed(trabajador.id);
+
+    expect(muro).toHaveLength(1);
+    expect(muro[0]).toMatchObject({ elegible: true });
+  });
+
+  it('pasado el tope chileno sí se le corta', async () => {
+    const { CHILE } = await import('@tareas/domain');
+    const { ServicioTareas } = await import('../modulos/tareas/servicio.js');
+    const chileno = new ServicioTareas(prisma, ctx.pasarela, undefined, CHILE);
+
+    const cliente = await crearCliente();
+    const trabajador = await crearTrabajador('MuyDeudor', { saldo: -(CHILE.limiteDeuda + 1) });
+    const tarea = await chileno.publicar(cliente.id, {
+      ...TAREA_BASE,
+      presupuesto: 30_000,
+      metodoPago: 'EFECTIVO',
+      metodoPagoToken: undefined,
+    });
+
+    const muro = await chileno.feed(trabajador.id);
+    expect(muro).toHaveLength(0);
+    await expect(chileno.aceptar(tarea.id, trabajador.id)).rejects.toMatchObject({
+      codigo: 'SIN_PERMISO',
+    });
+  });
+});
+
 describe('las puertas', () => {
   /**
    * Una ruta privada que se escapa del bloque con sesión no se nota escribiendo
@@ -248,7 +297,7 @@ describe('las puertas', () => {
 describe('la moneda de la instalación', () => {
   it('en pesos chilenos el piso del oficio es el chileno, no el de dólares', async () => {
     const enChile = await crearServidor(
-      { ...ctx, ...contextoDePrueba(), precios: (await import('@tareas/domain')).PRECIOS_CHILE },
+      { ...ctx, ...contextoDePrueba(), pais: (await import('@tareas/domain')).CHILE },
       { ...env, PAYMENTS_CURRENCY: 'CLP' },
     );
     try {
@@ -272,9 +321,9 @@ describe('la moneda de la instalación', () => {
   });
 
   it('una tarea publicada en pesos no pasa el mínimo con monedas de dólar', async () => {
-    const { PRECIOS_CHILE } = await import('@tareas/domain');
+    const { CHILE } = await import('@tareas/domain');
     const { ServicioTareas } = await import('../modulos/tareas/servicio.js');
-    const chileno = new ServicioTareas(prisma, ctx.pasarela, undefined, PRECIOS_CHILE);
+    const chileno = new ServicioTareas(prisma, ctx.pasarela, undefined, CHILE);
     const cliente = await crearCliente();
 
     await expect(

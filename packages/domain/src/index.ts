@@ -12,3 +12,4 @@ export * from './rut.js';
 export * from './deudas.js';
 export * from './antifraude.js';
 export * from './telefono.js';
+export * from './pais.js';

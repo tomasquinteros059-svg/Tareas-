@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import cors from '@fastify/cors';
 import estaticos from '@fastify/static';
+import casco from '@fastify/helmet';
 import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
 import { ZodError } from 'zod';
@@ -53,6 +54,48 @@ export async function crearServidor(ctx: Contexto, env: Env): Promise<FastifyIns
     throw new Error('En producción hay que declarar CORS_ORIGINS con los dominios de la app');
   }
   await app.register(cors, { origin: origenes.length ? origenes : true, credentials: true });
+
+  /*
+   * Cabeceras de seguridad.
+   *
+   * Cada una tapa algo concreto:
+   *  - `frame-ancestors 'none'` impide que alguien meta la app en un marco
+   *    dentro de otra página y le haga tocar «Aceptar» a la gente sin que lo
+   *    sepa;
+   *  - `script-src 'self'` prohíbe el código incrustado: si algún día se cuela
+   *    HTML en un título o en un mensaje, no puede ejecutar nada. Por eso la
+   *    app servida lleva su programa en un archivo aparte;
+   *  - `nosniff` evita que el navegador adivine el tipo de un archivo y trate
+   *    como programa algo que subió un usuario;
+   *  - HSTS obliga a HTTPS en las visitas siguientes, así una red hostil no
+   *    puede hacer bajar la conexión a HTTP.
+   *
+   * El estilo sí admite `unsafe-inline`: la app usa atributos `style` en
+   * muchos lados y un estilo incrustado no ejecuta código.
+   */
+  await app.register(casco, {
+    contentSecurityPolicy: {
+      directives: {
+        'default-src': ["'self'"],
+        'script-src': ["'self'"],
+        'style-src': ["'self'", "'unsafe-inline'"],
+        // Las fotos que saca la gente se comprimen en el navegador y viajan
+        // como data:; los mapas y avatares pueden venir de cualquier lado.
+        'img-src': ["'self'", 'data:', 'blob:', 'https:'],
+        'font-src': ["'self'", 'data:'],
+        'connect-src': ["'self'"],
+        'frame-ancestors': ["'none'"],
+        'base-uri': ["'self'"],
+        'form-action': ["'self'"],
+        'object-src': ["'none'"],
+        'upgrade-insecure-requests': env.NODE_ENV === 'production' ? [] : null,
+      },
+    },
+    // Un año, y sólo tiene efecto sobre HTTPS.
+    hsts: { maxAge: 31_536_000, includeSubDomains: true, preload: false },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    crossOriginEmbedderPolicy: false,
+  });
   await app.register(jwt, { secret: env.JWT_SECRET, sign: { expiresIn: '30d' } });
   await app.register(rateLimit, { max: 120, timeWindow: '1 minute' });
 

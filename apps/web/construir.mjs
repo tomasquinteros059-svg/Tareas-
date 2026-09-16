@@ -35,6 +35,24 @@ html = html.replace('</head>', cabeza);
 if (!html.includes('</body>')) throw new Error('El HTML no tiene </body>: no sé dónde poner el registro');
 html = html.replace('</body>', '<script src="/api.js"></script>\n<script src="/instalar.js"></script>\n</body>');
 
+/*
+ * El estilo y el programa salen a archivos aparte.
+ *
+ * El archivo suelto los lleva adentro —tiene que abrirse con doble clic— pero
+ * la versión servida no los necesita ahí, y sacarlos permite prohibir el
+ * código incrustado por cabecera (`script-src 'self'`). Con eso, una inyección
+ * de HTML en cualquier texto de la app no puede ejecutar nada.
+ */
+const estilo = /<style>([\s\S]*?)<\/style>/.exec(html);
+if (!estilo) throw new Error('No encuentro el <style> de la app');
+html = html.replace(estilo[0], '<link rel="stylesheet" href="/estilos.css">');
+writeFileSync(join(destino, 'estilos.css'), estilo[1]);
+
+const programa = /<script>([\s\S]*?)<\/script>/.exec(html);
+if (!programa) throw new Error('No encuentro el <script> de la app');
+html = html.replace(programa[0], '<script src="/app.js"></script>');
+writeFileSync(join(destino, 'app.js'), programa[1]);
+
 writeFileSync(join(destino, 'index.html'), html);
 for (const archivo of ['sw.js', 'manifest.webmanifest', 'instalar.js', 'api.js']) {
   copyFileSync(join(aqui, archivo), join(destino, archivo));

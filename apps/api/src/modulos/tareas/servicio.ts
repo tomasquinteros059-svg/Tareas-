@@ -14,9 +14,9 @@ import {
   radioDeBusqueda,
   rubroObligatorio,
   validarPresupuesto,
-  PRECIOS_POR_DEFECTO,
+  PAIS_REFERENCIA,
   type Actor,
-  type ConfiguracionPrecios,
+  type ConfiguracionPais,
   type EstadoTarea,
 } from '@tareas/domain';
 import { conflicto, invalido, noEncontrado, sinPermiso } from '../../lib/errores.js';
@@ -56,11 +56,12 @@ export class ServicioTareas {
     private readonly pasarela: Pasarela,
     private readonly antifraude?: ServicioAntifraude,
     /**
-     * Los precios de la moneda en la que opera esta instalación. No es un
-     * detalle: el piso por oficio sale de acá, y con la configuración
-     * equivocada una tarea se publica por diez veces menos de lo que vale.
+     * El país en el que opera esta instalación: precios, comisiones y el
+     * límite de deuda. No es un detalle. Con la configuración equivocada una
+     * tarea se publica por diez veces menos de lo que vale, y el trabajador
+     * que hace dos trabajos en efectivo queda bloqueado para siempre.
      */
-    private readonly precios: ConfiguracionPrecios = PRECIOS_POR_DEFECTO,
+    private readonly pais: ConfiguracionPais = PAIS_REFERENCIA,
   ) {}
 
   /**
@@ -78,7 +79,7 @@ export class ServicioTareas {
       nivelMinimo: datos.nivelMinimo,
       materiales: datos.materiales ?? 0,
     };
-    const validacion = validarPresupuesto(datos.presupuesto, solicitud, this.precios);
+    const validacion = validarPresupuesto(datos.presupuesto, solicitud, this.pais.precios);
     if (!validacion.valido) {
       throw invalido('PRESUPUESTO_INSUFICIENTE', validacion.motivo!, {
         minimo: validacion.minimo,
@@ -108,14 +109,17 @@ export class ServicioTareas {
      * se completó.
      */
     let esperandoBanco = false;
-    const liquidacion = liquidar({
-      rubroSlug: datos.rubroSlug,
-      presupuesto: datos.presupuesto,
-      materiales: datos.materiales ?? 0,
-      metodoPago: datos.metodoPago,
-      // Al publicar todavía no sabemos quién la toma: se recalcula al liquidar.
-      nivelTrabajador: 'NUEVO',
-    });
+    const liquidacion = liquidar(
+      {
+        rubroSlug: datos.rubroSlug,
+        presupuesto: datos.presupuesto,
+        materiales: datos.materiales ?? 0,
+        metodoPago: datos.metodoPago,
+        // Al publicar todavía no sabemos quién la toma: se recalcula al liquidar.
+        nivelTrabajador: 'NUEVO',
+      },
+      this.pais.comisiones,
+    );
 
     if (datos.metodoPago === 'TARJETA') {
       if (!datos.metodoPagoToken) {
@@ -123,7 +127,7 @@ export class ServicioTareas {
       }
       const hold = await this.pasarela.retener({
         monto: liquidacion.cobroAlCliente,
-        moneda: this.precios.moneda,
+        moneda: this.pais.precios.moneda,
         metodoPagoToken: datos.metodoPagoToken,
         descripcion: `Tarea ${folio} - ${datos.titulo}`,
         idempotencia: folio,
@@ -151,7 +155,7 @@ export class ServicioTareas {
           exigeAntecedentes: datos.exigeAntecedentes ?? false,
           minimoCalculado: validacion.minimo,
           presupuesto: datos.presupuesto,
-          moneda: this.precios.moneda,
+          moneda: this.pais.precios.moneda,
           materiales: datos.materiales ?? 0,
           metodoPago: datos.metodoPago,
           estado: esperandoBanco ? 'BORRADOR' : 'PUBLICADA',
@@ -268,7 +272,9 @@ export class ServicioTareas {
       // eso después sería una consulta por tarjeta.
       include: { autor: { select: RESUMEN_PERSONA } },
     });
-    return ordenarFeed(candidatas.map(aTareaDominio), perfil).map(({ tarea, elegibilidad }) => {
+    return ordenarFeed(candidatas.map(aTareaDominio), perfil, {
+      limiteDeuda: this.pais.limiteDeuda,
+    }).map(({ tarea, elegibilidad }) => {
       const fila = candidatas.find((t) => t.id === tarea.id)!;
       return {
         ...sinDireccionExacta(fila),
@@ -325,7 +331,9 @@ export class ServicioTareas {
     }
 
     const perfil = await this.perfilDominio(trabajadorId);
-    const elegibilidad = evaluarElegibilidad(aTareaDominio(tarea), perfil);
+    const elegibilidad = evaluarElegibilidad(aTareaDominio(tarea), perfil, {
+      limiteDeuda: this.pais.limiteDeuda,
+    });
     if (!elegibilidad.elegible) {
       throw sinPermiso(elegibilidad.detalle ?? `No podés tomar esta tarea (${elegibilidad.motivo})`);
     }
@@ -449,14 +457,17 @@ export class ServicioTareas {
     }
 
     const perfil = tarea.trabajador.perfil;
-    const cuenta = liquidar({
-      rubroSlug: tarea.rubroSlug,
-      presupuesto: tarea.presupuesto,
-      materiales: tarea.materiales,
-      propina: tarea.propina,
-      metodoPago: tarea.metodoPago,
-      nivelTrabajador: perfil.nivel,
-    });
+    const cuenta = liquidar(
+      {
+        rubroSlug: tarea.rubroSlug,
+        presupuesto: tarea.presupuesto,
+        materiales: tarea.materiales,
+        propina: tarea.propina,
+        metodoPago: tarea.metodoPago,
+        nivelTrabajador: perfil.nivel,
+      },
+      this.pais.comisiones,
+    );
 
     if (tarea.metodoPago === 'TARJETA' && tarea.pago?.referencia) {
       await this.pasarela.capturar(tarea.pago.referencia, cuenta.cobroAlCliente);
@@ -604,7 +615,7 @@ export class ServicioTareas {
 
   /** Cotizador público: alimenta el slider de presupuesto en la app. */
   cotizarTarea(datos: Parameters<typeof cotizar>[0]) {
-    return cotizar(datos, this.precios);
+    return cotizar(datos, this.pais.precios);
   }
 
   private rolEn(tarea: Tarea, usuarioId: string): Actor {

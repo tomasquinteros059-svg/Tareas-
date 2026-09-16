@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import { liquidar } from '@tareas/domain';
+import { liquidar, PAIS_REFERENCIA, type ConfiguracionPais } from '@tareas/domain';
 import { conflicto, invalido, noEncontrado } from '../../lib/errores.js';
 import type { Pasarela } from '../pagos/pasarela.js';
 import type { ServicioTareas } from '../tareas/servicio.js';
@@ -19,6 +19,7 @@ export class ServicioSoporte {
     private readonly prisma: PrismaClient,
     private readonly tareas: ServicioTareas,
     private readonly pasarela: Pasarela,
+    private readonly pais: ConfiguracionPais = PAIS_REFERENCIA,
   ) {}
 
   /** La cola de trabajo: lo más viejo primero, que es lo que más duele. */
@@ -139,13 +140,16 @@ export class ServicioSoporte {
       // que ya estaba reservada.
       if (entrada.resolucion === 'PARCIAL' && tarea.metodoPago === 'TARJETA' && tarea.pago?.referencia) {
         const acordado = entrada.montoAcordado!;
-        const cuenta = liquidar({
-          rubroSlug: tarea.rubroSlug,
-          presupuesto: acordado,
-          materiales: tarea.materiales,
-          metodoPago: 'TARJETA',
-          nivelTrabajador: tarea.trabajador?.perfil?.nivel ?? 'NUEVO',
-        });
+        const cuenta = liquidar(
+          {
+            rubroSlug: tarea.rubroSlug,
+            presupuesto: acordado,
+            materiales: tarea.materiales,
+            metodoPago: 'TARJETA',
+            nivelTrabajador: tarea.trabajador?.perfil?.nivel ?? 'NUEVO',
+          },
+          this.pais.comisiones,
+        );
         const reservadoOriginal =
           tarea.pago.totalCliente > 0 ? tarea.pago.totalCliente : tarea.presupuesto;
         const diferencia = reservadoOriginal - cuenta.cobroAlCliente;

@@ -23,6 +23,8 @@ const CACHE = 'tareas-v1';
  */
 const BASICOS = [
   '/',
+  '/estilos.css',
+  '/app.js',
   '/api.js',
   '/instalar.js',
   '/manifest.webmanifest',

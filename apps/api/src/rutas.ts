@@ -90,7 +90,7 @@ export async function registrarRutas(app: FastifyInstance, ctx: Contexto) {
 
   app.post('/cotizar', async (req) => {
     const datos = cotizacionSchema.parse(req.body);
-    return cotizar(datos, ctx.precios);
+    return cotizar(datos, ctx.pais.precios);
   });
 
   /*
