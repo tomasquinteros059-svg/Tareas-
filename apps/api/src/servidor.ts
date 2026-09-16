@@ -7,7 +7,7 @@ import casco from '@fastify/helmet';
 import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
 import { ZodError } from 'zod';
-import { TransicionInvalida } from '@tareas/domain';
+import { RubroDesconocido, TransicionInvalida } from '@tareas/domain';
 import { ErrorApi } from './lib/errores.js';
 import { ErrorPasarela } from './modulos/pagos/pasarela.js';
 import { registrarRutas } from './rutas.js';
@@ -126,12 +126,36 @@ export async function crearServidor(ctx: Contexto, env: Env): Promise<FastifyIns
     if (error instanceof TransicionInvalida) {
       return reply.code(409).send({ error: { codigo: 'TRANSICION_INVALIDA', mensaje: error.message } });
     }
+    if (error instanceof RubroDesconocido) {
+      return reply.code(422).send({ error: { codigo: 'RUBRO_INEXISTENTE', mensaje: error.message } });
+    }
     if (error instanceof ErrorPasarela) {
       return reply.code(402).send({ error: { codigo: error.codigo, mensaje: error.message } });
     }
     if ((error as { statusCode?: number }).statusCode === 401) {
       return reply.code(401).send({ error: { codigo: 'SIN_SESION', mensaje: 'Sesión inválida o vencida' } });
     }
+
+    /*
+     * Errores que ya vienen con su código: demasiados pedidos, cuerpo
+     * gigante, JSON roto. Sin esto todos terminaban como "algo se rompió de
+     * nuestro lado", y quien llama no puede distinguir un límite de pedidos
+     * —que se resuelve esperando— de una caída de verdad.
+     */
+    const status = (error as { statusCode?: number }).statusCode;
+    if (status && status >= 400 && status < 500) {
+      const codigo = status === 429 ? 'DEMASIADOS_PEDIDOS' : (error as { code?: string }).code ?? 'PEDIDO_INVALIDO';
+      return reply.code(status).send({
+        error: {
+          codigo,
+          mensaje:
+            status === 429
+              ? 'Estás yendo muy rápido. Probá de nuevo en un minuto.'
+              : (error as Error).message,
+        },
+      });
+    }
+
     req.log.error(error);
     return reply.code(500).send({ error: { codigo: 'ERROR_INTERNO', mensaje: 'Algo se rompió de nuestro lado' } });
   });

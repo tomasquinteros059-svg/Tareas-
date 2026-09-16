@@ -335,3 +335,41 @@ describe('la moneda de la instalación', () => {
     expect(buena.minimoCalculado).toBeGreaterThanOrEqual(24_000);
   });
 });
+
+describe('los errores dicen qué pasó', () => {
+  it('un oficio que no existe es culpa de quien llama, no del servidor', async () => {
+    const r = await app.inject({
+      method: 'POST',
+      url: '/cotizar',
+      payload: { rubroSlug: 'domador-de-leones', unidades: 1, dificultad: 'BASICA', urgencia: 'HOY' },
+    });
+    expect(r.statusCode).toBe(422);
+    expect(JSON.parse(r.body).error.codigo).toBe('RUBRO_INEXISTENTE');
+  });
+
+  it('pasado el límite de pedidos contesta 429, no un error interno', async () => {
+    const apretado = await crearServidor(ctx, { ...env, NODE_ENV: 'development' });
+    try {
+      let ultima = { statusCode: 200, body: '{}' };
+      for (let i = 0; i < 125; i++) {
+        ultima = await apretado.inject({ method: 'GET', url: '/catalogo' });
+      }
+      expect(ultima.statusCode).toBe(429);
+      expect(JSON.parse(ultima.body).error).toMatchObject({ codigo: 'DEMASIADOS_PEDIDOS' });
+      expect(JSON.parse(ultima.body).error.mensaje).toMatch(/muy rápido/i);
+    } finally {
+      await apretado.close();
+    }
+  });
+
+  it('un cuerpo que no es JSON se rechaza con su código', async () => {
+    const r = await app.inject({
+      method: 'POST',
+      url: '/cotizar',
+      headers: { 'content-type': 'application/json' },
+      payload: 'esto no es json',
+    });
+    expect(r.statusCode).toBe(400);
+    expect(JSON.parse(r.body).error.codigo).toBe('JSON_INVALIDO');
+  });
+});

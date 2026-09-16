@@ -111,7 +111,7 @@ describe('cotizar', () => {
         urgencia: 'PROGRAMADA',
         nivelMinimo: 'NUEVO',
       }),
-    ).toThrow(/Rubro desconocido/);
+    ).toThrow(/No conocemos el oficio/);
     expect(() =>
       cotizar({
         rubroSlug: 'limpieza-hogar',

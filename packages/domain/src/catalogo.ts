@@ -192,8 +192,20 @@ export function buscarRubro(slug: string): Rubro | undefined {
   return PORSLUG.get(slug);
 }
 
+/**
+ * Pedir un oficio que no existe es un error de quien llama, no una falla del
+ * sistema. Tiene su propio tipo para que la API pueda contestar "ese oficio no
+ * existe" en vez de "algo se rompió de nuestro lado".
+ */
+export class RubroDesconocido extends Error {
+  constructor(readonly slug: string) {
+    super(`No conocemos el oficio "${slug}"`);
+    this.name = 'RubroDesconocido';
+  }
+}
+
 export function rubroObligatorio(slug: string): Rubro {
   const rubro = PORSLUG.get(slug);
-  if (!rubro) throw new Error(`Rubro desconocido: ${slug}`);
+  if (!rubro) throw new RubroDesconocido(slug);
   return rubro;
 }
