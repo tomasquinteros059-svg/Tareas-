@@ -4,13 +4,13 @@ import { digitoVerificador, formatearRut, normalizarRut, rutValido } from '../ru
 describe('RUT chileno', () => {
   it('calcula el dígito verificador', () => {
     expect(digitoVerificador('12345678')).toBe('5');
-    expect(digitoVerificador('78081011')).toBe('4');
+    expect(digitoVerificador('76543210')).toBe('3');
   });
 
   it('acepta un RUT bien escrito, con o sin puntos', () => {
     expect(rutValido('12.345.678-5')).toBe(true);
     expect(rutValido('123456785')).toBe(true);
-    expect(rutValido('78.081.011-4')).toBe(true);
+    expect(rutValido('76.543.210-3')).toBe(true);
   });
 
   it('reconoce el verificador K', () => {
@@ -22,7 +22,7 @@ describe('RUT chileno', () => {
 
   it('rechaza un dígito cambiado, que es el error que cuesta plata', () => {
     expect(rutValido('12.345.678-6')).toBe(false);
-    expect(rutValido('78.081.011-3')).toBe(false);
+    expect(rutValido('76.543.210-4')).toBe(false);
   });
 
   it('rechaza lo que directamente no es un RUT', () => {

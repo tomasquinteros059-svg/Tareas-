@@ -12,7 +12,7 @@ afterAll(async () => {
 const BANCO = {
   bancoNombre: 'Banco Santander',
   tipoCuenta: 'CORRIENTE' as const,
-  numero: '0-000-9687533-9',
+  numero: '0-000-1234567-8',
   titular: 'Beto Gómez',
   rutTitular: '12.345.678-5',
 };
@@ -30,12 +30,12 @@ describe('cargar la cuenta bancaria', () => {
 
     const guardado = await ctx.retiros.guardarBanco(trabajador.id, BANCO);
 
-    expect(guardado).toMatchObject({ bancoNombre: 'Banco Santander', ultimos4: '5339' });
+    expect(guardado).toMatchObject({ bancoNombre: 'Banco Santander', ultimos4: '5678' });
     const perfil = await prisma.perfilTrabajador.findUniqueOrThrow({
       where: { usuarioId: trabajador.id },
     });
-    expect(perfil.bancoNumeroCifrado).not.toContain('9687533');
-    expect(await ctx.retiros.cuentaCompleta(trabajador.id)).toMatchObject({ numero: '000096875339' });
+    expect(perfil.bancoNumeroCifrado).not.toContain('1234567');
+    expect(await ctx.retiros.cuentaCompleta(trabajador.id)).toMatchObject({ numero: '000012345678' });
   });
 
   it('rechaza un RUT con el dígito cambiado antes de que rebote la transferencia', async () => {
@@ -61,7 +61,7 @@ describe('pedir un retiro', () => {
 
     const retiro = await ctx.retiros.solicitar(trabajador.id, 30_000);
 
-    expect(retiro).toMatchObject({ estado: 'SOLICITADO', monto: 30_000, bancoUltimos4: '5339' });
+    expect(retiro).toMatchObject({ estado: 'SOLICITADO', monto: 30_000, bancoUltimos4: '5678' });
     const perfil = await prisma.perfilTrabajador.findUniqueOrThrow({
       where: { usuarioId: trabajador.id },
     });
@@ -145,7 +145,7 @@ describe('la cola de soporte', () => {
 
     expect(cola.total).toBe(1);
     expect(cola.monto).toBe(30_000);
-    expect(cola.retiros[0]!.cuenta).toMatchObject({ numero: '000096875339', titular: 'Beto Gómez' });
+    expect(cola.retiros[0]!.cuenta).toMatchObject({ numero: '000012345678', titular: 'Beto Gómez' });
   });
 
   it('marcar pagado guarda el comprobante y no se puede repetir', async () => {
@@ -203,7 +203,7 @@ describe('la pantalla del trabajador', () => {
 
     expect(vista.saldo).toBe(10_000);
     expect(vista.minimo).toBe(ctx.retiros.minimo);
-    expect(vista.banco).toMatchObject({ nombre: 'Banco Santander', ultimos4: '5339' });
+    expect(vista.banco).toMatchObject({ nombre: 'Banco Santander', ultimos4: '5678' });
     expect(vista.retiros).toHaveLength(1);
   });
 
