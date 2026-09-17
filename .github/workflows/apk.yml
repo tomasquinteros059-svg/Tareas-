@@ -81,9 +81,10 @@ jobs:
       # teléfono. Se reescribe en cada compilación para que "la última" sea
       # siempre la misma dirección.
       #
-      # Va por la API y no por la herramienta de línea de comandos: la primera
-      # versión de esto se colgaba en ese paso sin decir por qué, y un taller
-      # que se cuelga es peor que uno que falla.
+      # Va por la API y no por la herramienta de línea de comandos, que tarda
+      # un par de minutos en este paso y mientras tanto deja la publicación a
+      # medio hacer, en estado de borrador: quien entre justo en ese rato ve una
+      # página que no se puede descargar.
       - name: Publicar para descargar
         env:
           GH_TOKEN: ${{ github.token }}
