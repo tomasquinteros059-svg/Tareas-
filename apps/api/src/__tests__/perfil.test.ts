@@ -170,7 +170,7 @@ describe('el camino completo desde cero', () => {
     });
     // Recién publicada, la tarea todavía es de la primera ola: sólo la ven los
     // de nivel alto. El que arranca la ve en el muro y con el reloj al lado.
-    let muro = await ctx.tareas.feed(nuevo.id);
+    let muro = (await ctx.tareas.feed(nuevo.id)).tareas;
     expect(muro.map((t) => t.id)).toContain(tarea.id);
     expect(muro[0]).toMatchObject({ elegible: false, motivo: 'TURNO_NO_ABIERTO' });
     expect(muro[0]!.detalle).toMatch(/se abre para tu nivel/i);
@@ -180,7 +180,7 @@ describe('el camino completo desde cero', () => {
       where: { id: tarea.id },
       data: { publicadaEn: new Date(Date.now() - 16 * 60 * 1000) },
     });
-    muro = await ctx.tareas.feed(nuevo.id);
+    muro = (await ctx.tareas.feed(nuevo.id)).tareas;
     expect(muro[0]!.elegible).toBe(true);
 
     const tomada = await ctx.tareas.aceptar(tarea.id, nuevo.id);

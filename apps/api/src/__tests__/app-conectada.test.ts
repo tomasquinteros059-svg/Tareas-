@@ -94,6 +94,14 @@ describe('el muro conectado se mira solo', () => {
     expect(cuerpo).toContain('esTrabajador');
   });
 
+  it('el refresco se da cuenta cuando se abre la ola, no sólo cuando cambia el estado', () => {
+    // El radar abre por olas: un trabajo pasa de "se abre para tu nivel en 40 s"
+    // a tomable sin cambiar de estado. Si la huella sólo mirara el estado, la
+    // pantalla se quedaría con el cartel viejo y el trabajo se lo llevaría otro.
+    const cuerpo = cuerpoDe('refrescarMuro');
+    expect(cuerpo).toContain('elegibleServidor');
+  });
+
   it('el temporizador de la demostración no redibuja encima del modo conectado', () => {
     expect(HTML).toContain('if (!conectado()) render();');
     expect(HTML).toContain('refrescarMuro();');

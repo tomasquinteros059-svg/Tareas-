@@ -277,7 +277,7 @@ export async function registrarRutas(app: FastifyInstance, ctx: Contexto) {
       return ctx.tareas.porFolio(folio, { usuarioId: req.usuarioId(), roles: req.roles() });
     });
 
-    privadas.get('/feed', async (req) => ({ tareas: await ctx.tareas.feed(req.usuarioId()) }));
+    privadas.get('/feed', async (req) => ctx.tareas.feed(req.usuarioId()));
 
 
     privadas.post('/tareas/:id/aceptar', async (req) => {

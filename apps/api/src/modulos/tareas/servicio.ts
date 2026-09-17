@@ -18,6 +18,7 @@ import {
   type Actor,
   type ConfiguracionPais,
   type EstadoTarea,
+  type PerfilTrabajador as PerfilTrabajadorDominio,
 } from '@tareas/domain';
 import { conflicto, invalido, noEncontrado, sinPermiso } from '../../lib/errores.js';
 import { aPerfilDominio, aTareaDominio } from './mapeos.js';
@@ -272,7 +273,7 @@ export class ServicioTareas {
       // eso después sería una consulta por tarjeta.
       include: { autor: { select: RESUMEN_PERSONA } },
     });
-    return ordenarFeed(candidatas.map(aTareaDominio), perfil, {
+    const tareas = ordenarFeed(candidatas.map(aTareaDominio), perfil, {
       limiteDeuda: this.pais.limiteDeuda,
     }).map(({ tarea, elegibilidad }) => {
       const fila = candidatas.find((t) => t.id === tarea.id)!;
@@ -286,6 +287,45 @@ export class ServicioTareas {
         ola: elegibilidad.ola.indice,
       };
     });
+
+    return { tareas, bloqueo: this.porQueNoVeNada(perfil) };
+  }
+
+  /**
+   * Por qué el muro le sale vacío.
+   *
+   * Hay motivos que no dependen de ninguna tarea en particular —deber
+   * comisiones, no tener el documento verificado, estar suspendido— y que
+   * sacan del muro absolutamente todo. Sin este aviso, el trabajador abre la
+   * app, ve una pantalla en blanco y concluye que no hay trabajo. Eso no es un
+   * error del servidor: es peor, porque no hay a quién preguntarle.
+   */
+  private porQueNoVeNada(perfil: PerfilTrabajadorDominio): { motivo: string; detalle: string } | null {
+    if (perfil.suspendido) {
+      return {
+        motivo: 'CUENTA_SUSPENDIDA',
+        detalle: 'Tu cuenta está suspendida. Escribinos para saber por qué.',
+      };
+    }
+    if (!perfil.identidadVerificada) {
+      return {
+        motivo: 'IDENTIDAD_NO_VERIFICADA',
+        detalle: 'Para tomar trabajos falta que soporte verifique tu documento.',
+      };
+    }
+    if (!perfil.telefonoVerificado) {
+      return { motivo: 'TELEFONO_NO_VERIFICADO', detalle: 'Verificá tu teléfono para tomar trabajos.' };
+    }
+    if (perfil.deudaComisiones >= this.pais.limiteDeuda) {
+      return {
+        motivo: 'DEUDA_DE_COMISIONES',
+        detalle: 'Tenés comisiones sin pagar de trabajos en efectivo. Pagalas y el muro vuelve.',
+      };
+    }
+    if (!perfil.rubros.length) {
+      return { motivo: 'SIN_RUBROS', detalle: 'Elegí en qué oficios trabajás para ver trabajos tuyos.' };
+    }
+    return null;
   }
 
   /** Lo que una persona tiene en curso, de los dos lados del mostrador. */

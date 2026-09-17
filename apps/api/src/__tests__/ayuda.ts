@@ -15,6 +15,8 @@ export const env: Env = cargarEnv({
   DATABASE_URL: URL_TEST,
   JWT_SECRET: 'secreto-de-pruebas-con-mas-de-32-caracteres',
   KYC_ENCRYPTION_KEY: 'a'.repeat(64),
+  // Los tests corren en la moneda de referencia. Los de Chile ponen CLP a mano.
+  PAYMENTS_CURRENCY: 'USD',
   // Claves de avisos de mentira, sólo para que el servicio quede activo: en los
   // tests el envío se reemplaza, nunca sale un push de verdad.
   VAPID_PUBLIC_KEY: VAPID_PRUEBA.publicKey,

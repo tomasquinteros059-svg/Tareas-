@@ -369,7 +369,7 @@ describe('el radar busca por zona en la base', () => {
     // Arica, 2.000 km al norte.
     await ctx.tareas.publicar(cliente.id, { ...TAREA_BASE, lat: -18.4783, lng: -70.3126 });
 
-    const feed = await ctx.tareas.feed(trabajador.id);
+    const feed = (await ctx.tareas.feed(trabajador.id)).tareas;
 
     expect(feed.map((t) => t.id)).toEqual([cerca.id]);
   });
@@ -411,7 +411,7 @@ describe('el radar busca por zona en la base', () => {
       })),
     });
 
-    const feed = await ctx.tareas.feed(trabajador.id);
+    const feed = (await ctx.tareas.feed(trabajador.id)).tareas;
 
     expect(feed.map((t) => t.id)).toContain(cerca.id);
     expect(feed).toHaveLength(1);

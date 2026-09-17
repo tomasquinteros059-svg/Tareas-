@@ -1607,6 +1607,22 @@ function vistaFeed() {
   h += bienvenida(u);
 
   if (!lista.length) {
+    // El servidor sabe si el muro está vacío por un motivo que no tiene nada
+    // que ver con lo que se está buscando —deber comisiones, el documento sin
+    // verificar, la cuenta suspendida—. Decirlo es la diferencia entre "no hay
+    // trabajo" y "esto es lo que tenés que hacer".
+    if (banca.bloqueo && !q && !vista.distancia && !vista.montoMin) {
+      h += '<div style="padding:8px 16px"><div class="tarjeta alerta">' +
+        '<h3 style="font-size:15px">Tu muro está vacío por esto</h3>' +
+        '<p class="guia" style="margin-top:6px">' + esc(banca.bloqueo.detalle) + "</p>" +
+        (banca.bloqueo.motivo === "DEUDA_DE_COMISIONES"
+          ? '<button class="btn peligro chico" style="margin-top:10px" data-accion="ir" data-pantalla="saldo">Ir a pagar</button>'
+          : banca.bloqueo.motivo === "SIN_RUBROS"
+          ? '<button class="btn primario chico" style="margin-top:10px" data-accion="ir" data-pantalla="editar">Elegir mis oficios</button>'
+          : "") +
+        "</div></div>";
+      return h;
+    }
     h += '<div class="vacio">' + (q || vista.distancia || vista.montoMin
       ? "Nada coincide con lo que buscás.<br>Probá con menos filtros."
       : "No hay trabajos en " + nombreCat(cat) + " por ahora.<br>Probá otra solapa o publicá uno vos.") + "</div>";
@@ -2660,7 +2676,7 @@ var dbDemo = null;
  * Lo que el servidor sabe de la plata de quien está adentro. Fuera del modo
  * conectado queda en null y las pantallas usan las reglas de la demostración.
  */
-var banca = { retiros: null, deudas: null, guardadas: [] };
+var banca = { retiros: null, deudas: null, guardadas: [], bloqueo: null };
 
 function conectado() {
   return apiDisponible() && window.Tareas.api.hayCuenta() && db && db.servidor === true;
@@ -2825,7 +2841,10 @@ async function sincronizar() {
   // La plata tiene reglas que sólo sabe el servidor: el mínimo de retiro, si
   // hay cuenta bancaria cargada, si quedó un retiro esperando, cuánto se debe y
   // con qué tarjeta se cobra. La app no las inventa: las pregunta.
-  banca = { retiros: segundo[2], deudas: segundo[3], guardadas: segundo[4].tareas || [] };
+  banca = {
+    retiros: segundo[2], deudas: segundo[3], guardadas: segundo[4].tareas || [],
+    bloqueo: muro.bloqueo || null
+  };
 
   var yoApp = usuarioDesdeServidor(yoRemoto, perfilRemoto);
   var porId = {};
@@ -2961,8 +2980,15 @@ async function refrescarMuro() {
     // Quien no es trabajador no tiene muro: pedirlo es un error garantizado
     // cada doce segundos, y encima gasta el cupo de pedidos del minuto.
     var hayMuro = yo() && yo().esTrabajador;
+    // La huella incluye si el trabajo ya se puede tomar, y no sólo su estado.
+    // El radar abre por olas: un trabajo que hace un minuto decía "se abre para
+    // tu nivel en 40 s" pasa a ser tomable sin cambiar de estado. Mirando sólo
+    // el estado, la pantalla se quedaba con el cartel viejo hasta que alguien
+    // salía y volvía a entrar, y el trabajo se lo llevaba otro.
     var huella = function () {
-      return db.tareas.map(function (t) { return t.id + ":" + t.estado; }).join("|");
+      return db.tareas.map(function (t) {
+        return t.id + ":" + t.estado + ":" + t.elegibleServidor + ":" + (t.motivoServidor || "");
+      }).join("|") + "#" + (banca.bloqueo ? banca.bloqueo.motivo : "");
     };
     var antes = huella();
 
@@ -2975,6 +3001,7 @@ async function refrescarMuro() {
       conocerA(fila.autor);
       conocerA(fila.trabajador);
     };
+    banca.bloqueo = r[0].bloqueo || null;
     r[1].tareas.forEach(sumar);
     r[0].tareas.forEach(sumar);
     db.tareas = tareas.sort(function (a, b) { return b.publicadaEn - a.publicadaEn; });

@@ -72,7 +72,14 @@ abajo se puede hacer con la app ya en la calle.
 - **La estrella de guardar vive en la cuenta**, no en el teléfono.
 - **El límite de pedidos no cuenta los archivos de la app**: contándolos, el uso
   normal chocaba con "estás yendo muy rápido" a los pocos minutos.
-- 336 pruebas automáticas, más un QA funcional que recorre la app con un
+- **El muro vacío dice por qué está vacío**: deber comisiones, el documento sin
+  verificar o no haber elegido oficios sacaban del muro absolutamente todo, y
+  el trabajador veía una pantalla en blanco y concluía que no había trabajo.
+- **La moneda es obligatoria y no tiene valor por defecto.** Con un `USD`
+  supuesto, una instalación chilena que se olvidaba de la variable arrancaba con
+  los pisos y los topes de otro país sin un solo error en el registro. Ya había
+  pasado dos veces: ahora el servidor no arranca.
+- 337 pruebas automáticas, más un QA funcional que recorre la app con un
   navegador de verdad, botón por botón, contra un servidor real.
 
 ## Bloquea el lanzamiento

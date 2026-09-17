@@ -9,7 +9,21 @@ const esquema = z.object({
     .string()
     .regex(/^[0-9a-f]{64}$/i, 'KYC_ENCRYPTION_KEY debe ser 32 bytes en hexadecimal'),
   PAYMENTS_PROVIDER: z.enum(['sandbox', 'stripe', 'mercadopago', 'transbank']).default('sandbox'),
-  PAYMENTS_CURRENCY: z.string().default('USD'),
+  /*
+   * La moneda no tiene valor por defecto a propósito.
+   *
+   * Con un `USD` supuesto, una instalación chilena que se olvida de la variable
+   * arranca igual y aplica precios y topes de otro país: los pisos por oficio
+   * quedan diez veces más bajos y el tope de deuda deja al trabajador sin muro
+   * después de dos trabajos en efectivo. Todo eso sin un solo error en el
+   * registro. Ya pasó dos veces.
+   *
+   * Es mejor que el servidor no arranque.
+   */
+  PAYMENTS_CURRENCY: z
+    .string()
+    .length(3, 'PAYMENTS_CURRENCY tiene que ser el código de tres letras de la moneda, por ejemplo CLP')
+    .transform((m) => m.toUpperCase()),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   MERCADOPAGO_ACCESS_TOKEN: z.string().optional(),

@@ -212,8 +212,9 @@ describe('el límite de deuda, con la app en pesos', () => {
 
     const muro = await chileno.feed(trabajador.id);
 
-    expect(muro).toHaveLength(1);
-    expect(muro[0]).toMatchObject({ elegible: true });
+    expect(muro.tareas).toHaveLength(1);
+    expect(muro.tareas[0]).toMatchObject({ elegible: true });
+    expect(muro.bloqueo).toBeNull();
   });
 
   it('pasado el tope chileno sí se le corta', async () => {
@@ -231,7 +232,11 @@ describe('el límite de deuda, con la app en pesos', () => {
     });
 
     const muro = await chileno.feed(trabajador.id);
-    expect(muro).toHaveLength(0);
+    expect(muro.tareas).toHaveLength(0);
+    // Y el muro vacío tiene que decir por qué: si no, el trabajador concluye
+    // que no hay trabajo y se va.
+    expect(muro.bloqueo).toMatchObject({ motivo: 'DEUDA_DE_COMISIONES' });
+    expect(muro.bloqueo?.detalle).toMatch(/comisiones/i);
     await expect(chileno.aceptar(tarea.id, trabajador.id)).rejects.toMatchObject({
       codigo: 'SIN_PERMISO',
     });
