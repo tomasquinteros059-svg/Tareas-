@@ -37,6 +37,8 @@ export interface Aviso {
   url?: string;
   /** Avisos con la misma etiqueta se reemplazan en vez de apilarse. */
   etiqueta?: string;
+  /** La tarea de la que habla, para que la campana pueda llevar hasta ella. */
+  tareaId?: string;
 }
 
 export interface DatosSuscripcion {
@@ -103,6 +105,25 @@ export class ServicioAvisos {
     });
   }
 
+  /** Lo que tiene que mostrar la campana. */
+  async mios(usuarioId: string) {
+    const avisos = await this.prisma.aviso.findMany({
+      where: { usuarioId },
+      orderBy: { creadoEn: 'desc' },
+      take: 50,
+    });
+    return { avisos, sinLeer: avisos.filter((a) => !a.leido).length };
+  }
+
+  /** Se marcan al abrir la campana: es cuando de verdad los vio. */
+  async marcarLeidos(usuarioId: string) {
+    const { count } = await this.prisma.aviso.updateMany({
+      where: { usuarioId, leido: false },
+      data: { leido: true },
+    });
+    return { leidos: count };
+  }
+
   async desuscribir(usuarioId: string, endpoint: string) {
     const { count } = await this.prisma.suscripcionPush.deleteMany({ where: { usuarioId, endpoint } });
     if (count === 0) throw noEncontrado('La suscripción');
@@ -114,6 +135,24 @@ export class ServicioAvisos {
    * llegó: cero no es un error —puede no tener ninguno— pero sirve para saberlo.
    */
   async enviar(usuarioId: string, aviso: Aviso): Promise<number> {
+    // Se guarda antes de intentar mandarlo, y aunque el push no esté
+    // configurado. Quien no dio permiso de avisos —o entra desde otro
+    // teléfono— si no, no se entera nunca de nada: ni de que le tomaron el
+    // trabajo, ni de que el otro va en camino.
+    await this.prisma.aviso
+      .create({
+        data: {
+          usuarioId,
+          titulo: aviso.titulo,
+          cuerpo: aviso.cuerpo,
+          url: aviso.url,
+          tareaId: aviso.tareaId,
+        },
+      })
+      .catch(() => {
+        /* Un aviso que no se pudo anotar no tiene que voltear la operación. */
+      });
+
     if (!this.configurado) return 0;
     const destinos = await this.prisma.suscripcionPush.findMany({ where: { usuarioId } });
     let entregados = 0;

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { crearServidor } from '../servidor.js';
@@ -270,11 +271,30 @@ describe('las puertas', () => {
     ['GET', '/perfil'],
     ['PUT', '/perfil'],
     ['POST', '/perfil/disponibilidad'],
+    ['GET', '/avisos'],
+    ['POST', '/avisos/leidos'],
+    ['GET', '/tareas/guardadas'],
+    ['POST', '/deudas/confirmar'],
   ];
 
   it.each(PRIVADAS)('sin sesión, %s %s responde 401', async (metodo, url) => {
     const r = await app.inject({ method: metodo as 'GET', url, payload: metodo === 'GET' ? undefined : {} });
     expect(r.statusCode).toBe(401);
+  });
+
+  it('la lista de arriba no se queda atrás de las rutas que existen', () => {
+    // Sin esto, el candado protege lo de ayer: alguien agrega una ruta privada,
+    // se olvida de anotarla, y la prueba sigue en verde sin mirarla nunca. Se
+    // lee el archivo de rutas, que es donde está la verdad.
+    const fuente = readFileSync(new URL('../rutas.ts', import.meta.url), 'utf8');
+    const delServidor = [...fuente.matchAll(/privadas\.(get|post|put|patch|delete)\(\s*'([^']+)'/g)]
+      .map((m) => `${m[1]!.toUpperCase()} ${m[2]!}`)
+      // Las que llevan parámetros se prueban con su id en otros tests.
+      .filter((r) => !r.includes(':'));
+
+    const declaradas = new Set(PRIVADAS.map(([m, u]) => `${m} ${u}`));
+    const sinAnotar = [...new Set(delServidor)].filter((r) => !declaradas.has(r));
+    expect(sinAnotar, 'rutas privadas nuevas sin anotar en PRIVADAS').toEqual([]);
   });
 
   const PUBLICAS: Array<[string, string]> = [

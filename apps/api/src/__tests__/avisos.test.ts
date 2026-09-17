@@ -239,3 +239,91 @@ describe('la app instalable', () => {
     }
   });
 });
+
+/**
+ * La campana.
+ *
+ * El push llega sólo a los teléfonos suscriptos. Quien no dio permiso —o entra
+ * desde otro aparato— no se enteraba nunca de nada: ni de que le tomaron el
+ * trabajo, ni de que el otro iba en camino. La app tenía una campana y la
+ * campana estaba siempre vacía.
+ */
+describe('los avisos quedan guardados, no sólo empujados', () => {
+  it('se anotan aunque no haya ningún teléfono suscripto', async () => {
+    const cliente = await crearCliente('Ana');
+    await ctx.avisos.enviar(cliente.id, { titulo: 'Hola', cuerpo: 'Un aviso' });
+
+    const { avisos, sinLeer } = await ctx.avisos.mios(cliente.id);
+    expect(avisos).toHaveLength(1);
+    expect(avisos[0]).toMatchObject({ titulo: 'Hola', cuerpo: 'Un aviso', leido: false });
+    expect(sinLeer).toBe(1);
+  });
+
+  it('abrir la campana los marca leídos', async () => {
+    const cliente = await crearCliente();
+    await ctx.avisos.enviar(cliente.id, { titulo: 'Uno', cuerpo: 'a' });
+    await ctx.avisos.enviar(cliente.id, { titulo: 'Dos', cuerpo: 'b' });
+
+    expect((await ctx.avisos.mios(cliente.id)).sinLeer).toBe(2);
+    expect(await ctx.avisos.marcarLeidos(cliente.id)).toEqual({ leidos: 2 });
+    expect((await ctx.avisos.mios(cliente.id)).sinLeer).toBe(0);
+  });
+
+  it('cada uno ve los suyos', async () => {
+    const uno = await crearCliente('Ana');
+    const otro = await crearCliente('Berta');
+    await ctx.avisos.enviar(uno.id, { titulo: 'Para Ana', cuerpo: 'x' });
+
+    expect((await ctx.avisos.mios(otro.id)).avisos).toHaveLength(0);
+  });
+});
+
+describe('cuando algo se mueve, la otra parte se entera', () => {
+  it('al cliente le avisan que le tomaron el trabajo, con el código', async () => {
+    const cliente = await crearCliente('Ana');
+    const trabajador = await crearTrabajador('Beto');
+    const tarea = await ctx.tareas.publicar(cliente.id, TAREA_BASE);
+
+    await ctx.tareas.aceptar(tarea.id, trabajador.id);
+    // El aviso se dispara sin esperar, para no trabar la operación.
+    await new Promise((listo) => setTimeout(listo, 50));
+
+    const { avisos } = await ctx.avisos.mios(cliente.id);
+    expect(avisos[0]?.titulo).toBe('Te tomaron el trabajo');
+    expect(avisos[0]?.cuerpo).toContain('Beto');
+    expect(avisos[0]?.cuerpo).toContain(tarea.codigoInicio);
+    expect(avisos[0]?.tareaId).toBe(tarea.id);
+  });
+
+  it('el aviso va a quien no apretó el botón', async () => {
+    const cliente = await crearCliente();
+    const trabajador = await crearTrabajador();
+    const tarea = await ctx.tareas.publicar(cliente.id, TAREA_BASE);
+    await ctx.tareas.aceptar(tarea.id, trabajador.id);
+    await ctx.avisos.marcarLeidos(cliente.id);
+
+    await ctx.tareas.cambiarEstado(tarea.id, trabajador.id, 'EN_CAMINO');
+    await new Promise((listo) => setTimeout(listo, 50));
+
+    expect((await ctx.avisos.mios(cliente.id)).avisos[0]?.titulo).toBe('Van en camino');
+    // Y el que lo apretó no se avisa a sí mismo.
+    expect((await ctx.avisos.mios(trabajador.id)).avisos).toHaveLength(0);
+  });
+
+  it('el trabajador se entera de que le confirmaron el trabajo', async () => {
+    const cliente = await crearCliente();
+    const trabajador = await crearTrabajador();
+    const tarea = await ctx.tareas.publicar(cliente.id, TAREA_BASE);
+    await ctx.tareas.aceptar(tarea.id, trabajador.id);
+    await ctx.tareas.cambiarEstado(tarea.id, trabajador.id, 'EN_CAMINO');
+    await ctx.tareas.cambiarEstado(tarea.id, trabajador.id, 'EN_PROGRESO', {
+      codigoInicio: tarea.codigoInicio,
+    });
+    await ctx.tareas.cambiarEstado(tarea.id, trabajador.id, 'ENTREGADA');
+    await ctx.tareas.cambiarEstado(tarea.id, cliente.id, 'CONFIRMADA');
+    await new Promise((listo) => setTimeout(listo, 50));
+
+    const titulos = (await ctx.avisos.mios(trabajador.id)).avisos.map((a) => a.titulo);
+    expect(titulos).toContain('Confirmaron el trabajo');
+  });
+});

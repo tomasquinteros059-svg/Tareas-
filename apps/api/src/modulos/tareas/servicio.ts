@@ -25,6 +25,14 @@ import { aPerfilDominio, aTareaDominio } from './mapeos.js';
 import type { Pasarela } from '../pagos/pasarela.js';
 import type { ServicioAntifraude } from '../antifraude/servicio.js';
 
+/** Lo mínimo que el servicio de tareas necesita saber de un aviso. */
+interface AvisoTarea {
+  titulo: string;
+  cuerpo: string;
+  tareaId: string;
+  url?: string;
+}
+
 /** Cuánto vive una tarea publicada antes de expirar si nadie la toma. */
 const VENTANA_PUBLICACION_MS = 24 * 60 * 60 * 1000;
 /** Preguntas que puede hacer un mismo trabajador sobre una tarea, antes de tomarla. */
@@ -63,7 +71,25 @@ export class ServicioTareas {
      * que hace dos trabajos en efectivo queda bloqueado para siempre.
      */
     private readonly pais: ConfiguracionPais = PAIS_REFERENCIA,
+    /**
+     * Para avisarle a la otra parte cuando algo se mueve. Es opcional porque
+     * hay tests que no lo necesitan, pero en la app de verdad no lo es: sin
+     * aviso, al cliente le toman el trabajo y se entera la próxima vez que
+     * abre la app, que puede ser al día siguiente.
+     */
+    private readonly avisos?: { enviar: (usuarioId: string, aviso: AvisoTarea) => Promise<number> },
   ) {}
+
+  /**
+   * Avisa sin trabar la operación.
+   *
+   * Un aviso que no sale no puede voltear una tarea que ya se tomó: la tarea
+   * está tomada igual. Por eso se dispara y se sigue.
+   */
+  private avisar(usuarioId: string | null, titulo: string, cuerpo: string, tareaId: string) {
+    if (!usuarioId || !this.avisos) return;
+    void this.avisos.enviar(usuarioId, { titulo, cuerpo, tareaId, url: '/' }).catch(() => {});
+  }
 
   /**
    * Publica la tarea con precio cerrado. Si paga con tarjeta, primero se retienen
@@ -402,6 +428,17 @@ export class ServicioTareas {
       }),
     ]);
 
+    const quien = await this.prisma.usuario.findUnique({
+      where: { id: trabajadorId },
+      select: { nombre: true },
+    });
+    this.avisar(
+      tarea.autorId,
+      'Te tomaron el trabajo',
+      `${quien?.nombre ?? 'Alguien'} va a hacer "${tarea.titulo}". Tené a mano el código ${tarea.codigoInicio}.`,
+      tareaId,
+    );
+
     return this.prisma.tarea.findUniqueOrThrow({ where: { id: tareaId } });
   }
 
@@ -470,6 +507,8 @@ export class ServicioTareas {
         : []),
     ]);
 
+    this.avisarDelCambio(tarea, actor, hacia);
+
     if (hacia === 'CONFIRMADA') return this.liquidarTarea(tareaId);
     if (hacia === 'CANCELADA') {
       await this.cobrarCancelacion(tarea, actor);
@@ -478,6 +517,39 @@ export class ServicioTareas {
       await this.liberarRetencion(tareaId);
     }
     return actualizada;
+  }
+
+  /**
+   * Qué se le dice a la otra parte en cada paso.
+   *
+   * El aviso va siempre a quien *no* apretó el botón: el que lo apretó ya sabe
+   * lo que hizo. Y dice qué hacer, no sólo qué pasó.
+   */
+  private avisarDelCambio(tarea: Tarea, actor: Actor, hacia: EstadoTarea) {
+    const otro = actor === 'CLIENTE' ? tarea.trabajadorId : tarea.autorId;
+    const textos: Partial<Record<EstadoTarea, { titulo: string; cuerpo: string }>> = {
+      EN_CAMINO: {
+        titulo: 'Van en camino',
+        cuerpo: `Están yendo a "${tarea.titulo}". Tené a mano el código ${tarea.codigoInicio}.`,
+      },
+      EN_PROGRESO: { titulo: 'Empezó el trabajo', cuerpo: `Arrancaron con "${tarea.titulo}".` },
+      ENTREGADA: {
+        titulo: 'Terminaron tu trabajo',
+        cuerpo: `Dieron por terminado "${tarea.titulo}". Revisalo y confirmá para que cobren.`,
+      },
+      CONFIRMADA: { titulo: 'Confirmaron el trabajo', cuerpo: `Ya podés cobrar "${tarea.titulo}".` },
+      CANCELADA: { titulo: 'Se canceló el trabajo', cuerpo: `Se canceló "${tarea.titulo}".` },
+      PUBLICADA: {
+        titulo: 'El trabajo volvió al radar',
+        cuerpo: `Quien había tomado "${tarea.titulo}" se bajó. Ya está otra vez publicado.`,
+      },
+      EN_DISPUTA: {
+        titulo: 'Se abrió un reclamo',
+        cuerpo: `Hay un reclamo en "${tarea.titulo}". Soporte lo va a revisar.`,
+      },
+    };
+    const texto = textos[hacia];
+    if (texto) this.avisar(otro, texto.titulo, texto.cuerpo, tarea.id);
   }
 
   /**

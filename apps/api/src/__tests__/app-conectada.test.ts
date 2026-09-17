@@ -108,6 +108,23 @@ describe('el muro conectado se mira solo', () => {
   });
 });
 
+describe('la campana y la salida', () => {
+  it('los avisos que muestra la campana vienen del servidor', () => {
+    // Conectada, la campana leía una lista local que nadie llenaba: estaba
+    // siempre vacía, y el punto rojo nunca aparecía.
+    expect(cuerpoDe('refrescarAvisos')).toContain('api.avisos()');
+    expect(HTML).toContain('avisosRemotos');
+  });
+
+  it('cerrar sesión suelta también la sesión del servidor', () => {
+    // Si no, el token queda en el teléfono y la app vuelve a entrar sola en la
+    // próxima recarga. En un teléfono prestado, eso es la cuenta abierta.
+    const i = HTML.indexOf('if (a === "cerrar-sesion")');
+    expect(i).toBeGreaterThan(-1);
+    expect(HTML.slice(i, i + 900)).toContain('api.salir()');
+  });
+});
+
 describe('nadie se queda mirando una pantalla sin salida', () => {
   it('desde el ingreso al servidor se puede volver a la portada', () => {
     expect(cuerpoDe('vistaServidor')).toContain('data-pantalla="portada"');

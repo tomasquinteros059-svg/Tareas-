@@ -125,7 +125,7 @@ export function crearContexto(
     contacto: env.VAPID_SUBJECT,
   });
   const pais = paisDe(env.PAYMENTS_CURRENCY);
-  const tareas = new ServicioTareas(prisma, pasarela, antifraude, pais);
+  const tareas = new ServicioTareas(prisma, pasarela, antifraude, pais, avisos);
   const calificaciones = new ServicioCalificaciones(prisma);
   const deudas = new ServicioDeudas(prisma, pasarela, env.PAYMENTS_CURRENCY, paisDe(env.PAYMENTS_CURRENCY).deudas);
 

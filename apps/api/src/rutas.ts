@@ -424,6 +424,10 @@ export async function registrarRutas(app: FastifyInstance, ctx: Contexto) {
       return reply.code(201).send({ suscripto: true });
     });
 
+    privadas.get('/avisos', async (req) => ctx.avisos.mios(req.usuarioId()));
+
+    privadas.post('/avisos/leidos', async (req) => ctx.avisos.marcarLeidos(req.usuarioId()));
+
     privadas.post('/avisos/baja', async (req) => {
       const { endpoint } = z.object({ endpoint: z.string().url() }).parse(req.body);
       return ctx.avisos.desuscribir(req.usuarioId(), endpoint);

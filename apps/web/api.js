@@ -222,6 +222,12 @@
     },
 
     /* --- Avisos --- */
+    avisos: function () {
+      return pedir('GET', '/avisos');
+    },
+    avisosLeidos: function () {
+      return pedir('POST', '/avisos/leidos');
+    },
     claveAvisos: function () {
       return pedir('GET', '/avisos/clave');
     },

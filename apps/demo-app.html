@@ -2308,7 +2308,7 @@ function vistaAvisos() {
     return '<div class="aviso-item' + (n.leido ? "" : " nuevo") + '"' +
       (n.tareaId ? ' data-accion="ir" data-pantalla="tarea" data-id="' + n.tareaId + '"' : "") + ">" +
       '<span class="pt' + (n.leido ? " leido" : "") + '"></span>' +
-      '<span style="flex:1"><span class="marca-tipo">' + (titulos[n.tipo] || n.tipo) + " · " + hace(n.cuando) + "</span>" +
+      '<span style="flex:1"><span class="marca-tipo">' + esc(n.titulo || titulos[n.tipo] || n.tipo) + " · " + hace(n.cuando) + "</span>" +
       "<p>" + esc(n.texto) + "</p></span></div>";
   }).join("");
   return h;
@@ -2833,7 +2833,8 @@ async function sincronizar() {
     esTrabajador ? blando(api.saldo(), { movimientos: [] }) : { movimientos: [] },
     esTrabajador ? blando(api.retiros(), null) : null,
     esTrabajador ? blando(api.deudas(), null) : null,
-    blando(api.guardadas(), { tareas: [] })
+    blando(api.guardadas(), { tareas: [] }),
+    blando(api.avisos(), { avisos: [] })
   ]);
 
   var muro = segundo[0];
@@ -2845,6 +2846,7 @@ async function sincronizar() {
     retiros: segundo[2], deudas: segundo[3], guardadas: segundo[4].tareas || [],
     bloqueo: muro.bloqueo || null
   };
+  var avisosRemotos = segundo[5].avisos || [];
 
   var yoApp = usuarioDesdeServidor(yoRemoto, perfilRemoto);
   var porId = {};
@@ -2875,6 +2877,15 @@ async function sincronizar() {
   });
   db.sesionId = yoApp.id;
   db.eventos = db.eventos || [];
+  // La campana: sin esto, conectado, estaba siempre vacía. El push llega sólo
+  // a los teléfonos suscriptos; quien no dio permiso no se enteraba de nada.
+  db.avisos = avisosRemotos.map(function (a) {
+    return {
+      id: a.id, usuarioId: yoApp.id, tipo: "SERVIDOR", titulo: a.titulo,
+      texto: a.cuerpo, tareaId: a.tareaId || null, leido: !!a.leido,
+      cuando: new Date(a.creadoEn).getTime()
+    };
+  });
   db.servidor = true;
 }
 
@@ -3053,6 +3064,11 @@ document.addEventListener("click", function (ev) {
   /* --- avisos y perfiles --- */
   if (a === "ver-avisos") {
     avisosDe(db.sesionId).forEach(function (n) { n.leido = true; });
+    if (conectado()) {
+      ir("avisos");
+      conServidor(async function () { await window.Tareas.api.avisosLeidos(); });
+      return;
+    }
     marcar(); guardar();
     ir("avisos");
     return;
@@ -3151,6 +3167,15 @@ document.addEventListener("click", function (ev) {
   /* --- entrar y salir --- */
   if (a === "entrar") { entrarComo(el.dataset.id); return; }
   if (a === "cerrar-sesion") {
+    // Conectado hay que soltar también la sesión del servidor. Antes quedaba
+    // guardada en el teléfono y la app volvía a entrar sola en la próxima
+    // recarga: en un teléfono prestado o perdido, eso es la cuenta abierta.
+    if (conectado() || (apiDisponible() && window.Tareas.api.hayCuenta())) {
+      window.Tareas.api.salir();
+      servidor = { paso: "inicio", telefono: "", cargando: false, error: "", yo: null, feed: null, avisos: "" };
+      banca = { retiros: null, deudas: null, guardadas: [], bloqueo: null };
+      volverALaDemostracion();
+    }
     db.sesionId = null;
     marcar(); guardar();
     vista.borrador = null;
@@ -3663,9 +3688,39 @@ setInterval(function () {
   refrescarMuro();
 }, 12000);
 
+/* La campana se mira desde cualquier pantalla, así que se refresca aparte. */
+var refrescandoAvisos = false;
+async function refrescarAvisos() {
+  if (refrescandoAvisos || !conectado()) return;
+  refrescandoAvisos = true;
+  try {
+    var r = await window.Tareas.api.avisos();
+    var antes = db.avisos.length + ":" + sinLeer(db.sesionId);
+    db.avisos = (r.avisos || []).map(function (a) {
+      return {
+        id: a.id, usuarioId: db.sesionId, tipo: "SERVIDOR", titulo: a.titulo,
+        texto: a.cuerpo, tareaId: a.tareaId || null, leido: !!a.leido,
+        cuando: new Date(a.creadoEn).getTime()
+      };
+    });
+    if (antes !== db.avisos.length + ":" + sinLeer(db.sesionId)) render();
+  } catch (e) {
+    /* Se reintenta en la próxima vuelta. */
+  } finally {
+    refrescandoAvisos = false;
+  }
+}
+
+setInterval(function () {
+  if (document.hidden) return;
+  refrescarAvisos();
+}, 30000);
+
 /* Y al volver a la app después de dejarla de lado, sin esperar los 12 segundos. */
 document.addEventListener("visibilitychange", function () {
-  if (!document.hidden && vista.pantalla === "inicio") refrescarMuro();
+  if (document.hidden) return;
+  if (vista.pantalla === "inicio") refrescarMuro();
+  refrescarAvisos();
 });
 
 arrancar();

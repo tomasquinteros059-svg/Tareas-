@@ -79,7 +79,15 @@ abajo se puede hacer con la app ya en la calle.
   supuesto, una instalación chilena que se olvidaba de la variable arrancaba con
   los pisos y los topes de otro país sin un solo error en el registro. Ya había
   pasado dos veces: ahora el servidor no arranca.
-- 337 pruebas automáticas, más un QA funcional que recorre la app con un
+- **Los avisos se guardan, no sólo se empujan.** El push llega a los teléfonos
+  suscriptos; quien no dio permiso no se enteraba nunca de nada. Ahora cada
+  aviso queda anotado, la campana de la app lo muestra y se marca leído al
+  abrirla. Y se avisa en cada paso —te tomaron el trabajo, van en camino,
+  terminaron, confirmaron, se abrió un reclamo—, siempre a quien *no* apretó el
+  botón.
+- **Cerrar sesión cierra también la del servidor.** Antes el token quedaba en el
+  teléfono y la app volvía a entrar sola en la próxima recarga.
+- 350 pruebas automáticas, más un QA funcional que recorre la app con un
   navegador de verdad, botón por botón, contra un servidor real.
 
 ## Bloquea el lanzamiento

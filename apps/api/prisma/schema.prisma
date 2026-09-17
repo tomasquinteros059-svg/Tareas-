@@ -130,6 +130,7 @@ model Usuario {
   codigosOtp     CodigoOtp[]
 
   tareasGuardadas TareaGuardada[]
+  avisos          Aviso[]
   @@index([telefono])
 }
 
@@ -584,4 +585,26 @@ model TareaGuardada {
 
   @@unique([usuarioId, tareaId])
   @@index([usuarioId])
+}
+
+/// Los avisos que se le mandaron a alguien.
+///
+/// El push llega sólo a los dispositivos suscriptos: quien no dio permiso, o
+/// entra desde otro teléfono, no se entera de nada nunca. Guardarlos es lo que
+/// hace que la campana de la app tenga algo adentro y que un aviso perdido se
+/// pueda recuperar.
+model Aviso {
+  id        String   @id @default(uuid())
+  usuarioId String
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  titulo    String
+  cuerpo    String
+  /// La tarea de la que habla, si habla de una.
+  tareaId   String?
+  /// Adónde lleva al tocarlo.
+  url       String?
+  leido     Boolean  @default(false)
+  creadoEn  DateTime @default(now())
+
+  @@index([usuarioId, creadoEn])
 }
