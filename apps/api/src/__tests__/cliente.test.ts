@@ -351,12 +351,18 @@ describe('los errores dicen qué pasó', () => {
     const apretado = await crearServidor(ctx, { ...env, NODE_ENV: 'development' });
     try {
       let ultima = { statusCode: 200, body: '{}' };
-      for (let i = 0; i < 125; i++) {
+      for (let i = 0; i < 305; i++) {
         ultima = await apretado.inject({ method: 'GET', url: '/catalogo' });
       }
       expect(ultima.statusCode).toBe(429);
       expect(JSON.parse(ultima.body).error).toMatchObject({ codigo: 'DEMASIADOS_PEDIDOS' });
       expect(JSON.parse(ultima.body).error.mensaje).toMatch(/muy rápido/i);
+
+      // Los archivos de la app no gastan el cupo: si lo gastaran, abrir la app
+      // unas cuantas veces dejaría a alguien afuera sin haber llamado nunca a
+      // la API.
+      const archivo = await apretado.inject({ method: 'GET', url: '/estilos.css' });
+      expect(archivo.statusCode).not.toBe(429);
     } finally {
       await apretado.close();
     }

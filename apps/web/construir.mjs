@@ -33,7 +33,16 @@ if (!html.includes('</head>')) throw new Error('El HTML no tiene </head>: no sé
 html = html.replace('</head>', cabeza);
 
 if (!html.includes('</body>')) throw new Error('El HTML no tiene </body>: no sé dónde poner el registro');
-html = html.replace('</body>', '<script src="/api.js"></script>\n<script src="/instalar.js"></script>\n</body>');
+/*
+ * El cliente de la API va ANTES que el programa de la app, y no después.
+ *
+ * Puesto después, la app dibujaba su primera pantalla sin saber todavía que
+ * había un servidor detrás: la portada mostraba los botones de la demostración
+ * y nunca se volvía a dibujar. La app parecía andar y llevaba a todos a una
+ * cuenta de mentira. El orden de dos líneas era la diferencia.
+ */
+html = html.replace('</head>', '<script src="/api.js"></script>\n</head>');
+html = html.replace('</body>', '<script src="/instalar.js"></script>\n</body>');
 
 /*
  * El estilo y el programa salen a archivos aparte.

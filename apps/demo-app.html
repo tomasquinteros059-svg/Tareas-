@@ -956,6 +956,11 @@ function arrancar() {
 
 function usuario(uid) {
   for (var i = 0; i < db.usuarios.length; i++) if (db.usuarios[i].id === uid) return db.usuarios[i];
+  // Conectado, el servidor puede nombrar a alguien que esta app todavía no
+  // conoce. Antes eso era un `null` que rompía la pantalla entera al buscarle
+  // el nombre. Una pantalla con un nombre incompleto se puede leer; una
+  // pantalla en blanco, no.
+  if (uid && conectado()) return usuarioDeTarjeta({ id: uid, nombre: "Alguien", inicial: "" });
   return null;
 }
 function yo() { return usuario(db.sesionId); }
@@ -1135,6 +1140,15 @@ function liquidarTarea(t) {
 
 /** Si algo salió mal, la tarea se congela hasta que soporte decida. */
 function abrirDisputa(tid, motivo) {
+  if (conectado()) {
+    conServidor(async function () {
+      await window.Tareas.api.cambiarEstado(tid, "EN_DISPUTA", { nota: motivo });
+      await sincronizar();
+      await traerDetalle(tid);
+      aviso("Reclamo abierto. Soporte lo va a revisar.", "bien");
+    });
+    return;
+  }
   recargar();
   var t = tarea(tid), u = yo();
   if (["EN_PROGRESO", "ENTREGADA"].indexOf(t.estado) === -1) {
@@ -1150,6 +1164,9 @@ function abrirDisputa(tid, motivo) {
 
 /** Resolución de soporte: o se paga el trabajo, o se cancela y se libera. */
 function resolverDisputa(tid, aFavorDelTrabajador) {
+  if (conectado()) {
+    return aviso("Los reclamos los resuelve soporte desde su panel, no desde acá.", "mal");
+  }
   recargar();
   var t = tarea(tid);
   if (!t.disputa) return;
@@ -1215,7 +1232,15 @@ function preguntar(tid, texto) {
   aviso("Pregunta enviada", "bien");
 }
 
-function responder(pid, texto) {
+function responder(pid, texto, tid) {
+  if (conectado()) {
+    conServidor(async function () {
+      await window.Tareas.api.responder(tid, pid, texto);
+      await traerDetalle(tid);
+      aviso("Respondida. La ven todos los que miren el trabajo.", "bien");
+    });
+    return;
+  }
   recargar();
   for (var i = 0; i < db.preguntas.length; i++) if (db.preguntas[i].id === pid) db.preguntas[i].respuesta = texto;
   marcar(); guardar(); render();
@@ -1230,6 +1255,30 @@ function mensajear(tid, texto) {
 }
 
 function pagarDeuda() {
+  if (conectado()) {
+    // Sin tarjeta guardada el servidor rechaza el cobro. Antes de eso, pedirla:
+    // que el botón termine en un error rojo es la peor forma de enterarse.
+    if (banca.deudas && !banca.deudas.tarjeta) {
+      vista.tarjeta = true;
+      ir("saldo");
+      return aviso("Dejanos una tarjeta y con esa cobramos la comisión.", "mal");
+    }
+    conServidor(async function () {
+      var r = await window.Tareas.api.pagarDeuda();
+      // Webpay no cobra solo: manda al trabajador al sitio del banco y recién
+      // cuando vuelve se confirma. Si no, el cobro sale acá mismo.
+      if (r && r.urlRedireccion) {
+        aviso("Te llevamos al banco para pagar.", "bien");
+        window.open(r.urlRedireccion, "_blank");
+      } else if (r && r.ok === false) {
+        aviso(r.motivo || "El cobro fue rechazado. Probá con otra tarjeta.", "mal");
+      } else {
+        aviso("Deuda saldada. Ya podés tomar trabajos.", "bien");
+      }
+      await sincronizar();
+    });
+    return;
+  }
   var u = yo();
   if (u.saldo >= 0) return aviso("No tenés deuda", "mal");
   var monto = -u.saldo;
@@ -1240,6 +1289,18 @@ function pagarDeuda() {
 }
 
 function retirar() {
+  if (conectado()) {
+    var r = banca.retiros;
+    if (!r) return aviso("Para cobrar hace falta el perfil de trabajador activo", "mal");
+    if (!r.banco) { vista.banco = vista.banco || {}; render(); return aviso("Cargá tu cuenta bancaria primero", "mal"); }
+    if (r.saldo < r.minimo) return aviso("El retiro mínimo es " + plata(r.minimo), "mal");
+    conServidor(async function () {
+      await window.Tareas.api.pedirRetiro(r.saldo);
+      await sincronizar();
+      aviso("Pedido. Transferimos a tu cuenta y te avisamos.", "bien");
+    });
+    return;
+  }
   var u = yo();
   if (u.saldo <= 0) return aviso("No tenés saldo para retirar", "mal");
   var monto = u.saldo;
@@ -1345,20 +1406,54 @@ function vistaPortada() {
       '</span><span class="falso">Aceptar</span></div>' +
     "</div>" +
     '<p class="legal" style="margin-top:10px">Así se ve el muro: los trabajos de tu zona, uno abajo del otro.</p>' +
-    '<div class="portada-acciones">' +
-      '<button class="btn oscuro" data-accion="ir" data-pantalla="linkedin">Continuar con LinkedIn</button>' +
+    '<div class="portada-acciones">' + accionesDePortada() +
+      '<p class="legal">Al continuar aceptás los términos y la política de privacidad.</p>' +
+    "</div></div>";
+}
+
+/**
+ * Los botones de abajo de la portada.
+ *
+ * Acá había el peor error de toda la app: los mismos botones llevaban a una
+ * cuenta inventada en el teléfono, estuviera o no el servidor detrás. Alguien
+ * bajaba la app, creaba su cuenta, publicaba, y no pasaba nada: el trabajo no
+ * existía para nadie más. Se veía andar y no andaba.
+ *
+ * Ahora, si hay un servidor al que llamar, el botón principal va al servidor.
+ * La demostración sigue estando, pero abajo y diciendo lo que es.
+ */
+function accionesDePortada() {
+  if (!apiDisponible()) {
+    return '<button class="btn oscuro" data-accion="ir" data-pantalla="linkedin">Continuar con LinkedIn</button>' +
       '<button class="btn" data-accion="google">Continuar con Google</button>' +
       '<div class="o-bien">o con tu teléfono</div>' +
       '<button class="btn primario" data-accion="ir" data-pantalla="crear">Crear cuenta</button>' +
-      '<button class="btn" data-accion="ir" data-pantalla="ingresar">Ya tengo cuenta</button>' +
-      '<p class="legal">Al continuar aceptás los términos y la política de privacidad.</p>' +
-    "</div></div>";
+      '<button class="btn" data-accion="ir" data-pantalla="ingresar">Ya tengo cuenta</button>';
+  }
+  return '<button class="btn primario" data-accion="ir" data-pantalla="servidor">Entrar con mi teléfono</button>' +
+    '<button class="btn oscuro" data-accion="linkedin-servidor">Continuar con LinkedIn</button>' +
+    '<button class="btn" data-accion="google">Continuar con Google</button>' +
+    '<div class="o-bien">o mirá cómo funciona</div>' +
+    '<button class="btn chico" data-accion="ir" data-pantalla="crear">Ver la demostración sin cuenta</button>';
+}
+
+/**
+ * Con servidor detrás, estas dos pantallas siguen siendo la demostración. Que
+ * lo digan arriba de todo, y que se pueda saltar al servidor de un toque.
+ */
+function cintaDemostracion() {
+  if (!apiDisponible()) return "";
+  return '<div class="tarjeta alerta"><h3 style="font-size:15px">Estás en la demostración</h3>' +
+    '<p class="guia" style="margin-top:6px">Lo que hagas acá se guarda sólo en este teléfono: nadie más lo ve. ' +
+    'Sirve para mirar cómo funciona la app.</p>' +
+    '<button class="btn primario chico" style="margin-top:10px" data-accion="ir" data-pantalla="servidor">Entrar de verdad</button></div>';
 }
 
 /* ---------- Ingresar ---------- */
 function vistaIngresar() {
   var b = vista.borrador || (vista.borrador = { paso: 1, telefono: "", esperado: "" });
   var h = '<button class="btn chico" style="width:auto" data-accion="ir" data-pantalla="portada">‹ Volver</button>';
+  h += cintaDemostracion();
   h += '<div class="tit"><span class="rotulo">Entrar</span><h2>Iniciar sesión</h2></div>';
 
   if (b.paso === 1) {
@@ -1392,6 +1487,7 @@ function vistaCrear() {
     paso: 1, nombre: "", telefono: "", zona: "centro", esperado: "", quiere: "AMBOS", formacion: "", linkedin: null
   });
   var h = '<button class="btn chico" style="width:auto" data-accion="ir" data-pantalla="portada">‹ Volver</button>';
+  h += cintaDemostracion();
   h += '<div class="tit"><span class="rotulo">Cuenta nueva</span><h2>Crear cuenta</h2></div>';
 
   if (b.paso === 1) {
@@ -1916,7 +2012,7 @@ function bloquePreguntas(t, u, soyCliente) {
     h += '<div style="margin-top:10px"><strong style="font-size:13.5px">' + esc(usuario(p.autorId).nombre.split(" ")[0]) + ': </strong>' +
       '<span style="font-size:13.5px">' + esc(p.texto) + "</span>";
     if (p.respuesta) h += '<div class="guia" style="margin-top:4px">↳ ' + esc(p.respuesta) + "</div>";
-    else if (soyCliente) h += '<div style="display:flex; gap:6px; margin-top:6px"><input data-respuesta-de="' + p.id + '" placeholder="Responder"><button class="btn chico" style="width:auto" data-accion="responder" data-id="' + p.id + '">Enviar</button></div>';
+    else if (soyCliente) h += '<div style="display:flex; gap:6px; margin-top:6px"><input data-respuesta-de="' + p.id + '" placeholder="Responder"><button class="btn chico" style="width:auto" data-accion="responder" data-id="' + p.id + '" data-tarea="' + t.id + '">Enviar</button></div>';
     h += "</div>";
   });
   if (!soyCliente) {
@@ -1954,6 +2050,7 @@ function vistaSaldo() {
     h += '<p class="guia" style="margin-top:8px">Todavía no tenés movimientos.</p>';
   }
   h += "</div>";
+  if (conectado()) h += cajaBanco() + cajaDeuda();
   if (movs.length) {
     h += '<div class="tarjeta plana"><div class="rotulo">Movimientos</div>';
     movs.forEach(function (m) {
@@ -1964,6 +2061,109 @@ function vistaSaldo() {
     });
     h += "</div>";
   }
+  return h;
+}
+
+/**
+ * La cuenta bancaria del trabajador.
+ *
+ * El servidor no acepta un retiro sin cuenta cargada ni sin identidad
+ * verificada, y tiene un mínimo. Antes la app mostraba «Retirar a mi cuenta» y
+ * bajaba el número en la pantalla sin pedir nunca una cuenta: el trabajador
+ * creía que le habían transferido. Ahora se muestran las mismas reglas que
+ * aplica el servidor, antes de apretar.
+ */
+function cajaBanco() {
+  var r = banca.retiros;
+  if (!r) {
+    return '<div class="tarjeta plana"><div class="rotulo">Cobrar</div>' +
+      '<p class="guia" style="margin-top:6px">Para cobrar hace falta tener el perfil de trabajador activo.</p></div>';
+  }
+
+  var h = '<div class="tarjeta"><div class="rotulo">Dónde te depositamos</div>';
+  if (r.banco) {
+    h += '<p style="margin-top:8px"><strong>' + esc(r.banco.nombre) + '</strong>' +
+      '<span class="guia mono" style="display:block;font-size:12px">termina en ' + esc(r.banco.ultimos4 || "") + '</span></p>' +
+      '<button class="btn chico" style="margin-top:10px" data-accion="editar-banco">Cambiar la cuenta</button>';
+  } else {
+    h += '<p class="guia" style="margin-top:6px">Todavía no cargaste una cuenta. Sin cuenta no podemos transferirte.</p>' +
+      '<button class="btn primario chico" style="margin-top:10px" data-accion="editar-banco">Cargar mi cuenta</button>';
+  }
+
+  if (vista.banco) {
+    var b = vista.banco;
+    h += '<div style="margin-top:14px">' +
+      '<label class="campo"><span>Banco</span><input id="b-banco" value="' + esc(b.bancoNombre || "") + '" placeholder="Banco de Chile"></label>' +
+      '<label class="campo" style="margin-top:8px"><span>Tipo de cuenta</span><select id="b-tipo">' +
+      ["CORRIENTE", "VISTA", "AHORRO", "RUT"].map(function (t) {
+        return '<option value="' + t + '"' + (b.tipoCuenta === t ? " selected" : "") + ">" + t.charAt(0) + t.slice(1).toLowerCase() + "</option>";
+      }).join("") + "</select></label>" +
+      '<label class="campo" style="margin-top:8px"><span>Número de cuenta</span><input id="b-numero" inputmode="numeric" value="' + esc(b.numero || "") + '"></label>' +
+      '<label class="campo" style="margin-top:8px"><span>Titular</span><input id="b-titular" value="' + esc(b.titular || "") + '" placeholder="Nombre y apellido"></label>' +
+      '<label class="campo" style="margin-top:8px"><span>RUT del titular</span><input id="b-rut" value="' + esc(b.rutTitular || "") + '" placeholder="12.345.678-9"></label>' +
+      '<div class="botonera" style="margin-top:12px">' +
+      '<button class="btn primario" data-accion="guardar-banco">Guardar la cuenta</button>' +
+      '<button class="btn chico" data-accion="cancelar-banco">Cancelar</button></div>' +
+      '<p class="legal" style="margin-top:8px">El número se guarda cifrado. En la app sólo se ven los últimos cuatro dígitos.</p></div>';
+  }
+
+  h += '<p class="guia" style="margin-top:12px">Retiro mínimo: ' + plata(r.minimo) + ".</p>";
+  h += "</div>";
+
+  var pendientes = (r.retiros || []).filter(function (x) { return x.estado === "SOLICITADO"; });
+  if (pendientes.length) {
+    h += '<div class="tarjeta alerta"><div class="rotulo">Retiro pedido</div>' +
+      '<p class="guia" style="margin-top:6px">Pediste ' + plata(pendientes[0].monto) +
+      ". Lo transferimos y te avisamos. Hasta entonces no se puede pedir otro.</p></div>";
+  }
+  if ((r.retiros || []).length) {
+    h += '<div class="tarjeta plana"><div class="rotulo">Tus retiros</div>';
+    r.retiros.slice(0, 10).forEach(function (x) {
+      h += '<div class="fila" style="margin-top:10px"><span class="k">' + esc(estadoDeRetiro(x.estado)) +
+        '<br><span class="mono" style="font-size:11px">' + hace(new Date(x.solicitadoEn).getTime()) + "</span></span>" +
+        '<span class="v">' + plata(x.monto) + "</span></div>";
+    });
+    h += "</div>";
+  }
+  return h;
+}
+
+function estadoDeRetiro(e) {
+  return { SOLICITADO: "Pedido, esperando la transferencia", PAGADO: "Transferido", RECHAZADO: "Rechazado" }[e] || e;
+}
+
+/** Lo que se debe de comisiones y con qué se paga. */
+function cajaDeuda() {
+  var d = banca.deudas;
+  if (!d || !d.deuda) return "";
+  var h = '<div class="tarjeta alerta"><div class="rotulo">Comisiones por pagar</div>' +
+    '<div class="monto-gigante" style="margin-top:4px;color:var(--ocre-tinta)">' + plata(d.deuda) + "</div>";
+  if (d.tarjeta) {
+    h += '<p class="guia" style="margin-top:8px">Se cobra a tu ' + esc(d.tarjeta.marca || "tarjeta") +
+      " terminada en " + esc(d.tarjeta.ultimos4 || "") + ".</p>" +
+      '<button class="btn chico" style="margin-top:8px" data-accion="editar-tarjeta">Cambiar la tarjeta</button>';
+  } else {
+    h += '<p class="guia" style="margin-top:8px">Todavía no dejaste una tarjeta. Sin tarjeta no podemos cobrar la comisión ' +
+      "de los trabajos que cobrás en efectivo.</p>" +
+      '<button class="btn primario chico" style="margin-top:8px" data-accion="editar-tarjeta">Guardar una tarjeta</button>';
+  }
+  if (vista.tarjeta) {
+    h += '<div style="margin-top:12px">' +
+      '<label class="campo"><span>Número de tarjeta</span>' +
+      '<input id="t-numero" inputmode="numeric" maxlength="19" placeholder="4242 4242 4242 4242"></label>' +
+      '<div class="botonera" style="margin-top:10px">' +
+      '<button class="btn primario" data-accion="guardar-tarjeta">Guardar</button>' +
+      '<button class="btn chico" data-accion="cancelar-tarjeta">Cancelar</button></div>' +
+      '<p class="legal" style="margin-top:8px">La tarjeta la guarda el banco, no nosotros: acá queda sólo una referencia.</p></div>';
+  }
+  if (d.intentosFallidos) {
+    h += '<p class="guia" style="margin-top:8px">Intentos rechazados: ' + d.intentosFallidos +
+      (d.ultimoError ? ". " + esc(d.ultimoError) : "") + "</p>";
+  }
+  if (d.tarjeta) {
+    h += '<button class="btn peligro" style="margin-top:10px" data-accion="pagar-deuda">Pagar ' + plata(d.deuda) + "</button>";
+  }
+  h += "</div>";
   return h;
 }
 
@@ -2167,7 +2367,7 @@ var PESTANAS = [
   { id: "saldo", ic: "◈", txt: "Saldo" },
   { id: "perfil", ic: "◍", txt: "Perfil" }
 ];
-var PUBLICAS = ["portada", "ingresar", "crear", "linkedin"];
+var PUBLICAS = ["portada", "ingresar", "crear", "linkedin", "servidor"];
 
 function render() {
   var app = document.getElementById("app");
@@ -2177,11 +2377,16 @@ function render() {
   if (db.sesionId && ["portada", "ingresar", "crear"].indexOf(vista.pantalla) >= 0) vista.pantalla = "inicio";
 
   // Sin sesión no hay app: primero la portada.
-  if (!db.sesionId || PUBLICAS.indexOf(vista.pantalla) >= 0) {
-    if (!db.sesionId && PUBLICAS.indexOf(vista.pantalla) === -1) vista.pantalla = "portada";
+  // Sin sesión sólo se ven las pantallas públicas. Con sesión abierta, la del
+  // servidor se dibuja adentro, con su barra y sus pestañas, y no como una
+  // pantalla de antes de entrar.
+  if (!db.sesionId) {
+    if (PUBLICAS.indexOf(vista.pantalla) === -1) vista.pantalla = "portada";
     if (vista.pantalla === "portada") { app.innerHTML = vistaPortada(); return; }
     var cuerpoPublico = vista.pantalla === "ingresar" ? vistaIngresar()
-      : vista.pantalla === "crear" ? vistaCrear() : vistaLinkedin();
+      : vista.pantalla === "crear" ? vistaCrear()
+      : vista.pantalla === "servidor" ? vistaServidor()
+      : vistaLinkedin();
     app.innerHTML =
       "<main>" + cuerpoPublico + "</main>";
     return;
@@ -2341,7 +2546,12 @@ function apiDisponible() {
 }
 
 function vistaServidor() {
-  var h = '<div class="tit"><span class="rotulo">Servidor</span><h2>Conectar con el servidor</h2></div>';
+  // Entrando desde la portada esta pantalla era un callejón sin salida: no
+  // había forma de volver sin cerrar la app.
+  var h = db.sesionId
+    ? ""
+    : '<button class="btn chico" style="width:auto" data-accion="ir" data-pantalla="portada">‹ Volver</button>';
+  h += '<div class="tit"><span class="rotulo">Servidor</span><h2>Entrar a Tareas</h2></div>';
 
   if (!apiDisponible()) {
     return h + '<div class="tarjeta"><h3 style="font-size:15px">Esta copia no está conectada</h3>' +
@@ -2446,6 +2656,12 @@ async function refrescarServidor() {
 
 var dbDemo = null;
 
+/**
+ * Lo que el servidor sabe de la plata de quien está adentro. Fuera del modo
+ * conectado queda en null y las pantallas usan las reglas de la demostración.
+ */
+var banca = { retiros: null, deudas: null, guardadas: [] };
+
 function conectado() {
   return apiDisponible() && window.Tareas.api.hayCuenta() && db && db.servidor === true;
 }
@@ -2478,7 +2694,7 @@ function usuarioDesdeServidor(yoRemoto, perfilRemoto) {
     telefonoOk: !!u.telefonoOk,
     bio: (p && p.bio) || "",
     radioKm: (p && p.radioKm) || 20,
-    guardados: [],
+    guardados: banca.guardadas || [],
     formacion: "",
     linkedin: null,
     doc: { numero: (identidad && identidad.ultimos4) || "", estado: (identidad && identidad.estado) || "SIN_ENVIAR" },
@@ -2573,19 +2789,43 @@ function tareaDesdeServidor(t) {
 }
 
 /** Trae todo de nuevo y lo deja donde las pantallas lo buscan. */
+/**
+ * Trae del servidor todo lo que la app dibuja.
+ *
+ * Dos cosas que importan más de lo que parecen:
+ *
+ *  - **los pedidos van todos juntos, no uno detrás de otro**. En fila eran casi
+ *    tres segundos de pantalla quieta cada vez que se tocaba algo; en paralelo
+ *    es el más lento de todos;
+ *  - **quien no es trabajador no pregunta por cosas de trabajador**. Saldo,
+ *    retiros y deuda no existen sin perfil: pedirlos igual era gastar tres
+ *    llamadas para recibir tres errores, y con el límite de pedidos eso se
+ *    terminaba notando.
+ */
 async function sincronizar() {
   var api = window.Tareas.api;
-  var yoRemoto = await api.yo();
-  var perfilRemoto = await api.perfil();
-  var mias = await api.misTareas();
+  var blando = function (promesa, siFalla) {
+    return promesa.catch(function () { return siFalla; });
+  };
 
-  var muro = { tareas: [] };
-  if (perfilRemoto.perfil) {
-    try { muro = await api.feed(); } catch (e) { muro = { tareas: [] }; }
-  }
+  var primero = await Promise.all([api.yo(), api.perfil(), api.misTareas()]);
+  var yoRemoto = primero[0], perfilRemoto = primero[1], mias = primero[2];
+  var esTrabajador = !!perfilRemoto.perfil;
 
-  var saldo = { movimientos: [] };
-  try { saldo = await api.saldo(); } catch (e) { /* sin perfil no hay saldo */ }
+  var segundo = await Promise.all([
+    esTrabajador ? blando(api.feed(), { tareas: [] }) : { tareas: [] },
+    esTrabajador ? blando(api.saldo(), { movimientos: [] }) : { movimientos: [] },
+    esTrabajador ? blando(api.retiros(), null) : null,
+    esTrabajador ? blando(api.deudas(), null) : null,
+    blando(api.guardadas(), { tareas: [] })
+  ]);
+
+  var muro = segundo[0];
+  var saldo = segundo[1];
+  // La plata tiene reglas que sólo sabe el servidor: el mínimo de retiro, si
+  // hay cuenta bancaria cargada, si quedó un retiro esperando, cuánto se debe y
+  // con qué tarjeta se cobra. La app no las inventa: las pregunta.
+  banca = { retiros: segundo[2], deudas: segundo[3], guardadas: segundo[4].tareas || [] };
 
   var yoApp = usuarioDesdeServidor(yoRemoto, perfilRemoto);
   var porId = {};
@@ -2654,6 +2894,8 @@ async function traerDetalle(tareaId) {
   var t = tarea(tareaId);
   if (!t) return;
   var completa = await window.Tareas.api.tarea(t.folio);
+  conocerA(completa.autor);
+  conocerA(completa.trabajador);
   var i = db.tareas.findIndex(function (x) { return x.id === tareaId; });
   if (i >= 0) db.tareas[i] = tareaDesdeServidor(completa);
   db.eventos = db.eventos.filter(function (e) { return e.tareaId !== tareaId; }).concat(
@@ -2664,6 +2906,85 @@ async function traerDetalle(tareaId) {
       };
     })
   );
+
+  // Preguntas y chat: se reemplazan los de esta tarea por los del servidor.
+  var fuera = function (x) { return x.tareaId !== tareaId; };
+  db.preguntas = db.preguntas.filter(fuera).concat(
+    (completa.preguntas || []).map(function (q) {
+      conocerA(q.autor);
+      return {
+        id: q.id, tareaId: tareaId, autorId: q.autorId, texto: q.texto,
+        respuesta: q.respuesta || "", cuando: new Date(q.creadoEn).getTime()
+      };
+    })
+  );
+  db.mensajes = db.mensajes.filter(fuera).concat(
+    (completa.mensajes || []).map(function (m) {
+      conocerA(m.autor);
+      return {
+        id: m.id, tareaId: tareaId, autorId: m.autorId, texto: m.texto,
+        cuando: new Date(m.creadoEn).getTime()
+      };
+    })
+  );
+}
+
+/**
+ * Deja anotado a quien escribió, si la app todavía no lo conocía. Sin esto la
+ * pantalla intenta dibujar el nombre de alguien que no está en la lista y se
+ * cae entera por una pregunta de un desconocido.
+ */
+function conocerA(resumen) {
+  if (!resumen || !resumen.id) return;
+  if (db.usuarios.some(function (x) { return x.id === resumen.id; })) return;
+  var nuevo = usuarioDeTarjeta(resumen);
+  if (nuevo) db.usuarios.push(nuevo);
+}
+
+/**
+ * Vuelve a pedir el muro mientras alguien lo está mirando.
+ *
+ * Sin esto, conectado, la pantalla se quedaba con los trabajos que había al
+ * entrar: alguien publicaba y el trabajador con la app abierta no se enteraba
+ * hasta cerrarla y abrirla. En un lugar donde gana el primero que lo ve, eso no
+ * es un detalle: es el producto.
+ *
+ * Sólo se vuelve a dibujar si algo cambió, para no mover la pantalla debajo del
+ * dedo de quien está leyendo.
+ */
+var refrescando = false;
+async function refrescarMuro() {
+  if (refrescando || !conectado()) return;
+  refrescando = true;
+  try {
+    var api = window.Tareas.api;
+    // Quien no es trabajador no tiene muro: pedirlo es un error garantizado
+    // cada doce segundos, y encima gasta el cupo de pedidos del minuto.
+    var hayMuro = yo() && yo().esTrabajador;
+    var huella = function () {
+      return db.tareas.map(function (t) { return t.id + ":" + t.estado; }).join("|");
+    };
+    var antes = huella();
+
+    var r = await Promise.all([hayMuro ? api.feed() : { tareas: [] }, api.misTareas()]);
+    var tareas = [], vistas = {};
+    var sumar = function (fila) {
+      if (vistas[fila.id]) return;
+      vistas[fila.id] = true;
+      tareas.push(tareaDesdeServidor(fila));
+      conocerA(fila.autor);
+      conocerA(fila.trabajador);
+    };
+    r[1].tareas.forEach(sumar);
+    r[0].tareas.forEach(sumar);
+    db.tareas = tareas.sort(function (a, b) { return b.publicadaEn - a.publicadaEn; });
+
+    if (huella() !== antes) render();
+  } catch (e) {
+    // Un refresco que no sale no tiene que romper la pantalla: se reintenta.
+  } finally {
+    refrescando = false;
+  }
 }
 
 /** Toda llamada al servidor pasa por acá: un solo lugar donde se dibuja el error. */
@@ -2809,7 +3130,19 @@ document.addEventListener("click", function (ev) {
     ir("portada");
     return;
   }
-  if (a === "google") {
+  if (a === "google" || a === "linkedin-servidor") {
+    // Con servidor detrás se intenta de verdad. Si faltan las credenciales del
+    // proveedor, el servidor lo dice y se muestra tal cual: es mejor que un
+    // botón que parece andar.
+    if (apiDisponible()) {
+      var cual = a === "google" ? "google" : "linkedin";
+      window.Tareas.api.proveedorListo(cual).then(function (listo) {
+        if (listo) { window.location.href = "/auth/" + cual; return; }
+        aviso("Todavía no está conectado " + (cual === "google" ? "Google" : "LinkedIn") +
+          ". Entrá con tu teléfono.", "mal");
+      });
+      return;
+    }
     aviso("Google todavía no está conectado en esta demostración: entrá con LinkedIn o con tu teléfono.");
     return;
   }
@@ -2908,6 +3241,16 @@ document.addEventListener("click", function (ev) {
   if (a === "publicar") { publicarDesdeFormulario(); return; }
   if (a === "guardar") {
     var uu = yo(), tid = el.dataset.id;
+    if (conectado()) {
+      conServidor(async function () {
+        var r = await window.Tareas.api.guardar(tid);
+        banca.guardadas = (await window.Tareas.api.guardadas()).tareas || [];
+        uu.guardados = banca.guardadas;
+        render();
+        aviso(r.guardada ? "Guardada para después" : "Sacada de guardados", "bien");
+      });
+      return;
+    }
     var i = uu.guardados.indexOf(tid);
     if (i >= 0) uu.guardados.splice(i, 1); else uu.guardados.push(tid);
     marcar(); guardar(); render();
@@ -2940,7 +3283,7 @@ document.addEventListener("click", function (ev) {
   if (a === "responder") {
     var r = document.querySelector('[data-respuesta-de="' + el.dataset.id + '"]');
     if (!r.value.trim()) return;
-    responder(el.dataset.id, r.value.trim());
+    responder(el.dataset.id, r.value.trim(), el.dataset.tarea);
     return;
   }
   if (a === "mensaje") {
@@ -2958,6 +3301,48 @@ document.addEventListener("click", function (ev) {
     return;
   }
   if (a === "pagar-deuda") { pagarDeuda(); return; }
+  if (a === "editar-banco") {
+    var actual = (banca.retiros && banca.retiros.banco) || {};
+    vista.banco = { bancoNombre: actual.nombre || "", tipoCuenta: "CORRIENTE", numero: "", titular: yo().nombre, rutTitular: "" };
+    render();
+    return;
+  }
+  if (a === "cancelar-banco") { vista.banco = null; render(); return; }
+  if (a === "editar-tarjeta") { vista.tarjeta = true; render(); return; }
+  if (a === "cancelar-tarjeta") { vista.tarjeta = null; render(); return; }
+  if (a === "guardar-tarjeta") {
+    var num = document.getElementById("t-numero").value.replace(/\D/g, "");
+    if (num.length < 13) return aviso("Ese número de tarjeta está incompleto", "mal");
+    conServidor(async function () {
+      // La app no manda el número: lo cambia por un token del proveedor. Acá,
+      // contra el entorno de prueba, el token se arma con los últimos cuatro.
+      await window.Tareas.api.guardarTarjeta("tok_ok_" + num.slice(-4));
+      vista.tarjeta = null;
+      await sincronizar();
+      aviso("Tarjeta guardada", "bien");
+    });
+    return;
+  }
+  if (a === "guardar-banco") {
+    var datos = {
+      bancoNombre: document.getElementById("b-banco").value.trim(),
+      tipoCuenta: document.getElementById("b-tipo").value,
+      numero: document.getElementById("b-numero").value.replace(/[^0-9A-Za-z-]/g, ""),
+      titular: document.getElementById("b-titular").value.trim(),
+      rutTitular: document.getElementById("b-rut").value.trim()
+    };
+    if (datos.bancoNombre.length < 3) return aviso("Escribí el nombre del banco", "mal");
+    if (datos.numero.length < 5) return aviso("Ese número de cuenta es muy corto", "mal");
+    if (datos.titular.length < 5) return aviso("Escribí el nombre completo del titular", "mal");
+    if (datos.rutTitular.replace(/\D/g, "").length < 7) return aviso("Ese RUT no parece válido", "mal");
+    conServidor(async function () {
+      await window.Tareas.api.guardarBanco(datos);
+      vista.banco = null;
+      await sincronizar();
+      aviso("Cuenta guardada", "bien");
+    });
+    return;
+  }
   if (a === "retirar") { retirar(); return; }
 
   /* --- perfil --- */
@@ -3083,11 +3468,51 @@ document.addEventListener("change", function (ev) {
   if (el.id === "f-trabajador") {
     var u = yo();
     u.esTrabajador = el.checked;
+    // Conectado, «quiero trabajar» es lo mismo que estar disponible: si sólo
+    // se marcaba acá, el trabajador quedaba invisible para el radar y no
+    // entendía por qué nunca le llegaba nada.
+    if (conectado()) {
+      conServidor(async function () {
+        await window.Tareas.api.disponibilidad(el.checked);
+        await sincronizar();
+        aviso(el.checked ? "Estás disponible para trabajar" : "Ya no te vamos a ofrecer trabajos", "bien");
+      });
+      return;
+    }
     marcar(); guardar(); render();
     return;
   }
-  if (el.id === "f-efectivo") { yo().aceptaEfectivo = el.checked; marcar(); guardar(); }
-  if (el.id === "f-antecedentes") { yo().antecedentes = el.checked; marcar(); guardar(); }
+  if (el.id === "f-efectivo") {
+    var ue = yo();
+    ue.aceptaEfectivo = el.checked;
+    if (conectado()) {
+      var pe = puntoDeZona(ue.zona);
+      conServidor(async function () {
+        await window.Tareas.api.guardarPerfil({
+          bio: ue.bio || undefined,
+          lat: pe.lat, lng: pe.lng, radioKm: ue.radioKm || 20,
+          rubros: ue.rubros.length ? ue.rubros : ["jardineria-corte-pasto"],
+          aceptaEfectivo: el.checked,
+          disponible: ue.esTrabajador !== false
+        });
+        await sincronizar();
+        aviso(el.checked ? "Vas a ver trabajos que se pagan en efectivo" : "No te vamos a ofrecer trabajos en efectivo", "bien");
+      });
+      return;
+    }
+    marcar(); guardar();
+    return;
+  }
+  if (el.id === "f-antecedentes") {
+    // El certificado de antecedentes lo valida soporte contra el papel, igual
+    // que el documento. Un interruptor que se marca solo no verifica nada.
+    if (conectado()) {
+      el.checked = yo().antecedentes === true;
+      return aviso("El certificado lo verifica soporte, no se activa solo.", "mal");
+    }
+    yo().antecedentes = el.checked; marcar(); guardar();
+    return;
+  }
 });
 
 /**
@@ -3198,8 +3623,23 @@ setInterval(function () {
   if (vista.pantalla !== "inicio" && vista.pantalla !== "tarea") return;
   var foco = document.activeElement;
   if (foco && ["INPUT", "TEXTAREA", "SELECT"].indexOf(foco.tagName) >= 0) return;
-  render();
+  // Suelto, el reloj es lo único que cambia: alcanza con volver a dibujar.
+  if (!conectado()) render();
 }, 5000);
+
+/* Conectado hay que ir a buscarlo: los trabajos nuevos están en el servidor. */
+setInterval(function () {
+  if (vista.pantalla !== "inicio") return;
+  if (document.hidden) return;
+  var foco = document.activeElement;
+  if (foco && ["INPUT", "TEXTAREA", "SELECT"].indexOf(foco.tagName) >= 0) return;
+  refrescarMuro();
+}, 12000);
+
+/* Y al volver a la app después de dejarla de lado, sin esperar los 12 segundos. */
+document.addEventListener("visibilitychange", function () {
+  if (!document.hidden && vista.pantalla === "inicio") refrescarMuro();
+});
 
 arrancar();
 render();

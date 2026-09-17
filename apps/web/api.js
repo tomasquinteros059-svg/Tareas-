@@ -162,6 +162,15 @@
     calificar: function (id, datos) {
       return pedir('POST', '/tareas/' + id + '/calificar', datos);
     },
+    responder: function (tareaId, preguntaId, texto) {
+      return pedir('POST', '/tareas/' + tareaId + '/preguntas/' + preguntaId + '/responder', { texto: texto });
+    },
+    guardadas: function () {
+      return pedir('GET', '/tareas/guardadas');
+    },
+    guardar: function (id) {
+      return pedir('POST', '/tareas/' + id + '/guardar');
+    },
 
     /* --- Plata del trabajador --- */
     retiros: function () {
@@ -176,6 +185,9 @@
     deudas: function () {
       return pedir('GET', '/deudas');
     },
+    guardarTarjeta: function (metodoPagoToken) {
+      return pedir('PUT', '/deudas/tarjeta', { metodoPagoToken: metodoPagoToken });
+    },
     pagarDeuda: function (metodoPagoToken) {
       return pedir('POST', '/deudas/pagar', metodoPagoToken ? { metodoPagoToken: metodoPagoToken } : {});
     },
@@ -189,6 +201,19 @@
     },
     disponibilidad: function (disponible) {
       return pedir('POST', '/perfil/disponibilidad', { disponible: disponible });
+    },
+
+    /**
+     * ¿Está configurado el proveedor? Se pregunta antes de mandar a alguien a
+     * una pantalla que va a terminar en un error del servidor.
+     */
+    proveedorListo: async function (proveedor) {
+      try {
+        var r = await fetch('/auth/' + proveedor, { method: 'GET', redirect: 'manual' });
+        return r.type === 'opaqueredirect' || r.status === 0 || (r.status >= 300 && r.status < 400);
+      } catch (e) {
+        return false;
+      }
     },
 
     /* --- Identidad --- */

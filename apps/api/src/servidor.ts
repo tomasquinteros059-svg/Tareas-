@@ -29,6 +29,19 @@ declare module '@fastify/jwt' {
   }
 }
 
+/**
+ * ¿Este pedido es un archivo de la app y no una llamada a la API?
+ *
+ * Se decide por la forma de la URL: si termina en una extensión conocida o es
+ * la raíz, es el reparto de la app. Cualquier otra cosa se cuenta.
+ */
+function esArchivoDeLaApp(metodo: string, url: string): boolean {
+  if (metodo !== 'GET' && metodo !== 'HEAD') return false;
+  const ruta = url.split('?')[0] ?? '';
+  if (ruta === '/' || ruta === '/index.html') return true;
+  return /\.(js|css|png|jpg|jpeg|svg|ico|webmanifest|json|woff2?|map|txt)$/.test(ruta);
+}
+
 export async function crearServidor(ctx: Contexto, env: Env): Promise<FastifyInstance> {
   const app = Fastify({
     logger: env.NODE_ENV === 'test' ? false : { level: 'info' },
@@ -97,7 +110,26 @@ export async function crearServidor(ctx: Contexto, env: Env): Promise<FastifyIns
     crossOriginEmbedderPolicy: false,
   });
   await app.register(jwt, { secret: env.JWT_SECRET, sign: { expiresIn: '30d' } });
-  await app.register(rateLimit, { max: 120, timeWindow: '1 minute' });
+  /*
+   * El límite de pedidos protege la API, no el reparto de la propia app.
+   *
+   * Contando los archivos estáticos pasaba esto: abrir la app son ocho pedidos
+   * (el HTML, el programa, el estilo, los iconos, el manifiesto), y cada
+   * pantalla que se mira son unos cuantos más. A los pocos minutos de uso
+   * normal el trabajador chocaba con "estás yendo muy rápido" y la app dejaba
+   * de responder, sin haber hecho nada raro. Un límite que castiga a quien usa
+   * bien la app no protege: molesta.
+   *
+   * Entonces: los archivos de la app quedan afuera de la cuenta, y para la API
+   * el techo sube a 300 por minuto, que sigue siendo muy por debajo de lo que
+   * hace falta para raspar el muro y muy por encima de lo que gasta alguien
+   * usando la app.
+   */
+  await app.register(rateLimit, {
+    max: 300,
+    timeWindow: '1 minute',
+    allowList: (req) => esArchivoDeLaApp(req.method, req.url),
+  });
 
   app.decorateRequest('usuarioId', function (this: FastifyRequest) {
     const sub = this.user?.sub;

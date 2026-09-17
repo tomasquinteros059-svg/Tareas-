@@ -316,6 +316,21 @@ export async function registrarRutas(app: FastifyInstance, ctx: Contexto) {
       return ctx.tareas.preguntar(id, req.usuarioId(), texto);
     });
 
+    privadas.post('/tareas/:id/preguntas/:preguntaId/responder', async (req) => {
+      const { id, preguntaId } = z
+        .object({ id: z.string().uuid(), preguntaId: z.string().uuid() })
+        .parse(req.params);
+      const { texto } = z.object({ texto: z.string().min(1).max(500) }).parse(req.body);
+      return ctx.tareas.responder(id, preguntaId, req.usuarioId(), texto);
+    });
+
+    privadas.get('/tareas/guardadas', async (req) => ctx.tareas.guardadas(req.usuarioId()));
+
+    privadas.post('/tareas/:id/guardar', async (req) => {
+      const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+      return ctx.tareas.guardar(id, req.usuarioId());
+    });
+
     privadas.post('/tareas/:id/mensajes', async (req) => {
       const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
       const { texto } = z.object({ texto: z.string().min(1).max(2000) }).parse(req.body);

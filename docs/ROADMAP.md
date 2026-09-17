@@ -1,6 +1,6 @@
 # Qué falta para lanzar
 
-Estado al 14 de septiembre de 2026. Lo de arriba bloquea el lanzamiento; lo de
+Estado al 17 de septiembre de 2026. Lo de arriba bloquea el lanzamiento; lo de
 abajo se puede hacer con la app ya en la calle.
 
 ---
@@ -57,7 +57,23 @@ abajo se puede hacer con la app ya en la calle.
 - **Los precios salen de la moneda de la instalación**: con `CLP`, el piso de
   cada oficio es el chileno. Antes se validaba siempre contra la tabla en
   dólares y una tarea pasaba el mínimo por diez veces menos de lo que vale.
-- 298 pruebas automáticas.
+- **La app entra al servidor por la puerta de adelante**: con un servidor
+  detrás, el botón grande de la portada lleva al ingreso real. Antes ese botón
+  creaba una cuenta inventada en el teléfono y la puerta de verdad estaba
+  escondida al fondo del perfil: se podía usar la app entera creyendo que
+  funcionaba sin que nada existiera para nadie más.
+- **Retiro al banco, pago de la deuda y reclamo, contra el servidor**, con las
+  reglas que el servidor aplica a la vista antes de apretar: cuenta bancaria
+  cargada, retiro mínimo, tarjeta para cobrar la comisión.
+- **El muro se actualiza solo** mientras se lo mira, y al volver a la app. En un
+  lugar donde gana el primero que lo ve, un muro congelado no es un detalle.
+- **Preguntas y chat viajan con el trabajo**: se puede responder una pregunta
+  (antes no había por dónde) y lo que se escribe se ve al volver a la pantalla.
+- **La estrella de guardar vive en la cuenta**, no en el teléfono.
+- **El límite de pedidos no cuenta los archivos de la app**: contándolos, el uso
+  normal chocaba con "estás yendo muy rápido" a los pocos minutos.
+- 336 pruebas automáticas, más un QA funcional que recorre la app con un
+  navegador de verdad, botón por botón, contra un servidor real.
 
 ## Bloquea el lanzamiento
 
@@ -74,14 +90,17 @@ credenciales de prueba primero y de producción después. Y decidir quién absor
 un contracargo cuando el trabajo ya se hizo y al trabajador ya se le pagó.
 
 ### 3. Probar la app conectada en teléfonos de verdad
-La app ya opera contra el servidor: en **Perfil → Conectar con el servidor** se
-entra con el teléfono y un código real, y de ahí en más publicar, tomar,
-ejecutar, confirmar y cobrar son del servidor. La demostración de este teléfono
+La app ya opera contra el servidor: el botón **«Entrar con mi teléfono»** de la
+portada pide un código real, y de ahí en más publicar, tomar, ejecutar,
+confirmar y cobrar son del servidor. La demostración de este teléfono
 queda guardada aparte y vuelve intacta al salir.
 
-Lo que falta es probarlo fuera del escritorio: Android, iPhone, señal mala, y
-las pantallas que todavía no se movieron —retiros, pago de la deuda de
-comisiones y la disputa— que siguen siendo locales.
+Ya no queda ninguna pantalla que cambie un número en el teléfono y le haga
+creer al usuario que pasó algo: retiros, pago de la deuda de comisiones y el
+reclamo llaman al servidor, y hay pruebas que fallan si alguien agrega una
+pantalla de plata sin su rama conectada.
+
+Lo que falta es probarlo fuera del escritorio: Android, iPhone, señal mala.
 
 Y hay una consecuencia de producto para mirar: el servidor exige identidad
 verificada para tomar un trabajo —correctamente—, así que hasta que la

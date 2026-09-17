@@ -565,7 +565,27 @@ export class ServicioTareas {
     if (!esFolioValido(folio)) throw invalido('FOLIO_INVALIDO', 'El folio no tiene el formato TQ-AAMMDD-XXXX');
     const tarea = await this.prisma.tarea.findUnique({
       where: { folio: normalizarFolio(folio) },
-      include: { eventos: { orderBy: { creadoEn: 'asc' } }, pago: true },
+      include: {
+        eventos: { orderBy: { creadoEn: 'asc' } },
+        pago: true,
+        // Quién publicó y quién lo tomó. Sin esto la app recibía una tarea con
+        // el id de un trabajador del que no sabía nada y se caía al dibujar su
+        // nombre: el cliente abría su trabajo ya aceptado y la app se rompía.
+        autor: { select: RESUMEN_PERSONA },
+        trabajador: { select: RESUMEN_PERSONA },
+        // Las preguntas y el chat viajan con el detalle. Sin esto la app
+        // mandaba la pregunta, el servidor la guardaba, y al volver a dibujar
+        // la pantalla no había nada: parecía que se hubiera perdido.
+        preguntas: {
+          orderBy: { creadoEn: 'asc' },
+          include: { autor: { select: { id: true, nombre: true } } },
+        },
+        mensajes: {
+          orderBy: { creadoEn: 'asc' },
+          take: 200,
+          include: { autor: { select: { id: true, nombre: true } } },
+        },
+      },
     });
     if (!tarea) throw noEncontrado('La tarea');
 
@@ -575,7 +595,17 @@ export class ServicioTareas {
         miradoPor.usuarioId === tarea.trabajadorId ||
         miradoPor.roles.includes('SOPORTE') ||
         miradoPor.roles.includes('ADMIN'));
-    return esParte ? tarea : sinDireccionExacta(tarea);
+
+    // El chat es privado entre las dos partes: a un tercero que mira el aviso
+    // no le corresponde leerlo. Las preguntas sí son públicas, para que nadie
+    // vuelva a preguntar lo mismo.
+    const conPersonas = {
+      ...tarea,
+      autor: resumir(tarea.autor),
+      trabajador: resumir(tarea.trabajador),
+    };
+    if (esParte) return conPersonas;
+    return { ...sinDireccionExacta(conPersonas), mensajes: [] };
   }
 
   /** Pregunta previa a la asignación, con cupo por trabajador. */
@@ -596,6 +626,59 @@ export class ServicioTareas {
     }
     await this.antifraude?.revisarPregunta(tareaId, autorId, texto);
     return this.prisma.pregunta.create({ data: { tareaId, autorId, texto } });
+  }
+
+  /**
+   * La respuesta de quien publicó. Sin esto la pregunta es un buzón sin fondo:
+   * el trabajador escribe, nadie contesta, y la tarea se cae sola.
+   *
+   * La respuesta es pública para todos los candidatos a propósito. Si diez
+   * personas van a preguntar lo mismo, el cliente lo contesta una vez.
+   */
+  async responder(tareaId: string, preguntaId: string, autorId: string, texto: string) {
+    const [tarea, pregunta] = await Promise.all([
+      this.prisma.tarea.findUnique({ where: { id: tareaId } }),
+      this.prisma.pregunta.findUnique({ where: { id: preguntaId } }),
+    ]);
+    if (!tarea) throw noEncontrado('La tarea');
+    if (!pregunta || pregunta.tareaId !== tareaId) throw noEncontrado('La pregunta');
+    if (tarea.autorId !== autorId) throw sinPermiso('Sólo quien publicó la tarea puede responder');
+
+    return this.prisma.pregunta.update({
+      where: { id: preguntaId },
+      data: { respuesta: texto, respondidaEn: new Date(), publica: true },
+    });
+  }
+
+  /**
+   * Guardar un trabajo para después. Es un interruptor: si ya estaba guardado,
+   * se saca. Vive en el servidor y no en el teléfono porque alguien que cambia
+   * de teléfono no espera perder su lista.
+   */
+  async guardar(tareaId: string, usuarioId: string) {
+    const tarea = await this.prisma.tarea.findUnique({ where: { id: tareaId } });
+    if (!tarea) throw noEncontrado('La tarea');
+
+    const ya = await this.prisma.tareaGuardada.findUnique({
+      where: { usuarioId_tareaId: { usuarioId, tareaId } },
+    });
+    if (ya) {
+      await this.prisma.tareaGuardada.delete({ where: { id: ya.id } });
+      return { guardada: false };
+    }
+    await this.prisma.tareaGuardada.create({ data: { usuarioId, tareaId } });
+    return { guardada: true };
+  }
+
+  /** Los ids que tiene guardados, para pintar la estrella llena en el muro. */
+  async guardadas(usuarioId: string) {
+    const filas = await this.prisma.tareaGuardada.findMany({
+      where: { usuarioId },
+      select: { tareaId: true },
+      orderBy: { creadoEn: 'desc' },
+      take: 200,
+    });
+    return { tareas: filas.map((f) => f.tareaId) };
   }
 
   /** Chat privado, sólo entre las dos partes y sólo con la tarea en curso. */

@@ -129,6 +129,7 @@ model Usuario {
   suscripciones  SuscripcionPush[]
   codigosOtp     CodigoOtp[]
 
+  tareasGuardadas TareaGuardada[]
   @@index([telefono])
 }
 
@@ -343,6 +344,7 @@ model Tarea {
   pago             Pago?
   movimientos      MovimientoSaldo[]
 
+  guardadaPor     TareaGuardada[]
   @@index([estado, publicadaEn])
   /// El radar busca por rectángulo de coordenadas: sin este índice, cada feed
   /// recorre la tabla entera.
@@ -568,4 +570,18 @@ model CodigoOtp {
   creadoEn   DateTime @default(now())
 
   @@index([telefono, creadoEn])
+}
+
+/// Trabajos que alguien marcó con la estrella para volver después. Es una lista
+/// de la cuenta y no del teléfono: cambiar de aparato no debería perderla.
+model TareaGuardada {
+  id        String   @id @default(uuid())
+  usuarioId String
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  tareaId   String
+  tarea     Tarea    @relation(fields: [tareaId], references: [id], onDelete: Cascade)
+  creadoEn  DateTime @default(now())
+
+  @@unique([usuarioId, tareaId])
+  @@index([usuarioId])
 }
