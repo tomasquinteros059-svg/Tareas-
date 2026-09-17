@@ -80,25 +80,59 @@ jobs:
       # La publicación es lo que da un enlace fijo para descargar desde el
       # teléfono. Se reescribe en cada compilación para que "la última" sea
       # siempre la misma dirección.
+      #
+      # Va por la API y no por la herramienta de línea de comandos: la primera
+      # versión de esto se colgaba en ese paso sin decir por qué, y un taller
+      # que se cuelga es peor que uno que falla.
       - name: Publicar para descargar
         env:
           GH_TOKEN: ${{ github.token }}
+          APK: ${{ steps.apk.outputs.nombre }}
+          PESO: ${{ steps.apk.outputs.peso }}
         run: |
-          etiqueta="apk-ultima"
-          gh release delete "$etiqueta" --yes --cleanup-tag 2>/dev/null || true
-          gh release create "$etiqueta" "entrega/${{ steps.apk.outputs.nombre }}" \
-            --target "$GITHUB_SHA" \
-            --title "Tareas · última APK de prueba" \
-            --notes "APK de prueba construida desde \`${GITHUB_REF_NAME}\` (\`${GITHUB_SHA::7}\`), ${{ steps.apk.outputs.peso }}.
+          set -euo pipefail
+          api="https://api.github.com/repos/$GITHUB_REPOSITORY"
+          auth=(-H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json")
+          etiqueta=apk-ultima
 
-          **Cómo instalarla**
+          # Borrar lo que haya quedado de la vez anterior. Se listan todas y se
+          # filtran por etiqueta en vez de pedirla por nombre, porque una
+          # publicación a medio hacer queda como borrador y a esas no se llega
+          # por la etiqueta: quedarían acumulándose sin que nadie las vea.
+          viejas=$(curl -fsSL "${auth[@]}" "$api/releases?per_page=100" \
+            | jq -r --arg tag "$etiqueta" '.[] | select(.tag_name == $tag) | .id')
+          for vieja in $viejas; do
+            curl -fsS -X DELETE "${auth[@]}" "$api/releases/$vieja"
+          done
+          curl -sS -o /dev/null -X DELETE "${auth[@]}" "$api/git/refs/tags/$etiqueta" || true
 
-          1. Abrí este enlace desde el teléfono Android y bajá el archivo \`.apk\`.
-          2. Android va a avisar que la app no viene de la tienda: hay que darle permiso para instalar desde el navegador. Es normal en una app de prueba.
-          3. Se instala como *Tareas*.
+          notas=$(cat <<TEXTO
+          APK de prueba construida desde \`$GITHUB_REF_NAME\` (\`${GITHUB_SHA::7}\`), $PESO.
 
-          **Qué vas a ver al abrirla**
+          ## Cómo instalarla
 
-          Arranca en la **demostración**: la app entera con datos de ejemplo guardados en el teléfono. Sirve para probar el diseño, los textos, el tamaño de los botones y el recorrido completo.
+          1. Abrí esta página **desde el teléfono Android** y tocá el archivo \`.apk\` de abajo.
+          2. Android va a avisar que la app no viene de la tienda. Hay que darle permiso al navegador para instalar. Es lo normal en una app de prueba.
+          3. Queda instalada como **Tareas**.
 
-          Para usarla contra un servidor de verdad hay que entrar a **Perfil → Conectar con el servidor**, escribir la dirección del servidor y guardarla. La app la comprueba antes de aceptarla."
+          ## Qué vas a ver
+
+          Arranca en la **demostración**: la app entera con datos de ejemplo guardados en el teléfono, sin señal y sin servidor. Sirve para probar el diseño, los textos, el tamaño de los botones y el recorrido completo de un trabajo.
+
+          Para usarla contra un servidor de verdad: **Perfil → Conectar con el servidor**, escribir la dirección y guardarla. La app la comprueba antes de aceptarla, así que una dirección mal escrita avisa en el momento.
+          TEXTO
+          )
+          cuerpo=$(jq -n --arg tag "$etiqueta" --arg sha "$GITHUB_SHA" --arg notas "$notas" \
+            '{tag_name:$tag, target_commitish:$sha, name:"Tareas · última APK de prueba", body:$notas, draft:false, prerelease:false, make_latest:"true"}')
+
+          subida=$(curl -fsSL -X POST "${auth[@]}" -d "$cuerpo" "$api/releases")
+          id=$(printf '%s' "$subida" | jq -r '.id')
+          enlace=$(printf '%s' "$subida" | jq -r '.html_url')
+
+          curl -fsS -X POST "${auth[@]}" \
+            -H "Content-Type: application/vnd.android.package-archive" \
+            --data-binary @"entrega/$APK" \
+            "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$id/assets?name=$APK" > /dev/null
+
+          echo "APK publicada: $enlace"
+          echo "### APK lista · [$APK]($enlace)" >> "$GITHUB_STEP_SUMMARY"
