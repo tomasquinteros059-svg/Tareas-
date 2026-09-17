@@ -35,6 +35,9 @@ declare module '@fastify/jwt' {
  * Se decide por la forma de la URL: si termina en una extensión conocida o es
  * la raíz, es el reparto de la app. Cualquier otra cosa se cuenta.
  */
+/** El origen desde el que llama la app empaquetada para Android (Capacitor). */
+const ORIGEN_APP_ANDROID = 'https://localhost';
+
 function esArchivoDeLaApp(metodo: string, url: string): boolean {
   if (metodo !== 'GET' && metodo !== 'HEAD') return false;
   const ruta = url.split('?')[0] ?? '';
@@ -66,6 +69,10 @@ export async function crearServidor(ctx: Contexto, env: Env): Promise<FastifyIns
   if (env.NODE_ENV === 'production' && origenes.length === 0) {
     throw new Error('En producción hay que declarar CORS_ORIGINS con los dominios de la app');
   }
+  // La app de Android corre adentro del teléfono y su origen es siempre este.
+  // Sin él, la APK llega al servidor y el navegador le tira la respuesta a la
+  // basura: se ve como "no hay conexión" y no hay forma de adivinar por qué.
+  if (origenes.length && !origenes.includes(ORIGEN_APP_ANDROID)) origenes.push(ORIGEN_APP_ANDROID);
   await app.register(cors, { origin: origenes.length ? origenes : true, credentials: true });
 
   /*

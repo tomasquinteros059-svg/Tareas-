@@ -108,6 +108,42 @@ describe('el muro conectado se mira solo', () => {
   });
 });
 
+describe('la app empaquetada para Android', () => {
+  it('sabe que adentro de la APK no hay un servidor en su propia dirección', () => {
+    // Sin esto la APK mostraba "Entrar con mi teléfono" y cada llamada moría
+    // contra el aire: el mismo error que sacamos de todas las demás pantallas,
+    // pero de fábrica.
+    expect(API).toContain('window.Capacitor');
+    expect(API).toContain('servidorPropio');
+    expect(API).toMatch(/configurable:\s*enUnaApp/);
+  });
+
+  it('toda llamada sale por la dirección configurada, no por una ruta pelada', () => {
+    // Una sola llamada que se olvide de `direccion()` funciona en la web y
+    // falla sólo dentro de la APK, que es donde nadie la va a estar mirando.
+    const sueltas = [...API.matchAll(/fetch\((?!direccion\()([^)]*)\)/g)]
+      .map((m) => m[1]!.trim())
+      // La única excepción legítima: la prueba de una dirección que todavía no
+      // se guardó, que por definición no puede salir por la guardada.
+      .filter((llamada) => !llamada.startsWith("limpia + '/salud'"));
+    expect(sueltas, 'fetch sin direccion()').toEqual([]);
+  });
+
+  it('una dirección se comprueba antes de guardarse', () => {
+    const cuerpo = API.slice(API.indexOf('fijarServidor:'), API.indexOf('fijarServidor:') + 1600);
+    expect(cuerpo).toContain("'/salud'");
+    expect(cuerpo).toContain('NO_ES_TAREAS');
+  });
+
+  it('el servidor deja entrar al origen de la app de Android', () => {
+    // Sin esto la APK llega al servidor y el navegador descarta la respuesta:
+    // se ve como "no hay conexión" y no hay forma de adivinar por qué.
+    const servidor = readFileSync(new URL('../servidor.ts', import.meta.url), 'utf8');
+    expect(servidor).toContain("ORIGEN_APP_ANDROID = 'https://localhost'");
+    expect(servidor).toContain('origenes.push(ORIGEN_APP_ANDROID)');
+  });
+});
+
 describe('la campana y la salida', () => {
   it('los avisos que muestra la campana vienen del servidor', () => {
     // Conectada, la campana leía una lista local que nadie llenaba: estaba

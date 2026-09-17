@@ -1423,7 +1423,7 @@ function vistaPortada() {
  * La demostración sigue estando, pero abajo y diciendo lo que es.
  */
 function accionesDePortada() {
-  if (!apiDisponible()) {
+  if (!apiDisponible() && !apiConfigurable()) {
     return '<button class="btn oscuro" data-accion="ir" data-pantalla="linkedin">Continuar con LinkedIn</button>' +
       '<button class="btn" data-accion="google">Continuar con Google</button>' +
       '<div class="o-bien">o con tu teléfono</div>' +
@@ -2561,6 +2561,44 @@ function apiDisponible() {
   return !!(window.Tareas && window.Tareas.api && window.Tareas.api.disponible);
 }
 
+/**
+ * La dirección del servidor, sólo dentro de la APK.
+ *
+ * En la web instalable el servidor es el mismo de donde salió la página y no
+ * hay nada que preguntar. En la APK la app está adentro del teléfono: sin esta
+ * dirección, "Entrar con mi teléfono" no puede funcionar, por más que el botón
+ * esté ahí.
+ */
+function cajaDireccionDelServidor() {
+  var actual = window.Tareas.api.servidor();
+  var h = '<div class="tarjeta"><div class="rotulo">Servidor</div>';
+  if (actual) {
+    h += '<p style="margin-top:8px"><strong class="mono" style="font-size:13px">' + esc(actual) + "</strong></p>" +
+      '<p class="guia" style="margin-top:6px">Esta app le habla a ese servidor.</p>';
+  } else {
+    h += '<p class="guia" style="margin-top:6px">Esta app todavía no apunta a ningún servidor. ' +
+      "Escribí la dirección donde está instalado Tareas y la probamos antes de guardarla.</p>";
+  }
+  h += '<label class="campo" style="margin-top:10px"><span>Dirección</span>' +
+    '<input id="s-base" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" ' +
+    'placeholder="tareas.cl" value="' + esc(actual) + '"></label>' +
+    '<div class="botonera" style="margin-top:10px">' +
+    '<button class="btn primario" data-accion="guardar-base">Probar y guardar</button>' +
+    (actual ? '<button class="btn chico" data-accion="borrar-base">Desconectar</button>' : "") +
+    "</div>";
+  if (!actual) {
+    h += '<p class="legal" style="margin-top:10px">Mientras tanto podés recorrer la demostración: ' +
+      "es la app entera, con datos de ejemplo guardados en este teléfono.</p>";
+  }
+  h += "</div>";
+  return h;
+}
+
+/** Adentro de la APK hay que decirle a qué servidor hablarle. */
+function apiConfigurable() {
+  return !!(window.Tareas && window.Tareas.api && window.Tareas.api.configurable);
+}
+
 function vistaServidor() {
   // Entrando desde la portada esta pantalla era un callejón sin salida: no
   // había forma de volver sin cerrar la app.
@@ -2569,12 +2607,17 @@ function vistaServidor() {
     : '<button class="btn chico" style="width:auto" data-accion="ir" data-pantalla="portada">‹ Volver</button>';
   h += '<div class="tit"><span class="rotulo">Servidor</span><h2>Entrar a Tareas</h2></div>';
 
-  if (!apiDisponible()) {
+  if (!apiDisponible() && !apiConfigurable()) {
     return h + '<div class="tarjeta"><h3 style="font-size:15px">Esta copia no está conectada</h3>' +
       '<p class="guia" style="margin-top:8px">Estás viendo el archivo suelto, abierto con doble clic: acá no hay ningún servidor al que llamar, ' +
       'y todo lo que hacés se guarda en este dispositivo.</p>' +
       '<p class="guia" style="margin-top:8px">Para usar la versión conectada hay que abrirla desde la dirección donde está instalada la app.</p></div>';
   }
+
+  // En la APK la app vive adentro del teléfono: no hay ningún servidor en su
+  // propia dirección, así que hay que escribirla una vez.
+  if (apiConfigurable()) h += cajaDireccionDelServidor();
+  if (!apiDisponible()) return h;
 
   var api = window.Tareas.api;
 
@@ -3111,6 +3154,26 @@ document.addEventListener("click", function (ev) {
   if (a === "resolver") { resolverDisputa(el.dataset.id, el.dataset.favor === "trabajador"); return; }
 
   /* --- modo conectado --- */
+  if (a === "guardar-base") {
+    var dir = document.getElementById("s-base").value.trim();
+    if (!dir) return aviso("Escribí la dirección del servidor", "mal");
+    conServidor(async function () {
+      var quedo = await window.Tareas.api.fijarServidor(dir);
+      servidor = { paso: "inicio", telefono: "", cargando: false, error: "", yo: null, feed: null, avisos: "" };
+      volverALaDemostracion();
+      aviso("Conectada a " + quedo + ". Ya podés entrar con tu teléfono.", "bien");
+    });
+    return;
+  }
+  if (a === "borrar-base") {
+    conServidor(async function () {
+      await window.Tareas.api.fijarServidor("");
+      servidor = { paso: "inicio", telefono: "", cargando: false, error: "", yo: null, feed: null, avisos: "" };
+      volverALaDemostracion();
+      aviso("Desconectada. Seguís con la demostración de este teléfono.", "bien");
+    });
+    return;
+  }
   if (a === "servidor-volver") { servidor.paso = "inicio"; servidor.error = ""; render(); return; }
   if (a === "servidor-codigo") {
     var tel = document.getElementById("s-tel").value.trim();

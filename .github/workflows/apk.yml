@@ -1,0 +1,104 @@
+# Construye la APK de Android y la deja para descargar.
+#
+# Por qué acá y no en la máquina de desarrollo: compilar para Android baja el
+# SDK de Google, y no todas las redes lo dejan pasar. Los servidores de GitHub
+# ya lo traen puesto. El resultado queda en una publicación («release») con un
+# enlace fijo, que es lo que se le puede pasar a alguien para que la instale.
+#
+# La APK es de depuración, firmada con la clave de prueba de Android: sirve para
+# instalarla a mano y probarla, no para subirla a Google Play.
+name: APK de Android
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'apps/demo-app.html'
+      - 'apps/web/**'
+      - 'apps/movil/**'
+      - '.github/workflows/apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  construir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Armar la app instalable
+        run: node apps/web/construir.mjs
+
+      - name: Instalar Capacitor
+        working-directory: apps/movil
+        run: npm ci
+
+      - name: Crear el proyecto de Android
+        working-directory: apps/movil
+        run: npx cap add android
+
+      - name: Copiar la app adentro
+        working-directory: apps/movil
+        run: npx cap sync android
+
+      - name: Compilar la APK
+        working-directory: apps/movil/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Ponerle un nombre que se entienda
+        id: apk
+        run: |
+          mkdir -p entrega
+          origen=apps/movil/android/app/build/outputs/apk/debug/app-debug.apk
+          test -f "$origen" || { echo "No se generó la APK"; exit 1; }
+          nombre="tareas-$(date -u +%Y%m%d)-${GITHUB_SHA::7}.apk"
+          cp "$origen" "entrega/$nombre"
+          echo "nombre=$nombre" >> "$GITHUB_OUTPUT"
+          echo "peso=$(du -h "entrega/$nombre" | cut -f1)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: entrega/*.apk
+          retention-days: 30
+
+      # La publicación es lo que da un enlace fijo para descargar desde el
+      # teléfono. Se reescribe en cada compilación para que "la última" sea
+      # siempre la misma dirección.
+      - name: Publicar para descargar
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          etiqueta="apk-ultima"
+          gh release delete "$etiqueta" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$etiqueta" "entrega/${{ steps.apk.outputs.nombre }}" \
+            --target "$GITHUB_SHA" \
+            --title "Tareas · última APK de prueba" \
+            --notes "APK de prueba construida desde \`${GITHUB_REF_NAME}\` (\`${GITHUB_SHA::7}\`), ${{ steps.apk.outputs.peso }}.
+
+          **Cómo instalarla**
+
+          1. Abrí este enlace desde el teléfono Android y bajá el archivo \`.apk\`.
+          2. Android va a avisar que la app no viene de la tienda: hay que darle permiso para instalar desde el navegador. Es normal en una app de prueba.
+          3. Se instala como *Tareas*.
+
+          **Qué vas a ver al abrirla**
+
+          Arranca en la **demostración**: la app entera con datos de ejemplo guardados en el teléfono. Sirve para probar el diseño, los textos, el tamaño de los botones y el recorrido completo.
+
+          Para usarla contra un servidor de verdad hay que entrar a **Perfil → Conectar con el servidor**, escribir la dirección del servidor y guardarla. La app la comprueba antes de aceptarla."
